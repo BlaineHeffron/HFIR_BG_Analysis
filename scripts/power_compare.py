@@ -8,6 +8,7 @@ from ntpath import basename
 pwr = {10: [17, 19], 30: [20], 50: [21], 70: [22], 90: [23], 100: [28]}
 ENERGY_RANGES = [i * 400. + 50. for i in range(10)]
 RANGE_LABELS = ["{0} - {1}".format(ENERGY_RANGES[i], ENERGY_RANGES[i + 1]) for i in range(len(ENERGY_RANGES) - 1)]
+datadir = '/home/bheffron/projects/HFIR_BG/data/'
 
 
 def find_power(n):
@@ -91,9 +92,12 @@ def plot_power_spectra(files):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("data", help="path to data")
+    parser.add_argument("--data", help="path to data")
     args = parser.parse_args()
-    files = retrieve_files(args.data)
+    if not args.data:
+        files = retrieve_files(datadir)
+    else:
+        files = retrieve_files(args.data)
     plot_power_spectra(files)
     pwr, lt = retrieve_power_data(ENERGY_RANGES, files)
     plot_power_data(pwr, lt)

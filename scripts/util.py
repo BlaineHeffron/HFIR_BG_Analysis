@@ -19,6 +19,17 @@ class SpectrumData:
         self.A0 = A0
         self.A1 = A1
 
+    def add(self, s):
+        if s.A0 != self.A0 or s.A1 != self.A1:
+            raise ValueError("error: spectrum  addition not possible without rebinning")
+        self.data += s.data
+        self.live += s.live
+
+def subtract_spectra(s1, s2):
+    if s1.A0 != s2.A0 or s1.A1 != s2.A1:
+        raise ValueError("error: spectrum  addition not possible without rebinning")
+    return SpectrumData(((s1.data/s1.live) - (s2.data/s2.live))*s1.live, s1.start, s1.live, s1.A0, s1.A1)
+
 
 def retrieve_spectra_and_files(n, datadir):
     fs = retrieve_files(datadir)
@@ -122,15 +133,42 @@ def populate_data(data_dict, data_dir):
         if isinstance(data_dict[key], list):
             out[key] = []
             for n in data_dict[key]:
-                out[key].append(retrieve_spectra(n), fs)
+                out[key].append(retrieve_spectra(n, fs))
         else:
             out[key] = retrieve_spectra(data_dict[key], fs)
     return out
 
-def plot_subtract_spectra(fdict, compare_name, fname, rebin=1):
+def combine_runs(data_dict):
+    """
+    given a data dictionary with values of lists of spectrumdata, adds the lists of spectrum data
+    together and replaces with spectrumdata of combined data
+    """
+    for key in data_dict:
+        if isinstance(data_dict[key], list):
+            s = data_dict[key][0]
+            if len(data_dict[key]) > 1:
+                for i in range(1, len(data_dict[key])):
+                    s.add(data_dict[key][i])
+            data_dict[key] = s
+
+
+def background_subtract(data_dict, subkey):
+    """
+    given a data dictionary of spectrumdata, returns a new datadict
+    with spectrum minus the spectrum in key position
+    """
+    d = {}
+    subtract = data_dict[subkey]
+    for key in data_dict:
+        d[key] = subtract_spectra(data_dict[key], subtract)
+    return d
+
+
+def plot_subtract_spectra(fdict, compare_name, fname, rebin=1, emin=20):
     ys = []
     absys = []
     names = []
+    start_index = 0
     x = []
     errs = []
     if len(fdict.keys()) < 2:
@@ -150,16 +188,18 @@ def plot_subtract_spectra(fdict, compare_name, fname, rebin=1):
         A1 = spec.A1 * rebin
         data_norm = data / spec.live / A1
         subtracted = data_norm - compare_spec_norm
-        y = [abs(d) for d in subtracted]
+        if start_index == 0:
+            start_index = find_start_index(data, spec.A0, A1, emin)
+        y = [abs(d) for d in subtracted[start_index:]]
         absys.append(y)
-        y = [d for d in subtracted]
+        y = [d for d in subtracted[start_index:]]
         ys.append(y)
         sub_errs = np.sqrt(data / (spec.live**2) + comparespec_rebinned / (comparespec.live**2)) / A1
-        err = [e for e in sub_errs]
-        x = [i * A1 + spec.A0 - A1 / 2 for i in range(data.shape[0])]
+        err = [e for e in sub_errs[start_index:]]
+        x = [i * A1 + spec.A0 - A1 / 2 for i in range(start_index,data.shape[0])]
         errs.append(err)
         names.append("{0} minus {1}".format(name, compare_name))
-    MultiScatterPlot(x, ys, errs, names, "Energy [keV]", "Absolute Rate Difference [hz/keV]", ylog=False)
+    MultiScatterPlot(x, ys, errs, names, "Energy [keV]", "Rate Difference [hz/keV]", ylog=False)
     if rebin > 1:
         fname = fname + "_rebin{}".format(rebin)
     plt.savefig("{}.png".format(fname))
@@ -167,10 +207,19 @@ def plot_subtract_spectra(fdict, compare_name, fname, rebin=1):
     plt.savefig("{}_absdiff.png".format(fname))
 
 
-def plot_multi_spectra(fdict, n, rebin=1):
+def find_start_index(data, A0, A1, emin):
+    start_index = 0
+    for i in range(data.shape[0]):
+        if i * A1 + A0 - A1 / 2. > emin:
+            start_index = i
+            break
+    return start_index
+
+def plot_multi_spectra(fdict, n, rebin=1, emin=20):
     ys = []
     names = []
     x = []
+    start_index = 0
     for name in fdict.keys():
         if isinstance(fdict[name], SpectrumData):
             spec = fdict[name]
@@ -189,8 +238,10 @@ def plot_multi_spectra(fdict, n, rebin=1):
             A1 = A1 * rebin
         y = [d / live / A1 for d in data]
         errs = np.sqrt(data)
-        x = [i * A1 + A0 - A1 / 2 for i in range(data.shape[0])]
-        ys.append(y)
+        if start_index == 0:
+            start_index = find_start_index(data, A0, A1, emin)
+        x = [i * A1 + A0 - A1 / 2 for i in range(start_index, data.shape[0])]
+        ys.append(y[start_index:])
         names.append(name)
         # err = [d / live / A1 for d in errs]
         # MultiScatterPlot(x, [y], [err], [name], "Energy [keV]", "Rate [hz/keV]")
