@@ -167,6 +167,7 @@ def background_subtract(data_dict, subkey):
 def plot_subtract_spectra(fdict, compare_name, fname, rebin=1, emin=20):
     ys = []
     absys = []
+    percys = []
     names = []
     start_index = 0
     x = []
@@ -188,12 +189,15 @@ def plot_subtract_spectra(fdict, compare_name, fname, rebin=1, emin=20):
         A1 = spec.A1 * rebin
         data_norm = data / spec.live / A1
         subtracted = data_norm - compare_spec_norm
+        subtracted_perc = 100.*(data_norm - compare_spec_norm) / compare_spec_norm
         if start_index == 0:
             start_index = find_start_index(data, spec.A0, A1, emin)
         y = [abs(d) for d in subtracted[start_index:]]
         absys.append(y)
         y = [d for d in subtracted[start_index:]]
         ys.append(y)
+        y = [d for d in subtracted_perc[start_index:]]
+        percys.append(y)
         sub_errs = np.sqrt(data / (spec.live**2) + comparespec_rebinned / (comparespec.live**2)) / A1
         err = [e for e in sub_errs[start_index:]]
         x = [i * A1 + spec.A0 - A1 / 2 for i in range(start_index,data.shape[0])]
@@ -205,6 +209,8 @@ def plot_subtract_spectra(fdict, compare_name, fname, rebin=1, emin=20):
     plt.savefig("{}.png".format(fname))
     MultiScatterPlot(x, absys, errs, names, "Energy [keV]", "Absolute Rate Difference [hz/keV]", ylog=True)
     plt.savefig("{}_absdiff.png".format(fname))
+    MultiScatterPlot(x, percys, errs, names, "Energy [keV]", "Rate Difference Percentage", ylog=True)
+    plt.savefig("{}_percdiff.png".format(fname))
 
 
 def find_start_index(data, A0, A1, emin):
