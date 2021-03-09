@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS "detector_settings" (
 	"Rz"	REAL,
 	"Lx"	REAL,
 	"Lz"	REAL,
+    "angle"	REAL,
 	"shield"	INTEGER,
 	"detector_id"	INTEGER NOT NULL,
 	FOREIGN KEY("detector_id") REFERENCES "detector"("id"),
