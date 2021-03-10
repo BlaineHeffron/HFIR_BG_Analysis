@@ -110,7 +110,6 @@ class SpectrumData:
         for i, bedge in enumerate(self.bin_edges):
             if bedge > emin:
                 return i
-        print("couldnt find emin {}".format(emin))
         return len(self.bin_edges)
 
 
@@ -265,6 +264,9 @@ def combine_runs(data_dict):
                     s.add(data_dict[key][i])
             data_dict[key] = s
 
+def rebin_spectra(data_dict, bin_edges):
+    for key in data_dict:
+        data_dict[key].rebin(bin_edges)
 
 def background_subtract(data_dict, subkey, bin_edges):
     """
@@ -372,10 +374,6 @@ def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None):
             end_index = spec.find_start_index(emax)
         elif end_index == 0:
             end_index = spec.find_start_index(1.e12) - 1
-        print(len(spec.bin_edges))
-        print(spec.bin_edges)
-        print("emax is {}".format(emax))
-        print(end_index)
         x = spec.bin_midpoints[start_index:end_index]
         ys.append(y[start_index:end_index])
         names.append(name)
