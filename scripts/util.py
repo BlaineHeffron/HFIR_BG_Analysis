@@ -89,6 +89,7 @@ class SpectrumData:
         #normalize before subtracting
         self.hist /= self.live
         self.hist -= (s.hist/s.live)
+        self.hist[self.hist < 0] = 0
         self.hist *= self.live
 
     def get_normalized_hist(self):
@@ -109,6 +110,20 @@ class SpectrumData:
         for i, bedge in enumerate(self.bin_edges):
             if bedge > emin:
                 return i
+        print("couldnt find emin {}".format(emin))
+        return len(self.bin_edges)
+
+
+def find_end_index(self, emax):
+    """
+    :param emin: minimum energy in same units as bin edges
+    :return: index of hist that is the last value with x less than emin
+    """
+    for i, bedge in enumerate(self.bin_edges):
+        if bedge > emax:
+            return i
+    return len(self.bin_edges)
+
 
 def subtract_spectra(s1, s2):
     """
@@ -262,22 +277,25 @@ def background_subtract(data_dict, subkey, bin_edges):
     for key in data_dict:
         if key == subkey:
             continue
+        data_dict[key].rebin(bin_edges)
         d[key] = subtract_spectra(data_dict[key], subtract)
     return d
 
 
-def plot_subtract_spectra(fdict, compare_name, fname, rebin=1, emin=20):
+def plot_subtract_spectra(fdict, compare_name, fname, rebin=1, emin=20, emax=None):
     ys = []
     absys = []
     percys = []
     names = []
     start_index = 0
+    end_index = 0
     x = []
     errs = []
     if len(fdict.keys()) < 2:
         raise ValueError("fdict must contain at least 2 keys")
     comparespec = fdict[compare_name]
     if rebin > 1:
+        comparespec = copy(comparespec)
         comparespec.rebin_factor(rebin)
     compare_spec_norm = comparespec.get_normalized_hist()
     for name in fdict.keys():
@@ -285,26 +303,30 @@ def plot_subtract_spectra(fdict, compare_name, fname, rebin=1, emin=20):
             continue
         spec = fdict[name]
         if rebin > 1:
+            spec = copy(spec)
             spec.rebin_factor(rebin)
         data_norm = spec.get_normalized_hist()
         subtracted = data_norm - compare_spec_norm
-        subtracted_perc = 100. * (data_norm - compare_spec_norm) / compare_spec_norm
+        subtracted_perc = 100. * safe_divide(data_norm - compare_spec_norm, compare_spec_norm)
         if start_index == 0:
-            start_index = spec.find_start_index(emin) - 1
+            start_index = spec.find_start_index(emin)
             if start_index < 0:
                 start_index = 0
-        y = [abs(d) for d in subtracted[start_index:]]
+        if emax is not None and end_index == 0:
+            end_index = spec.find_start_index(emax)
+        elif end_index == 0:
+            end_index = spec.find_start_index(1.0e12) - 1
+        y = [abs(d) for d in subtracted[start_index:end_index]]
         absys.append(y)
-        y = [d for d in subtracted[start_index:]]
+        y = [d for d in subtracted[start_index:end_index]]
         ys.append(y)
-        y = [d for d in subtracted_perc[start_index:]]
+        y = [d for d in subtracted_perc[start_index:end_index]]
         percys.append(y)
         sub_errs = np.sqrt(spec.hist / (spec.live ** 2) + comparespec.hist / (comparespec.live ** 2)) / (spec.bin_edges[1] - spec.bin_edges[0])
-        err = [e for e in sub_errs[start_index+1:-1]]
-        x = spec.bin_midpoints[start_index:]
+        err = [e for e in sub_errs[start_index+1:end_index+1]]
+        x = spec.bin_midpoints[start_index:end_index]
         errs.append(err)
         names.append("{0} minus {1}".format(name, compare_name))
-    print("{0} is x shape {1} is y shape".format(x.shape[0],len(ys[0])))
     MultiScatterPlot(x, ys, errs, names, "Energy [keV]", "Rate Difference [hz/keV]", ylog=False)
     if rebin > 1:
         fname = fname + "_rebin{}".format(rebin)
@@ -324,10 +346,11 @@ def find_start_index(data, A0, A1, emin):
     return start_index
 
 
-def plot_multi_spectra(fdict, n, rebin=1, emin=20):
+def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None):
     ys = []
     names = []
     x = []
+    end_index = 0
     start_index = 0
     for name in fdict.keys():
         if isinstance(fdict[name], SpectrumData):
@@ -340,18 +363,28 @@ def plot_multi_spectra(fdict, n, rebin=1, emin=20):
                 spec2 = retrieve_data(f)
                 spec.add(spec2)
         if rebin > 1:
+            spec = copy(spec)
             spec.rebin_factor(rebin)
         y = spec.get_normalized_hist()
         if start_index == 0:
             start_index = spec.find_start_index(emin)
-        x = spec.bin_midpoints[start_index:]
-        ys.append(y[start_index:])
+        if emax is not None and end_index == 0:
+            end_index = spec.find_start_index(emax)
+        elif end_index == 0:
+            end_index = spec.find_start_index(1.e12) - 1
+        print(len(spec.bin_edges))
+        print(spec.bin_edges)
+        print("emax is {}".format(emax))
+        print(end_index)
+        x = spec.bin_midpoints[start_index:end_index]
+        ys.append(y[start_index:end_index])
         names.append(name)
         # err = [d / live / A1 for d in errs]
         # MultiScatterPlot(x, [y], [err], [name], "Energy [keV]", "Rate [hz/keV]")
         # plt.savefig("{}_errors.png".format(name))
-    MultiLinePlot(x, ys, names, "Energy [keV]", "Rate [hz/keV]")
+    fig=MultiLinePlot(x, ys, names, "Energy [keV]", "Rate [hz/keV]")
     plt.savefig("{}.png".format(n))
+    plt.close(fig)
 
 
 def plot_spectra(fs, name, rebin=1):

@@ -462,6 +462,8 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
     if not styles:
         styles = category_styles
     for i in range(len(yvals)):
+        print(xaxis.shape)
+        print(len(yvals[i]))
         ax1.plot(xaxis,yvals[i],color=colors[i%10],linestyle=styles[i%len(styles)])
     if(vertlines is not None):
         for v in vertlines:
