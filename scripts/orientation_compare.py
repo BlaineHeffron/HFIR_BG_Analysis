@@ -14,9 +14,9 @@ def main():
     #data = background_subtract(data, "Rxoff", get_bins(100, 9400, 3100))
     plot_multi_spectra(data, "no_wall_comparison", rebin=10)
     plot_subtract_spectra(data, "original", "no_wall_compare_subtract", rebin=100)
-    emin = [1000*i for i in range(9)]
-    emax = [1000*(i+1) for i in range(9)]
-    for i in range(9):
+    emin = [1000*i for i in range(9)] + [9000]
+    emax = [1000*(i+1) for i in range(9)] + [9500]
+    for i in range(len(emin)):
         plot_multi_spectra(data, "no_wall_{}".format(i), emin=emin[i], emax=emax[i])
         plot_subtract_spectra(data, "original", "no_wall_subtract_{}".format(i), emin=emin[i], emax=emax[i])
 

@@ -107,11 +107,12 @@ class SpectrumData:
         :param emin: minimum energy in same units as bin edges
         :return: index of hist that is the first value with x greater than emin
         """
+        if emin < self.bin_edges[0]:
+            return 0
         for i, bedge in enumerate(self.bin_edges):
             if bedge > emin:
                 return i
         return len(self.bin_edges)
-
 
 def find_end_index(self, emax):
     """
@@ -315,7 +316,7 @@ def plot_subtract_spectra(fdict, compare_name, fname, rebin=1, emin=20, emax=Non
             if start_index < 0:
                 start_index = 0
         if emax is not None and end_index == 0:
-            end_index = spec.find_start_index(emax)
+            end_index = spec.find_start_index(emax) - 1
         elif end_index == 0:
             end_index = spec.find_start_index(1.0e12) - 1
         y = [abs(d) for d in subtracted[start_index:end_index]]
@@ -371,7 +372,7 @@ def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None):
         if start_index == 0:
             start_index = spec.find_start_index(emin)
         if emax is not None and end_index == 0:
-            end_index = spec.find_start_index(emax)
+            end_index = spec.find_start_index(emax) - 1
         elif end_index == 0:
             end_index = spec.find_start_index(1.e12) - 1
         x = spec.bin_midpoints[start_index:end_index]
