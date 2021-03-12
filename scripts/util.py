@@ -4,6 +4,7 @@ import re
 from os.path import join
 import matplotlib.pyplot as plt
 import numba as nb
+import ntpath
 
 import numpy as np
 
@@ -141,11 +142,30 @@ def retrieve_spectra_and_files(n, datadir):
     return retrieve_spectra(n, fs), fs
 
 
+def spectrum_name_check(name, flist):
+    if isinstance(name, int):
+        for f in flist:
+            file = os.path.basename(f)
+            if name == file_number(file):
+                return retrieve_data(f)
+    else:
+        checkname = name + ".txt"
+        for f in flist:
+            path, fname = ntpath.split(f)
+            if fname == checkname:
+                return retrieve_data(f)
+
+
 def retrieve_spectra(n, flist):
-    for f in flist:
-        file = os.path.basename(f)
-        if n == file_number(file):
-            return retrieve_data(f)
+    return spectrum_name_check(n, flist)
+
+def retrieve_file_extension(mydir, ext):
+    myfiles = []
+    for root, dirs, files in os.walk(mydir):
+        for f in files:
+            if f.endswith(ext):
+                myfiles.append(join(root, f))
+    return myfiles
 
 
 def retrieve_files(mydir, recursive=False):
@@ -161,7 +181,10 @@ def retrieve_files(mydir, recursive=False):
 
 
 def file_number(fname):
-    return int(fname[0:-4])
+    try:
+        return int(fname[0:-4])
+    except ValueError:
+        return -1
 
 
 def retrieve_data(myf):
@@ -240,7 +263,7 @@ def populate_data(data_dict, data_dir):
     a new dictionary with same keys and either SpectrumData or lists of SpectrumData for the
     spectrum filepaths equating the numbers
     """
-    fs = retrieve_files(data_dir)
+    fs = retrieve_file_extension(data_dir, ".txt")
     out = {}
     for key in data_dict:
         if isinstance(data_dict[key], list):

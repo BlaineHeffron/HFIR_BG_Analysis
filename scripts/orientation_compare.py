@@ -1,9 +1,10 @@
 from util import *
 
-rundata = {   "original": [54,55], "original_cart_xzrot_90":56, "corner_no_shield": 59}
+rundata = {   "original": [54,55], "original_cart_xzrot_90":56, "corner_no_shield":
+    "EAST_CORNER_NO_SHIELD_LOW_GAIN", "MIF_no_shield":"CORNER_TPS_OVERNIGHT" }
     #"nominal": 57, "EAST CORNER": 58,
     #"Rxoff": [i for i in range(30, 40)]}
-bins = get_bins(100, 9400, 3100)
+bins = get_bins(100, 9700, 3200)
 
 
 def main():
