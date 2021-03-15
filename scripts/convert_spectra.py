@@ -6,8 +6,8 @@ import ntpath
 
 
 def main():
-    datadir = get_data_dir()
-    os.chdir(datadir)
+    datadir = os.path.expanduser(get_data_dir())
+    os.chdir(os.path.abspath(os.path.normpath(os.path.expanduser(datadir))))
     flist = retrieve_file_extension(datadir, ext=".CNF")
     for f in flist:
         fdir, fname = ntpath.split(f)

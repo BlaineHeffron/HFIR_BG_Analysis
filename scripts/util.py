@@ -254,7 +254,7 @@ def rebin_data(a, n):
 def get_data_dir():
     if "HFIRBGDATA" not in os.environ:
         raise RuntimeError("Error: set environment variable HFIRBGDATA to the directory with your files")
-    return os.environ["HFIRBGDATA"]
+    return os.path.expanduser(os.environ["HFIRBGDATA"])
 
 
 def populate_data(data_dict, data_dir):
@@ -334,7 +334,7 @@ def plot_subtract_spectra(fdict, compare_name, fname, rebin=1, emin=20, emax=Non
         data_norm = spec.get_normalized_hist()
         subtracted = data_norm - compare_spec_norm
         subtracted_perc = 100. * safe_divide(data_norm - compare_spec_norm, compare_spec_norm)
-        if start_index == 0:
+        if start_index == 0 and emin is not None:
             start_index = spec.find_start_index(emin)
             if start_index < 0:
                 start_index = 0
@@ -372,6 +372,16 @@ def find_start_index(data, A0, A1, emin):
     return start_index
 
 
+def set_indices(start_index, end_index, emin, emax, spec):
+    if start_index == 0 and emin is not None:
+        start_index = spec.find_start_index(emin)
+    if emax is not None and end_index == 0:
+        end_index = spec.find_start_index(emax) - 1
+    elif end_index == 0:
+        end_index = spec.find_start_index(1.e12) - 1
+    return start_index, end_index
+
+
 def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None):
     ys = []
     names = []
@@ -392,12 +402,7 @@ def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None):
             spec = copy(spec)
             spec.rebin_factor(rebin)
         y = spec.get_normalized_hist()
-        if start_index == 0:
-            start_index = spec.find_start_index(emin)
-        if emax is not None and end_index == 0:
-            end_index = spec.find_start_index(emax) - 1
-        elif end_index == 0:
-            end_index = spec.find_start_index(1.e12) - 1
+        start_index, end_index = set_indices(start_index, end_index, emin, emax, spec)
         x = spec.bin_midpoints[start_index:end_index]
         ys.append(y[start_index:end_index])
         names.append(name)
@@ -409,22 +414,29 @@ def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None):
     plt.close(fig)
 
 
-def plot_spectra(fs, name, rebin=1):
-    spec = retrieve_data(fs[0])
-    start, live, A0, A1, data = spec.start, spec.live, spec.A0, spec.A1, spec.data
+def retrieve_spec_data(f):
+    if isinstance(f, SpectrumData):
+        spec = f
+    else:
+        spec = retrieve_data(f)
+    return spec
+
+
+def plot_spectra(fs, name, rebin=1, emin=None, emax=None):
+    spec = retrieve_spec_data(fs[0])
     for i, f in enumerate(fs):
         if i == 0:
             continue
-        spec2 = retrieve_data(f)
-        live += spec2.live
-        data += spec2.data
+        spec.add(retrieve_spec_data(f))
     if rebin > 1:
-        data = rebin_data(data, rebin)
-        A1 = A1 * rebin
-    y = [d / live / A1 for d in data]
-    errs = np.sqrt(data)
-    x = [(i+1) * A1 + A0 for i in range(data.shape[0])]
-    err = [d / live / A1 for d in errs]
+        spec = copy(spec)
+        spec.rebin_factor(rebin)
+    start_index, end_index = set_indices(0, 0, emin, emax, spec)
+    y = spec.get_normalized_hist()[start_index:end_index]
+    errs = np.sqrt(spec.hist)
+    x = spec.bin_midpoints[start_index:end_index]
+    err = [errs[i] / spec.live / (spec.bin_edges[i+1] - spec.bin_edges[i]) for i in range(len(spec.bin_edges)-1)]
+    err = err[start_index:end_index]
     MultiScatterPlot(x, [y], [err], [name], "Energy [keV]", "Rate [hz/keV]")
     plt.savefig("{}_errors.png".format(name))
     MultiLinePlot(x, [y], [name], "Energy [keV]", "Rate [hz/keV]")
