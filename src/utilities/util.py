@@ -5,10 +5,11 @@ from os.path import join
 import matplotlib.pyplot as plt
 import numba as nb
 import ntpath
+import platform
 
 import numpy as np
 
-from PlotUtils import MultiLinePlot, MultiScatterPlot
+from src.utilities.PlotUtils import MultiLinePlot, MultiScatterPlot
 from copy import copy
 
 FILEEXPR = re.compile('[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].txt')
@@ -477,3 +478,20 @@ def numba_rebin(data, hist, A0, A1, bin_edges):
                                 # get rest of the value in the last bin
                                 hist[j + k] += data[i] * (bin_edges[j + k] - up) / A1
                     break
+
+def creation_date(path_to_file):
+    """
+    Try to get the date that a file was created, falling back to when it was
+    last modified if that isn't possible.
+    See http://stackoverflow.com/a/39501288/1709587 for explanation.
+    """
+    if platform.system() == 'Windows':
+        return os.path.getctime(path_to_file)
+    else:
+        stat = os.stat(path_to_file)
+        try:
+            return stat.st_birthtime
+        except AttributeError:
+            # We're probably on Linux. No easy way to get creation dates here,
+            # so we'll settle for when its content was last modified.
+            return stat.st_mtime

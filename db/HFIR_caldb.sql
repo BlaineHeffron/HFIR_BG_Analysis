@@ -1,23 +1,37 @@
 BEGIN TRANSACTION;
 CREATE TABLE IF NOT EXISTS "detector_settings" (
 	"id"	INTEGER PRIMARY KEY AUTOINCREMENT,
-	"bias"	REAL NOT NULL,
-	"Rx"	REAL,
-	"Rz"	REAL,
-	"Lx"	REAL,
-	"Lz"	REAL,
-    "angle"	REAL,
-	"shield"	INTEGER,
-	"detector_id"	INTEGER NOT NULL,
-	FOREIGN KEY("detector_id") REFERENCES "detector"("id"),
-	FOREIGN KEY("shield") REFERENCES "shield_configuration"("id")
+	"bias"	REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS "detector_configuration" (
+   "id"	INTEGER PRIMARY KEY AUTOINCREMENT,
+   "detector" INTEGER NOT NULL,
+   "detector_settings"	INTEGER NOT NULL,
+   "acquisition_settings" INTEGER NOT NULL,
+   "shield"	INTEGER,
+   FOREIGN KEY("detector") REFERENCES "detector"("id"),
+   FOREIGN KEY("acquisition_settings") REFERENCES "acquisition_settings"("id"),
+   FOREIGN KEY("detector_settings") REFERENCES "detector_settings"("id"),
+   FOREIGN KEY("shield") REFERENCES "shield_configuration"("id")
+);
+CREATE TABLE IF NOT EXISTS "detector_coordinates" (
+    "id"    INTEGER PRIMARY KEY AUTOINCREMENT,
+    "Rx"	REAL,
+    "Rz"	REAL,
+    "Lx"	REAL,
+    "Lz"	REAL,
+    "angle"	REAL
 );
 CREATE TABLE IF NOT EXISTS "runs" (
 	"id"	INTEGER PRIMARY KEY AUTOINCREMENT,
 	"file_list"	INTEGER,
 	"description"	TEXT,
 	"name"	TEXT,
-	FOREIGN KEY("file_list") REFERENCES "file_list"("id")
+	"detector_configuration" INTEGER,
+	"detector_coordinates" INTEGER,
+	FOREIGN KEY("file_list") REFERENCES "file_list"("id"),
+    FOREIGN KEY("detector_coordinates") REFERENCES "detector_coordinates"("id"),
+    FOREIGN KEY("detector_configuration") REFERENCES "detector_configuration"("id")
 );
 CREATE TABLE IF NOT EXISTS "file_list" (
 	"id"	INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,11 +65,16 @@ CREATE TABLE IF NOT EXISTS "acquisition_settings" (
 	"offset"	INTEGER,
 	"fine_gain"	REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS "directory" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "path" TEXT NOT NULL UNIQUE
+);
 CREATE TABLE IF NOT EXISTS "datafile" (
 	"id"	INTEGER PRIMARY KEY AUTOINCREMENT,
 	"name"	TEXT,
-	"directory"	TEXT,
+	"directory_id"	INTEGER NOT NULL,
 	"creation_time"	INTEGER,
-	"run_number"	INTEGER
+	"run_number"	INTEGER,
+	FOREIGN KEY("directory_id") REFERENCES "directory"("id")
 );
 COMMIT;

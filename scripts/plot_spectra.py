@@ -1,4 +1,4 @@
-from util import *
+from src.utilities.util import *
 
 
 rundata = { "corner_no_shield": "CORNER_MEASUREMENT_NO_SHIELD_WALL_LOW_GAIN",

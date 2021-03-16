@@ -1,6 +1,6 @@
-from util import *
+from src.utilities.util import *
 from math import floor
-from PlotUtils import MultiScatterPlot
+from src.utilities.PlotUtils import MultiScatterPlot
 import matplotlib.pyplot as plt
 import argparse
 from ntpath import basename
@@ -63,7 +63,7 @@ def plot_power_data(pwr, lt, write=True):
     rates, errors = calc_rate_errors(pwr, lt)
     nonzerokeys = [key for key in rates.keys() if key != 0]
     ys = [[(rates[key][i] - rates[0][i]) / bin_width for i in range(rates[key].shape[0])] for key in nonzerokeys]
-    errs = [[(errors[key][i] - errors[0][i])/ bin_width for i in range(errors[key].shape[0])] for key in nonzerokeys]
+    errs = [[(errors[key][i] - errors[0][i]) / bin_width for i in range(errors[key].shape[0])] for key in nonzerokeys]
     fig = MultiScatterPlot(midpoints, ys, errs, labels[1:], "energy midpoint [keV]", "rate [hz/keV]", xmin=0, xmax=3700,
                            title="rxoff subtracted rates (400 keV bins)", ylog=True)
     plt.savefig("power_rates.png")
@@ -75,18 +75,17 @@ def plot_power_data(pwr, lt, write=True):
 
 
 def plot_power_spectra(files):
-    file_sets = {0:[]}
+    file_sets = {0: []}
     for key in pwr:
         file_sets[key] = []
     for f in files:
         power = find_power(file_number(basename(f)))
         file_sets[power].append(f)
     for power in file_sets:
-        plot_spectra(file_sets[power],"{}_power".format(power), rebin=20)
+        plot_spectra(file_sets[power], "{}_power".format(power), rebin=20)
 
     multi_plot = {"rx on": file_sets[100], "rx off": file_sets[0]}
-    plot_multi_spectra(multi_plot, "rxonvsoff.png",rebin=20)
-
+    plot_multi_spectra(multi_plot, "rxonvsoff.png", rebin=20)
 
 
 def main():
@@ -101,6 +100,7 @@ def main():
     plot_power_spectra(files)
     pwr, lt = retrieve_power_data(ENERGY_RANGES, files)
     plot_power_data(pwr, lt)
+
 
 if __name__ == "__main__":
     main()

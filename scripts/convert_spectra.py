@@ -1,6 +1,5 @@
 import subprocess
-import os
-from util import *
+from src.utilities.util import *
 import shutil
 import ntpath
 

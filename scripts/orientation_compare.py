@@ -1,4 +1,4 @@
-from util import *
+from src.utilities.util import *
 
 rundata = {   "original": [54,55], "original_cart_xzrot_90":56, "corner_no_shield":
     "CORNER_MEASUREMENT_NO_SHIELD_WALL_LOW_GAIN", "MIF_no_shield":"CORNER_TPS_OVERNIGHT" }
