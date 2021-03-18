@@ -14,6 +14,20 @@ def column_placeholder_string(columns):
             qtxt += ",?"
     return instxt + ")", qtxt + ")"
 
+def value_format(value):
+    if isinstance(value, str):
+        return "'{}'".format(value)
+    else:
+        return value
+
+def generate_equals_where(columns, values):
+    txt = ""
+    for i, col in enumerate(columns):
+        if i == 0:
+            txt = "{0} = {1}".format(col, value_format(values[i]))
+        else:
+            txt += "AND {0} = {1}".format(col, value_format(values[i]))
+    return txt
 
 def get_db_dir():
     base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
@@ -33,9 +47,23 @@ class SQLiteBase:
     def execute(self, new_data):
         self.cur.execute(new_data)
 
-    def insert_or_ignore(self, table, columns, values):
+    def insert_or_ignore(self, table, columns, values, retrieve_key=False):
+        """
+        :param table: table name
+        :param columns: list of column names to insert
+        :param values:  list of column values to insert
+        :param retrieve_key: if True, will return the key of the inserted row. If ignored,
+        will select the row to retrieve the key
+        :return: null if retrieve_key is false, otherwise integer representing the key of the inserted row
+        """
         instxt, qtxt = column_placeholder_string(columns)
         self.cur.execute("INSERT OR IGNORE INTO {0} {1} VALUES {2}".format(table, instxt, qtxt), values)
+        if retrieve_key:
+            if self.cur.lastrowid == 0:
+                return self.fetchone("SELECT id FROM {0} WHERE {1}".format(table, generate_equals_where(columns, values)))
+            else:
+                return self.cur.lastrowid
+
 
     def fetchone(self, sql):
         self.execute(sql)
@@ -132,8 +160,7 @@ class HFIRBG_DB(SQLiteBase):
             dir_key[base_dir].append(name)
         dir_ids = {}
         for dir in dir_key.keys():
-            self.insert_or_ignore("directory",["path"],[dir])
-            dir_ids[dir] = self.cur.lastrowid
+            dir_ids[dir] = self.insert_or_ignore("directory",["path"],[dir], retrieve_key=True)
         self.commit()
         self.execute('BEGIN TRANSACTION')
         for dir in dir_key.keys():
@@ -166,8 +193,6 @@ class HFIRBG_DB(SQLiteBase):
             if fname in tables:
                 data = read_csv_list_of_tuples(f)
                 columns = self.retrieve_columns(fname)
-                if columns[0] == "id":
-                    columns = columns[1:]
                 self.batch_insert(fname, columns, data)
             else:
                 raise RuntimeWarning("Warning: the file {} is not being included because it doesnt match a table in "
