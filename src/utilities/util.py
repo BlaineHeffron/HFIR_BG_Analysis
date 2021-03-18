@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numba as nb
 import ntpath
 import platform
+from csv import reader
 
 import numpy as np
 
@@ -150,7 +151,10 @@ def spectrum_name_check(name, flist):
             if name == file_number(file):
                 return retrieve_data(f)
     else:
-        checkname = name + ".txt"
+        if name.endswith(".txt"):
+            checkname = name
+        else:
+            checkname = name + ".txt"
         for f in flist:
             path, fname = ntpath.split(f)
             if fname == checkname:
@@ -495,3 +499,9 @@ def creation_date(path_to_file):
             # We're probably on Linux. No easy way to get creation dates here,
             # so we'll settle for when its content was last modified.
             return stat.st_mtime
+
+def read_csv_list_of_tuples(fpath):
+    with open(fpath, 'r') as read_obj:
+        csv_reader = reader(read_obj)
+        list_of_tuples = list(map(tuple, csv_reader))
+    return list_of_tuples

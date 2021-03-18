@@ -1,7 +1,23 @@
 import sqlite3
 import os
 
-from src.utilities.util import get_data_dir, retrieve_file_extension, creation_date, file_number
+from src.utilities.util import get_data_dir, retrieve_file_extension, creation_date, file_number, \
+    read_csv_list_of_tuples
+
+
+def column_placeholder_string(columns):
+    instxt = "(" + columns[0]
+    qtxt = "(?"
+    if len(columns) > 1:
+        for col in columns[1:]:
+            instxt += "," + col
+            qtxt += ",?"
+    return instxt + ")", qtxt + ")"
+
+
+def get_db_dir():
+    base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+    return os.path.join(base_path,"db")
 
 
 class SQLiteBase:
@@ -18,13 +34,8 @@ class SQLiteBase:
         self.cur.execute(new_data)
 
     def insert_or_ignore(self, table, columns, values):
-        instxt = columns[0]
-        qtxt = "?"
-        if len(columns) > 1:
-            for col in columns[1:]:
-                instxt += "," + col
-                qtxt += ",?"
-        self.cur.execute("INSERT OR IGNORE INTO {0} ({1}) VALUES ({2})".format(table, instxt, qtxt), values)
+        instxt, qtxt = column_placeholder_string(columns)
+        self.cur.execute("INSERT OR IGNORE INTO {0} {1} VALUES {2}".format(table, instxt, qtxt), values)
 
     def fetchone(self, sql):
         self.execute(sql)
@@ -47,8 +58,38 @@ class SQLiteBase:
         txt += ')'
         self.cur.execute(txt)
 
+    def execute_many(self, sql, data):
+        """
+        :param sql: sql statement (string)
+        :param data: list of tuples of data
+        :return: null
+        """
+        self.cur.executemany(sql, data)
+
+    def batch_insert(self, table, columns, data):
+        """
+        :param table: table name
+        :param columns: list of column names in same order as data tuples
+        :param data: list of tuples containing rows
+        :return:
+        """
+        instxt, qtxt = column_placeholder_string(columns)
+        sql = "INSERT OR IGNORE INTO {0} {1} VALUES {2}".format(table, instxt, qtxt)
+        self.execute_many(sql, data)
+        self.commit()
+
     def commit(self):
         self.__db_connection.commit()
+
+    def retrieve_tables(self):
+        ts = self.fetchall("SELECT tbl_name FROM SQLite_master WHERE type = 'table'")
+        names = list(map(lambda x: x[0], ts))
+        return names
+
+    def retrieve_columns(self, table):
+        self.execute("SELECT * FROM {} LIMIT 1".format(table))
+        names = list(map(lambda x: x[0], self.cur.description))
+        return names
 
     def __del__(self):
         self.__db_connection.close()
@@ -73,7 +114,12 @@ class HFIRBG_DB(SQLiteBase):
             path = os.environ["HFIRBG_CALDB"]
         super().__init__(path)
 
+    def retrieve_datafiles(self):
+        return self.fetchall("SELECT * FROM datafile")
+
+
     def sync_files(self, base_path=None):
+        cur_files = self.retrieve_datafiles()
         if base_path is None:
             base_path = get_data_dir()
         fs = retrieve_file_extension(base_path, ".txt")
@@ -95,14 +141,39 @@ class HFIRBG_DB(SQLiteBase):
             for fname in dir_key[dir]:
                 create_time = creation_date(os.path.join(dir,fname))
                 run_number = file_number(fname)
-                if run_number == -1:
-                    self.insert_or_ignore("datafile", ["name", "directory_id", "creation_time"],
-                                          [fname, dirid, create_time])
-                else:
-                    self.insert_or_ignore("datafile", ["name", "directory_id", "creation_time", "run_number"],
-                                          [fname, dirid, create_time, run_number])
+                skip = False
+                for curf in cur_files:
+                    if fname == curf[1] and dirid == curf[2]:
+                        skip = True
+                        print("skipping)")
+                        break
+                if not skip:
+                    if run_number == -1:
+                        self.insert_or_ignore("datafile", ["name", "directory_id", "creation_time"],
+                                              [fname, dirid, create_time])
+                    else:
+                        self.insert_or_ignore("datafile", ["name", "directory_id", "creation_time", "run_number"],
+                                              [fname, dirid, create_time, run_number])
         self.execute("END TRANSACTION")
         self.commit()
+
+    def sync_db(self):
+        dbdir = get_db_dir()
+        fs = retrieve_file_extension(dbdir, ".csv")
+        tables = self.retrieve_tables()
+        for f in fs:
+            fname = os.path.basename(f)[0:-4]
+            if fname in tables:
+                data = read_csv_list_of_tuples(f)
+                columns = self.retrieve_columns(fname)
+                if columns[0] == "id":
+                    columns = columns[1:]
+                self.batch_insert(fname, columns, data)
+            else:
+                raise RuntimeWarning("Warning: the file {} is not being included because it doesnt match a table in "
+                                     "your database!".format(fname))
+
+
 
 
 

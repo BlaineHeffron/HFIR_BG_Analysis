@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS "detector_coordinates" (
     "Lx"	REAL,
     "Lz"	REAL,
     "angle"	REAL,
-    "track" INTEGER DEFAULT 0
+    "track" INTEGER DEFAULT 0,
+    UNIQUE("Rx","Lx","Lz","Rz","angle","track")
 );
 CREATE TABLE IF NOT EXISTS "runs" (
 	"id"	INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,11 +48,12 @@ CREATE TABLE IF NOT EXISTS "calibrations" (
 	"A0"	REAL,
 	"A1"	REAL,
 	FOREIGN KEY("file_id") REFERENCES "datafile"("id"),
-	FOREIGN KEY("det") REFERENCES "detector"("id")
+	FOREIGN KEY("det") REFERENCES "detector"("id"),
+	UNIQUE("det","file_id")
 );
 CREATE TABLE IF NOT EXISTS "shield_configuration" (
 	"id"	INTEGER PRIMARY KEY AUTOINCREMENT,
-	"name"	TEXT NOT NULL,
+	"name"	TEXT NOT NULL UNIQUE,
 	"description"	TEXT
 );
 CREATE TABLE IF NOT EXISTS "detector" (
@@ -64,7 +66,8 @@ CREATE TABLE IF NOT EXISTS "acquisition_settings" (
 	"coarse_gain"	REAL NOT NULL,
 	"PUR_guard"	REAL,
 	"offset"	INTEGER,
-	"fine_gain"	REAL NOT NULL
+	"fine_gain"	REAL NOT NULL,
+	UNIQUE("coarse_gain", "PUR_guard", "offset", "fine_gain")
 );
 CREATE TABLE IF NOT EXISTS "directory" (
     "id" INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,6 +79,7 @@ CREATE TABLE IF NOT EXISTS "datafile" (
 	"directory_id"	INTEGER NOT NULL,
 	"creation_time"	INTEGER,
 	"run_number"	INTEGER,
-	FOREIGN KEY("directory_id") REFERENCES "directory"("id")
+	FOREIGN KEY("directory_id") REFERENCES "directory"("id"),
+	UNIQUE("name", "directory_id")
 );
 COMMIT;
