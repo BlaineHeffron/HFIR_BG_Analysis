@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS "detector_coordinates" (
     "Rz"	REAL,
     "Lx"	REAL,
     "Lz"	REAL,
-    "angle"	REAL
+    "angle"	REAL,
+    "track" INTEGER DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS "runs" (
 	"id"	INTEGER PRIMARY KEY AUTOINCREMENT,

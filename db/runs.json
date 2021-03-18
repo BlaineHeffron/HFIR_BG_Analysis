@@ -1,0 +1,119 @@
+{
+  "runs": [
+    {
+      "file_list": "1-15",
+      "description": "Background runs before cycle 490",
+      "name": "PreCycle490",
+      "detector_configuration": 1,
+      "detector_coordinates": 1
+    },
+    {
+      "file_list": [16],
+      "description": "Cycle 490A ramp up to 10%",
+      "name": "Cycle490A_0to10pwr",
+      "detector_configuration": 1,
+      "detector_coordinates": 1
+    },
+    {
+      "file_list": [17],
+      "description": "Cycle 490A 10% power",
+      "name": "Cycle490A_10pwr",
+      "detector_configuration": 1,
+      "detector_coordinates": 1
+    },
+    {
+      "file_list": [18],
+      "description": "Cycle 490A 10% shutting down",
+      "name": "Cycle490A_10to0pwr",
+      "detector_configuration": 1,
+      "detector_coordinates": 1
+    },
+    {
+      "file_list": [19],
+      "description": "Cycle 490A ramping to 10% power a second time",
+      "name": "Cycle490A_0to10pwr2",
+      "detector_configuration": 1,
+      "detector_coordinates": 1
+    },
+    {
+      "file_list": [20],
+      "description": "Cycle 490A 10% ramp to 30% power",
+      "name": "Cycle490A_10to30pwr",
+      "detector_configuration": 1,
+      "detector_coordinates": 1
+    },
+    {
+      "file_list": [21],
+      "description": "Cycle 490A 30% ramp to 50% power",
+      "name": "Cycle490A_30to50pwr",
+      "detector_configuration": 1,
+      "detector_coordinates": 1
+    },{
+      "file_list": [22],
+      "description": "Cycle 490A 50% ramp to 70% power",
+      "name": "Cycle490A_50to70pwr",
+      "detector_configuration": 1,
+      "detector_coordinates": 1
+    },{
+      "file_list": [23],
+      "description": "Cycle 490A 70% ramp to 90% power",
+      "name": "Cycle490A_70to90pwr",
+      "detector_configuration": 1,
+      "detector_coordinates": 1
+    },{
+      "file_list": [24],
+      "description": "Cycle 490A 90% ramp to 100% power",
+      "name": "Cycle490A_90to100pwr",
+      "detector_configuration": 1,
+      "detector_coordinates": 1
+    },{
+      "file_list": [28,29],
+      "description": "Cycle 490A 100% power original position",
+      "name": "Cycle490A_original",
+      "detector_configuration": 1,
+      "detector_coordinates": 1
+    },{
+      "file_list": [30],
+      "description": "Cycle 490A early shutdown",
+      "name": "Cycle490A_100to0",
+      "detector_configuration": 1,
+      "detector_coordinates": 1
+    },{
+      "file_list": "31-43",
+      "description": "Between Cycle 490A and 490B",
+      "name": "PreCycle490B",
+      "detector_configuration": 1,
+      "detector_coordinates": 1
+    },{
+      "file_list": "31-42",
+      "description": "Between Cycle 490A and 490B",
+      "name": "PreCycle490B",
+      "detector_configuration": 1,
+      "detector_coordinates": 1
+    },{
+      "file_list": [43],
+      "description": "Startup of Cycle 490B to 10% power",
+      "name": "Cycle490BStartup",
+      "detector_configuration": 1,
+      "detector_coordinates": 1
+    },{
+      "file_list": [44],
+      "description": "Cycle 490B 10% to 100% power, first hour is ramp up, remainder is 100% power",
+      "name": "Cycle490BRampTo100",
+      "detector_configuration": 1,
+      "detector_coordinates": 1
+    },{
+      "file_list": [45],
+      "description": "Cycle 490B 100% power for first hour and 40 minutes, remainder is reactor shutting down",
+      "name": "Cycle490B100to0",
+      "detector_configuration": 1,
+      "detector_coordinates": 1
+    },{
+      "file_list": [54],
+      "description": "Cycle 490C 100% power 10 MeV range original position",
+      "name": "Cycle490C_original_10MeVrange",
+      "detector_configuration": 2,
+      "detector_coordinates": 1
+    }
+  ]
+}
