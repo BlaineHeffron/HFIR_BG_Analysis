@@ -26,20 +26,19 @@ CREATE TABLE IF NOT EXISTS "detector_coordinates" (
 );
 CREATE TABLE IF NOT EXISTS "runs" (
 	"id"	INTEGER PRIMARY KEY AUTOINCREMENT,
-	"file_list"	INTEGER,
 	"description"	TEXT,
-	"name"	TEXT,
+	"name"	TEXT UNIQUE,
 	"detector_configuration" INTEGER,
 	"detector_coordinates" INTEGER,
-	FOREIGN KEY("file_list") REFERENCES "file_list"("id"),
     FOREIGN KEY("detector_coordinates") REFERENCES "detector_coordinates"("id"),
     FOREIGN KEY("detector_configuration") REFERENCES "detector_configuration"("id")
 );
-CREATE TABLE IF NOT EXISTS "file_list" (
+CREATE TABLE IF NOT EXISTS "run_file_list" (
 	"id"	INTEGER PRIMARY KEY AUTOINCREMENT,
 	"file_id"	INTEGER NOT NULL UNIQUE,
-	"list_id"	INTEGER NOT NULL,
-	FOREIGN KEY("file_id") REFERENCES "datafile"("id")
+	"run_id"	INTEGER NOT NULL,
+	FOREIGN KEY("file_id") REFERENCES "datafile"("id"),
+    FOREIGN KEY("run_id") REFERENCES "runs"("id")
 );
 CREATE TABLE IF NOT EXISTS "calibrations" (
 	"id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,

@@ -4,7 +4,7 @@ rundata = {   "original": [54,55], "original_cart_xzrot_90":56, "corner_no_shiel
     "CORNER_MEASUREMENT_NO_SHIELD_WALL_LOW_GAIN", "MIF_no_shield":"CORNER_TPS_OVERNIGHT" }
     #"nominal": 57, "EAST CORNER": 58,
     #"Rxoff": [i for i in range(30, 40)]}
-bins = get_bins(100, 9700, 3200)
+bins = get_bins(100, 10000, 3300)
 
 
 def main():

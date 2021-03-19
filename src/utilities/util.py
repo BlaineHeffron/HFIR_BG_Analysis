@@ -1,5 +1,6 @@
 import csv
 import os
+import json
 import re
 from os.path import join
 import matplotlib.pyplot as plt
@@ -41,9 +42,9 @@ class SpectrumData:
         if self.bin_edges is None:
             raise RuntimeError("bin edges not set")
         else:
-            self.bin_midpoints = np.zeros((self.bin_edges.shape[0]-1,))
-            for j in range(0,self.bin_edges.shape[0]-1):
-                self.bin_midpoints[j] = self.bin_edges[j] + (self.bin_edges[j+1] - self.bin_edges[j]) / 2.
+            self.bin_midpoints = np.zeros((self.bin_edges.shape[0] - 1,))
+            for j in range(0, self.bin_edges.shape[0] - 1):
+                self.bin_midpoints[j] = self.bin_edges[j] + (self.bin_edges[j + 1] - self.bin_edges[j]) / 2.
 
     def rebin_factor(self, factor):
         if factor <= 1:
@@ -51,12 +52,12 @@ class SpectrumData:
         new_hist = rebin_data(self.hist[1:-1], factor)
         under = self.hist[0]
         over = self.hist[-1]
-        self.hist = np.zeros((new_hist.shape[0]+2,))
+        self.hist = np.zeros((new_hist.shape[0] + 2,))
         self.hist[0] = under
         self.hist[1] = over
         self.hist[1:-1] = new_hist
         old_edges = copy(self.bin_edges)
-        self.bin_edges = np.zeros((self.hist.shape[0]-1,))
+        self.bin_edges = np.zeros((self.hist.shape[0] - 1,))
         j = 0
         for i in range(old_edges.shape[0]):
             if i % factor == 0:
@@ -70,13 +71,13 @@ class SpectrumData:
         set_to_data = False
         if bin_edges is None:
             set_to_data = True
-            bin_edges = np.zeros(self.data.shape[0]+1)
-            for i in range(self.data.shape[0]+1):
-                bin_edges[i] = self.A0 + self.A1*i + self.A1/2.
-        self.hist = np.zeros((bin_edges.shape[0]+1,))
+            bin_edges = np.zeros(self.data.shape[0] + 1)
+            for i in range(self.data.shape[0] + 1):
+                bin_edges[i] = self.A0 + self.A1 * i + self.A1 / 2.
+        self.hist = np.zeros((bin_edges.shape[0] + 1,))
         self.bin_edges = bin_edges
         self.calculate_bin_midpoints()
-        self.nbins = bin_edges.shape[0]-1
+        self.nbins = bin_edges.shape[0] - 1
         if set_to_data:
             self.hist[1:-1] = self.data
             return
@@ -89,9 +90,9 @@ class SpectrumData:
             s.rebin()
         if not np.array_equal(s.bin_edges, self.bin_edges):
             s.rebin(self.bin_edges)
-        #normalize before subtracting
+        # normalize before subtracting
         self.hist /= self.live
-        self.hist -= (s.hist/s.live)
+        self.hist -= (s.hist / s.live)
         self.hist[self.hist < 0] = 0
         self.hist *= self.live
 
@@ -99,9 +100,9 @@ class SpectrumData:
         """
         :return: normalized histogram (no underflow and overflow)
         """
-        norm = np.zeros((self.hist.shape[0]-2,))
-        for i in range(1,self.nbins+1):
-            norm[i-1] = self.hist[i] / (self.bin_edges[i] - self.bin_edges[i-1])
+        norm = np.zeros((self.hist.shape[0] - 2,))
+        for i in range(1, self.nbins + 1):
+            norm[i - 1] = self.hist[i] / (self.bin_edges[i] - self.bin_edges[i - 1])
         norm /= self.live
         return norm
 
@@ -117,9 +118,10 @@ class SpectrumData:
                 return i
         return len(self.bin_edges)
 
+
 def find_end_index(self, emax):
     """
-    :param emin: minimum energy in same units as bin edges
+    :param emax: minimum energy in same units as bin edges
     :return: index of hist that is the last value with x less than emin
     """
     for i, bedge in enumerate(self.bin_edges):
@@ -163,6 +165,7 @@ def spectrum_name_check(name, flist):
 
 def retrieve_spectra(n, flist):
     return spectrum_name_check(n, flist)
+
 
 def retrieve_file_extension(mydir, ext):
     myfiles = []
@@ -293,9 +296,11 @@ def combine_runs(data_dict):
                     s.add(data_dict[key][i])
             data_dict[key] = s
 
+
 def rebin_spectra(data_dict, bin_edges):
     for key in data_dict:
         data_dict[key].rebin(bin_edges)
+
 
 def background_subtract(data_dict, subkey, bin_edges):
     """
@@ -353,8 +358,9 @@ def plot_subtract_spectra(fdict, compare_name, fname, rebin=1, emin=20, emax=Non
         ys.append(y)
         y = [d for d in subtracted_perc[start_index:end_index]]
         percys.append(y)
-        sub_errs = np.sqrt(spec.hist / (spec.live ** 2) + comparespec.hist / (comparespec.live ** 2)) / (spec.bin_edges[1] - spec.bin_edges[0])
-        err = [e for e in sub_errs[start_index+1:end_index+1]]
+        sub_errs = np.sqrt(spec.hist / (spec.live ** 2) + comparespec.hist / (comparespec.live ** 2)) / (
+                    spec.bin_edges[1] - spec.bin_edges[0])
+        err = [e for e in sub_errs[start_index + 1:end_index + 1]]
         x = spec.bin_midpoints[start_index:end_index]
         errs.append(err)
         names.append("{0} minus {1}".format(name, compare_name))
@@ -414,7 +420,7 @@ def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None):
         # err = [d / live / A1 for d in errs]
         # MultiScatterPlot(x, [y], [err], [name], "Energy [keV]", "Rate [hz/keV]")
         # plt.savefig("{}_errors.png".format(name))
-    fig=MultiLinePlot(x, ys, names, "Energy [keV]", "Rate [hz/keV]")
+    fig = MultiLinePlot(x, ys, names, "Energy [keV]", "Rate [hz/keV]")
     plt.savefig("{}.png".format(n))
     plt.close(fig)
 
@@ -440,7 +446,7 @@ def plot_spectra(fs, name, rebin=1, emin=None, emax=None):
     y = spec.get_normalized_hist()[start_index:end_index]
     errs = np.sqrt(spec.hist)
     x = spec.bin_midpoints[start_index:end_index]
-    err = [errs[i] / spec.live / (spec.bin_edges[i+1] - spec.bin_edges[i]) for i in range(len(spec.bin_edges)-1)]
+    err = [errs[i] / spec.live / (spec.bin_edges[i + 1] - spec.bin_edges[i]) for i in range(len(spec.bin_edges) - 1)]
     err = err[start_index:end_index]
     MultiScatterPlot(x, [y], [err], [name], "Energy [keV]", "Rate [hz/keV]")
     plt.savefig("{}_errors.png".format(name))
@@ -483,6 +489,7 @@ def numba_rebin(data, hist, A0, A1, bin_edges):
                                 hist[j + k] += data[i] * (bin_edges[j + k] - up) / A1
                     break
 
+
 def creation_date(path_to_file):
     """
     Try to get the date that a file was created, falling back to when it was
@@ -500,8 +507,15 @@ def creation_date(path_to_file):
             # so we'll settle for when its content was last modified.
             return stat.st_mtime
 
+
 def read_csv_list_of_tuples(fpath):
     with open(fpath, 'r') as read_obj:
         csv_reader = reader(read_obj)
         list_of_tuples = list(map(tuple, csv_reader))
     return list_of_tuples
+
+
+def get_json(fpath):
+    with open(fpath, 'r') as f:
+        data = json.load(f)
+    return data

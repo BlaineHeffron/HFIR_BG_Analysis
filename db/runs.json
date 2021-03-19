@@ -78,22 +78,10 @@
       "name": "Cycle490A_100to0",
       "detector_configuration": 1,
       "detector_coordinates": 1
-    },{
-      "file_list": "31-43",
-      "description": "Between Cycle 490A and 490B",
-      "name": "PreCycle490B",
-      "detector_configuration": 1,
-      "detector_coordinates": 1
-    },{
+    }, {
       "file_list": "31-42",
       "description": "Between Cycle 490A and 490B",
       "name": "PreCycle490B",
-      "detector_configuration": 1,
-      "detector_coordinates": 1
-    },{
-      "file_list": [43],
-      "description": "Startup of Cycle 490B to 10% power",
-      "name": "Cycle490BStartup",
       "detector_configuration": 1,
       "detector_coordinates": 1
     },{
@@ -109,11 +97,95 @@
       "detector_configuration": 1,
       "detector_coordinates": 1
     },{
-      "file_list": [54],
-      "description": "Cycle 490C 100% power 10 MeV range original position",
+      "file_list": [54,55],
+      "description": "Cycle 490C 10 MeV range original position",
       "name": "Cycle490C_original_10MeVrange",
       "detector_configuration": 2,
       "detector_coordinates": 1
+    },{
+      "file_list": ["EAST_FACING_45_DEGREE_DOWN_ANGLE.txt"],
+      "description": "Cycle 490C 10 MeV range 90 degree clockwise rotation from original position",
+      "name": "Cycle490C_original_10MeVrange",
+      "detector_configuration": 2,
+      "detector_coordinates": 2
+    },{
+      "file_list": [57],
+      "description": "Cycle 490C 3.6 MeV range nominal position north facing",
+      "name": "Cycle490C_nominal_north_3.6MeVrange",
+      "detector_configuration": 1,
+      "detector_coordinates": 3
+    },{
+      "file_list": ["CORNER_MEASUREMENT_NO_SHIELD_WALL.txt"],
+      "description": "Cycle 490C measured at NE wall corner pointing towards reactor (partially in view of steel wall)",
+      "name": "Cycle490C_NECorner_partial_steel",
+      "detector_configuration": 1,
+      "detector_coordinates": 7
+    },{
+      "file_list": ["CORNER_MEASUREMENT_NO_SHIELD_WALL_LOW_GAIN.txt"],
+      "description": "Cycle 490C measured at NE wall corner pointing towards reactor clear of steel wall with low gain",
+      "name": "Cycle490C_NECorner_partial_steel",
+      "detector_configuration": 3,
+      "detector_coordinates": 8
+    },{
+      "file_list": ["CORNER_TPS_OVERNIGHT.txt"],
+      "description": "Cycle 490C overnight run measured under the MIF pointing roughly towards the reactor, optimized for angle",
+      "name": "Cycle490C_MIF_partial_optimization_overnight",
+      "detector_configuration": 3,
+      "detector_coordinates": 13
+    },{
+      "file_list": ["MIF_BOX_AT_REACTOR_OPTIMIZED_DAY_COUNT.txt"],
+      "description": "Cycle 490C day count measured under the MIF pointing towards the reactor, optimized for cart and detector angle",
+      "name": "Cycle490C_MIF_reactor_optimized_9.6MeVrange",
+      "detector_configuration": 3,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["NOMINAL_NORTH.txt"],
+      "description": "Cycle 490C nominal north position 9.6 MeV range",
+      "name": "Cycle490C_nominal_north_9.6MeVrange",
+      "detector_configuration": 3,
+      "detector_coordinates": 3
+    },{
+      "file_list": ["NOMINAL_EAST.txt"],
+      "description": "Cycle 490C nominal east position 9.6 MeV range",
+      "name": "Cycle490C_nominal_east_9.6MeVrange",
+      "detector_configuration": 3,
+      "detector_coordinates": 4
+    },{
+      "file_list": ["NOMINAL_SOUTH.txt"],
+      "description": "Cycle 490C nominal south position 9.6 MeV range",
+      "name": "Cycle490C_nominal_south_9.6MeVrange",
+      "detector_configuration": 3,
+      "detector_coordinates": 5
+    },{
+      "file_list": ["NOMINAL_WEST.txt"],
+      "description": "Cycle 490C nominal west position 9.6 MeV range",
+      "name": "Cycle490C_nominal_west_9.6MeVrange",
+      "detector_configuration": 3,
+      "detector_coordinates": 6
+    },{
+      "file_list": ["ORIGINAL_QUICK_LOWGAIN.txt"],
+      "description": "Cycle 490C original position 9.6 MeV range quick run",
+      "name": "Cycle490C_original_9.6MeVrange_short_run",
+      "detector_configuration": 3,
+      "detector_coordinates": 1
+    },{
+      "file_list": ["ORIGINAL_QUICK_LOWGAIN_90_ROT.txt"],
+      "description": "Cycle 490C original position rotated 90 degrees clockwise 9.6 MeV range quick run",
+      "name": "Cycle490C_original_rot90_9.6MeVrange_short_run",
+      "detector_configuration": 3,
+      "detector_coordinates": 2
+    },{
+      "file_list": ["MIF_BOX_REACTOR_OPTIMIZED_OVERNIGHT_LOWEST_GAIN.txt"],
+      "description": "Cycle 490C at optimal rate position under MIF with lowest possible gain settings",
+      "name": "Cycle490C_MIF_reactor_optimized_14.6MeVrange",
+      "detector_configuration": 4,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt"],
+      "description": "Cycle 490C at optimal rate position under MIF with optimized gain for seeing the last gamma peak (11.4MeV)",
+      "name": "Cycle490C_MIF_reactor_optimized_11.5MeVrange",
+      "detector_configuration": 5,
+      "detector_coordinates": 23
     }
   ]
 }
