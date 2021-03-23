@@ -4,12 +4,13 @@ import json
 import re
 from os.path import join
 import matplotlib.pyplot as plt
-import numba as nb
 import ntpath
 import platform
 from csv import reader
+import shutil
 
 import numpy as np
+from scipy.io import FortranFile
 
 from src.analysis.Spectrum import SpectrumData
 from src.utilities.PlotUtils import MultiLinePlot, MultiScatterPlot
@@ -137,25 +138,6 @@ def write_x_y_csv(name, xlabel, ylabel, err_label, xs, ys, errors):
         writer.writerow([xlabel, ylabel, err_label])
         for x, y, e in zip(xs, ys, errors):
             writer.writerow([x, y, e])
-
-
-def pad_data(a, new_shape):
-    result = np.zeros(new_shape)
-    if len(new_shape) == 2:
-        result[:a.shape[0], :a.shape[1]] = a
-    else:
-        result[:a.shape[0]] = a
-    return result
-
-
-def rebin_data(a, n):
-    mod = a.shape[0] % n
-    if mod != 0:
-        a = pad_data(a, (a.shape[0] + n - mod,))
-    shape = [int(a.shape[0] / n)]
-    sh = shape[0], a.shape[0] // shape[0]
-    a = a.reshape(sh).sum(axis=-1)
-    return a
 
 
 def get_data_dir():
@@ -353,42 +335,6 @@ def plot_spectra(fs, name, rebin=1, emin=None, emax=None):
     plt.savefig("{}.png".format(name))
 
 
-@nb.jit(nopython=True)
-def numba_rebin(data, hist, A0, A1, bin_edges):
-    nbins = bin_edges.shape[0] - 1
-    for i in range(data.shape[0]):
-        low = A0 + A1 * i + A1 / 2.
-        up = A0 + A1 * (i + 1) + A1 / 2.
-        if low < bin_edges[0]:
-            hist[0] += data[i]
-        elif up > bin_edges[-1]:
-            hist[-1] += data[i]
-        else:
-            for j, bedge in enumerate(bin_edges):
-                if bedge >= low:
-                    if bedge > up:
-                        hist[j] += data[i]
-                    else:
-                        hist[j] += data[i] * (bedge - low) / A1
-                        if j == nbins:
-                            hist[j + 1] += data[i] * (up - bedge) / A1
-                        elif bin_edges[j + 1] > up:
-                            hist[j + 1] += data[i] * (up - bedge) / A1
-                        else:
-                            # new bins larger than old
-                            k = 1
-                            while j + k <= nbins and bin_edges[j + k] < up:
-                                hist[j + k] += data[i] * (bin_edges[j + k] - bin_edges[j + k - 1]) / A1
-                                k += 1
-                            if j + k == nbins + 1 and up > bin_edges[-1]:
-                                # rest of it goes in overflow
-                                hist[j + k] += data[i] * (up - bin_edges[-1]) / A1
-                            else:
-                                # get rest of the value in the last bin
-                                hist[j + k] += data[i] * (bin_edges[j + k] - up) / A1
-                    break
-
-
 def creation_date(path_to_file):
     """
     Try to get the date that a file was created, falling back to when it was
@@ -418,3 +364,30 @@ def get_json(fpath):
     with open(fpath, 'r') as f:
         data = json.load(f)
     return data
+
+def write_spe(fpath, spec):
+    """
+    writes spectrum to .spe file format
+    :param fpath: path to output .spe file
+    :param spec: numpy 1d or python list of spectrum values
+    :return: null
+    """
+    fname = os.path.basename(fpath)
+    if fname.endswith(".spe"):
+        fname = fname[0:-4]
+    if len(fname) < 8:
+        spename = fname + ' '*(8-len(fname))
+    else:
+        spename = fname[0:8]
+
+    out = FortranFile(fname, 'w')
+    b=bytearray([1,1,1])
+    spename = bytes(spename,'utf-8')
+    shape = bytes(spec.shape[0])
+    out.write_record(spename+shape+b)
+    out.write_record(spec)
+    out.close()
+    #from write_spe.so import WSPEC
+    #WSPEC(fname, spec, spec.shape[0])
+    shutil.move(fname, fpath)
+
