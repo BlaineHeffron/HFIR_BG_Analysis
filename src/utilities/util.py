@@ -8,6 +8,7 @@ import ntpath
 import platform
 from csv import reader
 import shutil
+import ctypes
 
 import numpy as np
 from scipy.io import FortranFile
@@ -17,6 +18,8 @@ from src.utilities.PlotUtils import MultiLinePlot, MultiScatterPlot
 from copy import copy
 
 FILEEXPR = re.compile('[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].txt')
+
+c_float_p = ctypes.POINTER(ctypes.c_float)
 
 
 def find_end_index(self, emax):
@@ -96,6 +99,11 @@ def file_number(fname):
 
 
 def retrieve_data(myf):
+    """
+    :param myf: path to .txt file containing cnf converted spectrum
+    :return:  SpectrumData object containing the spectrum data and metadata,
+    raises IOError if the .txt file is not a valid cnf file
+    """
     data = np.zeros((16384,), dtype=np.int32)
     A0 = 0.
     A1 = 0.
@@ -103,18 +111,22 @@ def retrieve_data(myf):
     live = 0.
     counter = 0
     with open(myf, 'r') as f:
-        for line in f.readlines():
-            if 'Start time: ' in line:
-                start = line[17:]
-            if 'Live time ' in line:
-                live = float(line[17:])
-            if '#     A0: ' in line:
-                A0 = float(line[10:])
-            if '#     A1: ' in line:
-                A1 = float(line[10:])
-            if not line.startswith("#"):
-                data[counter] = int(line.split('\t')[2])
-                counter += 1
+        try:
+            for line in f.readlines():
+                if 'Start time: ' in line:
+                    start = line[17:]
+                if 'Live time ' in line:
+                    live = float(line[17:])
+                if '#     A0: ' in line:
+                    A0 = float(line[10:])
+                if '#     A1: ' in line:
+                    A1 = float(line[10:])
+                if not line.startswith("#"):
+                    data[counter] = int(line.split('\t')[2])
+                    counter += 1
+        except Exception as e:
+            f.close()
+            raise IOError("{0} is not a valid .cnf formatted file. Error: {1}".format(myf, e))
     return SpectrumData(data, start, live, A0, A1)
 
 
@@ -240,7 +252,7 @@ def plot_subtract_spectra(fdict, compare_name, fname, rebin=1, emin=20, emax=Non
         y = [d for d in subtracted_perc[start_index:end_index]]
         percys.append(y)
         sub_errs = np.sqrt(spec.hist / (spec.live ** 2) + comparespec.hist / (comparespec.live ** 2)) / (
-                    spec.bin_edges[1] - spec.bin_edges[0])
+                spec.bin_edges[1] - spec.bin_edges[0])
         err = [e for e in sub_errs[start_index + 1:end_index + 1]]
         x = spec.bin_midpoints[start_index:end_index]
         errs.append(err)
@@ -365,29 +377,28 @@ def get_json(fpath):
         data = json.load(f)
     return data
 
+
 def write_spe(fpath, spec):
     """
     writes spectrum to .spe file format
     :param fpath: path to output .spe file
-    :param spec: numpy 1d or python list of spectrum values
+    :param spec: numpy 1d array
     :return: null
     """
-    fname = os.path.basename(fpath)
-    if fname.endswith(".spe"):
-        fname = fname[0:-4]
-    if len(fname) < 8:
-        spename = fname + ' '*(8-len(fname))
-    else:
-        spename = fname[0:8]
+    if os.path.exists(fpath):
+        print("{} already exists, skipping".format(fpath))
+        return
+    path, fname = ntpath.split(fpath)
+    if path:
+        os.chdir(path)
+    fname_bytes = fname.encode('utf-8')
+    dir_path = os.path.dirname(os.path.realpath(__file__))
 
-    out = FortranFile(fname, 'w')
-    b=bytearray([1,1,1])
-    spename = bytes(spename,'utf-8')
-    shape = bytes(spec.shape[0])
-    out.write_record(spename+shape+b)
-    out.write_record(spec)
-    out.close()
-    #from write_spe.so import WSPEC
-    #WSPEC(fname, spec, spec.shape[0])
+    write_spe = ctypes.CDLL(os.path.join(dir_path, "write_spe.so"))
+    spec = spec.astype(np.float32)
+    spec_p = spec.ctypes.data_as(c_float_p)
+    write_spe.wspec.argtypes = [ctypes.c_char_p, c_float_p, ctypes.c_int]
+    write_spe.wspec(fname_bytes, spec_p, spec.shape[0])
+    # from write_spe.so import WSPEC
+    # WSPEC(fname, spec, spec.shape[0])
     shutil.move(fname, fpath)
-

@@ -8,12 +8,15 @@ def convert_to_spe():
     os.chdir(os.path.abspath(os.path.normpath(os.path.expanduser(datadir))))
     flist = retrieve_file_extension(datadir, ext=".txt")
     for f in flist:
-        spec = retrieve_data(f)
+        try:
+            spec = retrieve_data(f)
+        except IOError as e:
+            print("SKIPPING {0}, not a valid cnf file. Error message: {1}".format(f, e))
+            continue
         fdir, fname = ntpath.split(f)
         fname = fname.replace(".txt",".spe")
         print("converting  {0} to {1}".format(f,fname))
         write_spe(fname, spec.data)
-        break
 
 
 
@@ -32,5 +35,5 @@ def main():
     subprocess.run("cnf2txtall")
 
 if __name__ == "__main__":
-    #main()
+    main()
     convert_to_spe()
