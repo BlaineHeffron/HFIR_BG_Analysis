@@ -39,7 +39,7 @@ class SpectrumData:
         new_hist = rebin_data(self.hist[1:-1], factor)
         under = self.hist[0]
         over = self.hist[-1]
-        self.hist = np.zeros((new_hist.shape[0] + 2,))
+        self.hist = np.zeros((new_hist.shape[0] + 2,), dtype=np.float32)
         self.hist[0] = under
         self.hist[1] = over
         self.hist[1:-1] = new_hist
@@ -61,12 +61,12 @@ class SpectrumData:
             bin_edges = np.zeros(self.data.shape[0] + 1)
             for i in range(self.data.shape[0] + 1):
                 bin_edges[i] = self.A0 + self.A1 * i + self.A1 / 2.
-        self.hist = np.zeros((bin_edges.shape[0] + 1,))
+        self.hist = np.zeros((bin_edges.shape[0] + 1,), dtype=np.float32)
         self.bin_edges = bin_edges
         self.calculate_bin_midpoints()
         self.nbins = bin_edges.shape[0] - 1
         if set_to_data:
-            self.hist[1:-1] = self.data
+            self.hist[1:-1] = self.data.astype(np.float32)
             return
         numba_rebin(self.data, self.hist, self.A0, self.A1, self.bin_edges)
 
