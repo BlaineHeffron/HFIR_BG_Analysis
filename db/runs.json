@@ -186,6 +186,12 @@
       "name": "Cycle490C_MIF_reactor_optimized_11.5MeVrange",
       "detector_configuration": 5,
       "detector_coordinates": 23
+    },{
+      "file_list": ["MIF_OFF_REACTOR_AXIS_OVERNIGHT"],
+      "description": "Cycle 490C under MIF cart rotated counterclockwise about 40 degrees to point outside of direct line of sight of reactor",
+      "name": "Cycle490C_MIF_off_axis",
+      "detector_configuration": 5,
+      "detector_coordinates": 26
     }
   ]
 }
