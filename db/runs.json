@@ -192,6 +192,18 @@
       "name": "Cycle490C_MIF_off_axis",
       "detector_configuration": 5,
       "detector_coordinates": 26
+    }, {
+      "file_list": ["MIF_OFF_REACTOR_AXIS_2"],
+      "description": "Cycle 490C under MIF cart rotated counterclockwise ~15 degrees from the direct reactor line of sight",
+      "name": "Cycle490C_MIF_off_axis_2",
+      "detector_configuration": 5,
+      "detector_coordinates": 27
+    }, {
+      "file_list": ["MIF_OFF_REACTOR_AXIS_3"],
+      "description": "Cycle 490C under MIF cart rotated counterclockwise ~60 degrees from the direct reactor line of sight",
+      "name": "Cycle490C_MIF_off_axis_3",
+      "detector_configuration": 5,
+      "detector_coordinates": 28
     }
   ]
 }
