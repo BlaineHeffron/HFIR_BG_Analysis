@@ -11,6 +11,10 @@ rundata = {"nominal north": "NOMINAL_NORTH", "nominal east": "NOMINAL_EAST", "no
            "nominal south": "NOMINAL_SOUTH"}
 plot_name = "nominal_cardinal_direction"
 compare_to = "nominal north"
+
+rundata = {"rxon":"MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","rxoff":"MIF_BOX_AT_REACTOR_RXOFF"}
+plot_name = "rxon_vs_off"
+compare_to = "rxoff"
 bins = get_bins(100, 11500, 11400)
 
 

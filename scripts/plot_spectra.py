@@ -4,7 +4,8 @@ from src.utilities.util import *
 rundata = { "corner_no_shield": "CORNER_MEASUREMENT_NO_SHIELD_WALL_LOW_GAIN",
             "MIF_no_shield":"CORNER_TPS_OVERNIGHT" }
 rundata = {"no_shield_lowest_gain":"MIF_BOX_REACTOR_OPTIMIZED_OVERNIGHT_LOWEST_GAIN.txt"}
-bins = get_bins(0, 12000, 4000)
+rundata = {"rxon":"MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","rxoff":"MIF_BOX_AT_REACTOR_RXOFF"}
+bins = get_bins(0, 12000, 12000)
 
 def main():
     datadir = get_data_dir()
