@@ -11,7 +11,6 @@ import shutil
 import ctypes
 
 import numpy as np
-from scipy.io import FortranFile
 
 from src.analysis.Spectrum import SpectrumData
 from src.utilities.PlotUtils import MultiLinePlot, MultiScatterPlot
