@@ -376,6 +376,13 @@ def get_json(fpath):
         data = json.load(f)
     return data
 
+def write_json(fpath, data, prettyprint=False):
+    with open(fpath, 'w') as f:
+        if prettyprint:
+            json.dump(data,f, indent=4)
+        else:
+            json.dump(data,f)
+    return True
 
 def write_spe(fpath, spec):
     """

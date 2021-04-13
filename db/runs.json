@@ -204,6 +204,84 @@
       "name": "Cycle490C_MIF_off_axis_3",
       "detector_configuration": 5,
       "detector_coordinates": 28
+    },{
+      "file_list": ["MIF_OFF_REACTOR_AXIS_4"],
+      "description": "Cycle 490C under MIF cart rotated counterclockwise ~90 degrees from the direct reactor line of sight",
+      "name": "Cycle490C_MIF_off_axis_4",
+      "detector_configuration": 5,
+      "detector_coordinates": 29
+    },{
+      "file_list": "171-362",
+      "description": "Cycle 490C under MIF cart facing reactor shutdown measurement in 15 minute intervals",
+      "name": "Cycle490C_shutdown",
+      "detector_configuration": 5,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["MIF_BOX_AT_REACTOR_RXOFF"],
+      "description": "Post Cycle 490C under MIF cart facing reactor, day long count",
+      "name": "PostCycle490C_MIF",
+      "detector_configuration": 5,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["NOMINAL_NORTH_RXOFF_2DAY"],
+      "description": "Post Cycle 490C at nominal position north facing, 2 day long count",
+      "name": "PostCycle490C_nominal",
+      "detector_configuration": 5,
+      "detector_coordinates": 3
+    },{
+      "file_list": "363-395",
+      "description": "Post Cycle 490C at MIF facing reactor, 8 hour counts through rxoff period",
+      "name": "PostCycle490C_MIF_8hour_sequence",
+      "detector_configuration": 5,
+      "detector_coordinates": 23
+    },{
+      "file_list": "555-637",
+      "description": "Pre Cycle 491 at MIF facing reactor,  15 minute counts through during rxr testing for startup the following day",
+      "name": "PreCycle491_MIF_15min_sequence",
+      "detector_configuration": 5,
+      "detector_coordinates": 23
+    },{
+      "file_list": [638],
+      "description": "Cycle 491 ramp up to 10% power",
+      "name": "Cycle491_0to10pwr",
+      "detector_configuration": 5,
+      "detector_coordinates": 23
+    },{
+      "file_list": [639,640],
+      "description": "Cycle 491 at 10% power",
+      "name": "Cycle491_10pwr",
+      "detector_configuration": 5,
+      "detector_coordinates": 23
+    },{
+      "file_list": [641],
+      "description": "Cycle 491 10% ramp to 30% power",
+      "name": "Cycle491_10to30pwr",
+      "detector_configuration": 5,
+      "detector_coordinates": 23
+    },{
+      "file_list": [642],
+      "description": "Cycle 491 30% ramp to 50% power",
+      "name": "Cycle491_30to50pwr",
+      "detector_configuration": 5,
+      "detector_coordinates": 23
+    },{
+      "file_list": [643],
+      "description": "Cycle 491 50% ramp to 70% power",
+      "name": "Cycle491_50to70pwr",
+      "detector_configuration": 5,
+      "detector_coordinates": 23
+    },{
+      "file_list": [644],
+      "description": "Cycle 491 70% ramp to 90% power",
+      "name": "Cycle491_70to90pwr",
+      "detector_configuration": 5,
+      "detector_coordinates": 23
+    },{
+      "file_list": [645],
+      "description": "Cycle 491 90% ramp to 100% power",
+      "name": "Cycle491_90to100pwr",
+      "detector_configuration": 5,
+      "detector_coordinates": 23
     }
   ]
 }

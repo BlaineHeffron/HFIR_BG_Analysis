@@ -294,7 +294,11 @@ class HFIRBG_DB(SQLiteBase):
 
         columns = self.retrieve_columns("runs")[1:]
         runsfile = get_json(os.path.join(dbdir, "runs.json"))
+        coord_cols = self.retrieve_columns("detector_coordinates")[1:-1]
         for run in runsfile["runs"]:
+            if isinstance(run["detector_coordinates"], list):
+                coord_id = self.insert_or_ignore("detector_coordinates", coord_cols, run["detector_coordinates"], retrieve_key=True)
+                run["detector_coordinates"] = coord_id
             run_id = self.insert_or_ignore("runs", columns, [run[key] for key in columns], retrieve_key=True)
             flist = run["file_list"]
             if isinstance(flist, str):
