@@ -2,9 +2,11 @@ from src.utilities.util import *
 
 #rundata = {"original_1": 54, "original_2": 55, "original_cart_xzrot_90": 56,
 #           "nominal": 57, "EAST CORNER": 58}
-rundata = {"reactor_optimized": "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt",
-           "track_reactor_off_axis": "TRACK_POS55_48"}
+#rundata = {"reactor_optimized": "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt",
+#           "track_reactor_off_axis": "TRACK_POS55_48"}
 
+#rundata = {"reactor_optimized": "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt",
+#           "track_reactor_off_axis": "TRACK_POS55_48"}
 
 def main():
     datadir = get_data_dir()

@@ -15,6 +15,10 @@ compare_to = "nominal north"
 rundata = {"rxon":"MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","rxoff":"MIF_BOX_AT_REACTOR_RXOFF"}
 plot_name = "rxon_vs_off"
 compare_to = "rxoff"
+
+rundata = {"MIF": "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","HB4":"HB4_DOWN_OVERNIGHT_1.txt","SHIELD_CENTER":"CYCLE461_DOWN_FACING_OVERNIGHT.txt"}
+plot_name = "HB4_vs_Shield_Center"
+compare_to = "SHIELD_CENTER"
 bins = get_bins(100, 11500, 11400)
 
 
