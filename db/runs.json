@@ -1,4 +1,5 @@
 {
+  "comments": "this file has been updated June 22 to contain all runs that are not track scans or positions scans (which can be read in either from file name for track scans or from tables on elog for other scans) through 6/18/21",
   "runs": [
     {
       "file_list": "1-15",
@@ -282,6 +283,246 @@
       "name": "Cycle491_90to100pwr",
       "detector_configuration": 5,
       "detector_coordinates": 23
+    },{
+      "file_list": ["747-938"],
+      "description": "Cycle 491 first two days, 15 minute runs",
+      "name": "Cycle491_start",
+      "detector_configuration": 5,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["747-938"],
+      "description": "Cycle 491 first two days, 15 minute runs",
+      "name": "Cycle491_start",
+      "detector_configuration": 5,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["MIF_HIGH_GAIN_512KEV"],
+      "description": "Cycle 491 MIF position high gain test 1",
+      "name": "Cycle491_high_gain_test1",
+      "detector_configuration": 6,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["MIF_MAXGAIN_64KEV_TEST"],
+      "description": "Cycle 491 MIF position max gain test",
+      "name": "Cycle491_max_gain_test",
+      "detector_configuration": 7,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["MIF_512KEV_DAYRUN"],
+      "description": "Cycle 491 MIF position high gain test 2",
+      "name": "Cycle491_high_gain_test2",
+      "detector_configuration": 8,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["MIF_MAXGAIN_DAYCOUNT"],
+      "description": "Cycle 491 MIF position max gain overnight",
+      "name": "Cycle491_max_gain_overnight",
+      "detector_configuration": 7,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["MIF_MAXGAIN_DAYCOUNT"],
+      "description": "Cycle 491 MIF position max gain overnight",
+      "name": "Cycle491_max_gain_overnight",
+      "detector_configuration": 7,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["MIF_AM_SOURCE_MAXGAIN"],
+      "description": "Cycle 491 MIF position Americium source max gain",
+      "name": "Cycle491_max_gain_Am",
+      "detector_configuration": 7,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["MIF_AM_SOURCE_521KEV"],
+      "description": "Cycle 491 MIF position Americium source high gain",
+      "name": "Cycle491_high_gain_Am",
+      "detector_configuration": 8,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["MIF_NO_SOURCE_521KEV"],
+      "description": "Cycle 491 MIF position no source high gain",
+      "name": "Cycle491_high_gain_no_source",
+      "detector_configuration": 8,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["1515-1655"],
+      "description": "Cycle 491 MIF position 2 day 15 minute runs high gain stability test",
+      "name": "Cycle491_high_gain_weekend_runs",
+      "detector_configuration": 8,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["1707-1733"],
+      "description": "Cycle 491 MIF position 15 minute runs LTC mode off test, memory group 1",
+      "name": "Cycle491_high_gain_LTC_OFF_mem1_tests",
+      "detector_configuration": 9,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["1734-1825"],
+      "description": "Cycle 491 MIF position 15 minute runs LTC mode off test, memory group 2",
+      "name": "Cycle491_high_gain_LTC_OFF_mem2_tests",
+      "detector_configuration": 10,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["MIF_STRONG_AM_SOURCE_520KEV"],
+      "description": "Cycle 491 MIF position strong am source test high gain",
+      "name": "Cycle491_high_gain_strong_am",
+      "detector_configuration": 9,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["MIF_STRONG_AM_SOURCE_MAXGAIN"],
+      "description": "Cycle 491 MIF position strong am source test max gain",
+      "name": "Cycle491_max_gain_strong_am",
+      "detector_configuration": 11,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["MIF_STRONG_AM_SOURCE_MAXGAIN_0LLD"],
+      "description": "Cycle 491 MIF position strong am source test max gain, 0 LLD",
+      "name": "Cycle491_max_gain_strong_am_0lld",
+      "detector_configuration": 12,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["MIF_STRONG_AM_SOURCE_MAXGAIN_50LLD"],
+      "description": "Cycle 491 MIF position strong am source test max gain, 50 LLD",
+      "name": "Cycle491_max_gain_strong_am_50lld",
+      "detector_configuration": 13,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["MIF_STRONG_AM_SOURCE_520KEV_LTC_ON"],
+      "description": "Cycle 491 MIF position strong am source test high gain, LTC on",
+      "name": "Cycle491_high_gain_strong_am_ltc_on",
+      "detector_configuration": 14,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["MIF_STRONG_AM_SOURCE_MAXGAIN_LTC_ON"],
+      "description": "Cycle 491 MIF position strong am source test max gain, LTC on",
+      "name": "Cycle491_max_gain_strong_am_ltc_on",
+      "detector_configuration": 15,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["1909-2087"], #FIX THIS
+      "description": "Cycle 491 nominal position max gain hour runs",
+      "name": "Cycle491_nominal_max_gain_hour_runs",
+      "detector_configuration": 15,
+      "detector_coordinates": 3
+    }{
+      "file_list": ["1909-2087"],
+      "description": "Cycle 491 nominal position max gain hour runs",
+      "name": "Cycle491_max_gain_strong_am_ltc_on",
+      "detector_configuration": 15,
+      "detector_coordinates": 3
+    },{
+      "file_list": ["MIF_DOWN_FACING"],
+      "description": "Cycle 491 MIF downward facing",
+      "name": "Cycle491_MIF_DOWN",
+      "detector_configuration": 5,
+      "detector_coordinates": 30
+    },{
+      "file_list": ["HB4_DOWN_OVERNIGHT"],
+      "description": "Cycle 491 HB4 hot spot downward facing",
+      "name": "HB4_overnight",
+      "detector_configuration": 5,
+      "detector_coordinates": 31
+    },{
+      "file_list": ["CYCLE461_DOWN_FACING_OVERNIGHT"],
+      "description": "Cycle 491 shield wall center spot downward facing",
+      "name": "Shield_center_down_overnight",
+      "detector_configuration": 5,
+      "detector_coordinates": 32
+    },{
+      "file_list": ["MIF_AM_CAL"],
+      "description": "Cycle 491 MIF max gain Am calibration run",
+      "name": "Cycle491_MIF_Am_cal",
+      "detector_configuration": 7,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["2091-2282"],
+      "description": "Cycle 491 shutdown 15 minute runs max gain",
+      "name": "Cycle491_shutdown_maxgain",
+      "detector_configuration": 7,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["2475-2504"],
+      "description": "Post Cycle 491 rxr off 1 hour runs max gain",
+      "name": "PostCycle491_maxgain",
+      "detector_configuration": 7,
+      "detector_coordinates": 23
+    },{
+      "file_list": ["2667-2799"],
+      "description": "Cycle 492 HB4 down looking 30 minute runs",
+      "name": "Cycle492_HB4_30minute_runs",
+      "detector_configuration": 5,
+      "detector_coordinates": 33
+    },{
+      "file_list": ["PROSPECT_DOWN_OVERNIGHT"],
+      "description": "Cycle 492 PROSPECT down looking overnight",
+      "name": "Cycle492_HB4_30minute_runs",
+      "detector_configuration": 5,
+      "detector_coordinates": 34
+    },{
+      "file_list": ["PROSPECT_DOWN_BRICK1"],
+      "description": "Cycle 492 PROSPECT down looking 1 brick layer, 4 bricks",
+      "name": "Cycle492_PROSPECT_brick1",
+      "detector_configuration": 5,
+      "detector_coordinates": 35
+    },{
+      "file_list": ["PROSPECT_DOWN_BRICK2"],
+      "description": "Cycle 492 PROSPECT down looking 2 brick layer, 4 bricks",
+      "name": "Cycle492_PROSPECT_brick2",
+      "detector_configuration": 5,
+      "detector_coordinates": 35
+    },{
+      "file_list": ["2859-2927"],
+      "description": "Cycle 492 MIF looking down 15 minute runs overnight",
+      "name": "Cycle492_MIF_down",
+      "detector_configuration": 5,
+      "detector_coordinates": 36
+    },{
+      "file_list": ["NE_FACING_EAST"],
+      "description": "Cycle 492 NE corner of PROSPECT facing East",
+      "name": "Cycle492_NE_East",
+      "detector_configuration": 5,
+      "detector_coordinates": 37
+    },{
+      "file_list": ["EAST_FACING_EAST"], #FIX THIS NAME
+      "description": "Cycle 492 middle of East face of PROSPECT facing East towards HB4 hot spot",
+      "name": "Cycle492_East_facing_East",
+      "detector_configuration": 5,
+      "detector_coordinates": 38
+    }{
+      "file_list": ["HB4_HOT_SPOT"],
+      "description": "Cycle 492 HB4 hot spot facing down",
+      "name": "Cycle492_HB4_hot_spot",
+      "detector_configuration": 5,
+      "detector_coordinates": 31
+    },{
+      "file_list": ["HB4_HOT_SPOT_Pb"],
+      "description": "Cycle 492 HB4 hot spot facing down with 1 layer of lead blankets",
+      "name": "Cycle492_HB4_hot_spot_lead1",
+      "detector_configuration": 5,
+      "detector_coordinates": 31
+    },{
+      "file_list": ["HB4_HOT_SPOT_Pb2"],
+      "description": "Cycle 492 HB4 hot spot facing down with 3 lead blankets overlapped in cross shape",
+      "name": "Cycle492_HB4_hot_spot_lead2",
+      "detector_configuration": 5,
+      "detector_coordinates": 31
+    },{
+      "file_list": ["HB4_HOT_SPOT_BLOCKS"],
+      "description": "Cycle 492 HB4 hot spot facing down with 8 lead bricks in 2x4 configuration underneath",
+      "name": "Cycle492_HB4_hot_spot_bricks1",
+      "detector_configuration": 5,
+      "detector_coordinates": 31
+    },{
+      "file_list": ["HB4_HOT_SPOT_BLOCKS2"],
+      "description": "Cycle 492 HB4 hot spot facing down with 2 layers of 8 lead bricks in 2x4 configuration underneath",
+      "name": "Cycle492_HB4_hot_spot_bricks2",
+      "detector_configuration": 5,
+      "detector_coordinates": 31
+    },{
+      "file_list": ["HB4_HOT_SPOT_B&S"],
+      "description": "Cycle 492 HB4 hot spot facing down with 2 layers of 8 lead bricks in 2x4 configuration  and 3 lead blankets underneath",
+      "name": "Cycle492_HB4_hot_spot_sheets_and_bricks",
+      "detector_configuration": 5,
+      "detector_coordinates": 31
     }
   ]
 }

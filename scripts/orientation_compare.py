@@ -21,6 +21,12 @@ plot_name = "HB4_vs_Shield_Center"
 compare_to = "SHIELD_CENTER"
 bins = get_bins(100, 11500, 11400)
 
+rundata = {"anomaly":"HB4_DOWN_31", "normal": "HB4_DOWN_36"}
+plot_name = "high_rate_anomaly"
+compare_to = "normal"
+bins = get_bins(100, 11500, 11400)
+
+
 
 def main():
     datadir = get_data_dir()
@@ -29,12 +35,12 @@ def main():
     rebin_spectra(data, bins)
     #data = background_subtract(data, "Rxoff", get_bins(100, 9400, 3100))
     plot_multi_spectra(data, plot_name, rebin=10)
-    plot_subtract_spectra(data, compare_to, plot_name + "_subtract", rebin=100)
+    plot_subtract_spectra(data, compare_to, plot_name + "_subtract", rebin=1000)
     emin = [800*i for i in range(15)]
     emax = [800*(i+1) for i in range(15)]
-    for i in range(len(emin)):
-        plot_multi_spectra(data, plot_name + "_{}".format(i), emin=emin[i], emax=emax[i])
-        plot_subtract_spectra(data, compare_to, plot_name + "_subtract_{}".format(i), emin=emin[i], emax=emax[i])
+    #for i in range(len(emin)):
+    #    plot_multi_spectra(data, plot_name + "_{}".format(i), emin=emin[i], emax=emax[i])
+    #    plot_subtract_spectra(data, compare_to, plot_name + "_subtract_{}".format(i), emin=emin[i], emax=emax[i])
 
 
 if __name__ == "__main__":

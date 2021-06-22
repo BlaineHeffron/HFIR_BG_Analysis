@@ -66,7 +66,10 @@ CREATE TABLE IF NOT EXISTS "acquisition_settings" (
 	"PUR_guard"	REAL,
 	"offset"	INTEGER,
 	"fine_gain"	REAL NOT NULL,
-	UNIQUE("coarse_gain", "PUR_guard", "offset", "fine_gain")
+	"LLD" REAL,
+	"LTC_mode" INTEGER,
+    "memory_group", INTEGER,
+	UNIQUE("coarse_gain", "PUR_guard", "offset", "fine_gain", "LLD", "LTC_mode", "memory_group")
 );
 CREATE TABLE IF NOT EXISTS "directory" (
     "id" INTEGER PRIMARY KEY AUTOINCREMENT,
