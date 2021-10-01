@@ -49,6 +49,16 @@ cmaps['Miscellaneous'] = [
     'gnuplot', 'gnuplot2', 'CMRmap', 'cubehelix', 'brg',
     'gist_rainbow', 'rainbow', 'jet', 'nipy_spectral', 'gist_ncar']
 
+plt.rcParams['font.family'] = 'serif'
+plt.rcParams['font.serif'] = 'Ubuntu'
+plt.rcParams['font.monospace'] = 'Ubuntu Mono'
+plt.rcParams['font.size'] = 22
+plt.rcParams['axes.labelsize'] = 22
+#plt.rcParams['axes.labelweight'] = 'bold'
+plt.rcParams['xtick.labelsize'] = 20
+plt.rcParams['ytick.labelsize'] = 20
+plt.rcParams['legend.fontsize'] = 22
+plt.rcParams['figure.titlesize'] = 24
 
 def plot_z_acc_matrix(cm, nx, ny, title, zlabel="mean average error [mm]", cmap=plt.cm.viridis):
     fontsize = 12
@@ -414,7 +424,8 @@ def GetMPLStyles():
 def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
                   colors=None, styles=None,
                   xmax=-1, ymax=-1, ymin=None, xmin=None, ylog=True, xdates=False,
-                  vertlines=None, vlinelabel=None, xlog=False, title=None):
+                  vertlines=None, vlinelabel=None, xlog=False, title=None, figsize=(12, 9)):
+    rcParams.update({'font.size': 22})
     if colors is None:
         colors = []
     if styles is None:
@@ -423,7 +434,7 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
         xaxis = mdate.epoch2num(xaxis)
         if(vertlines):
             vertlines = mdate.epoch2num(vertlines)
-    fig = plt.figure(figsize=(9, 6.5))
+    fig = plt.figure(figsize=figsize)
     ax1 = fig.add_subplot(111)
     ax1.set_xlabel(xlabel)
     ax1.set_ylabel(ylabel)
@@ -445,6 +456,7 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
         ax1.set_yscale('log')
     else:
         ax1.set_yscale('linear')
+    ax1.xaxis.grid(True, which='minor')
     if(ymax == -1):
         if(ylog):
             ax1.set_ylim(ymin,max([max(y) for y in yvals])*1.5)
@@ -491,8 +503,7 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
             ax1.set_title(title)
         ax1.set_position([box.x0,box.y0,box.width,box.height])
         ax1.legend(line_labels,loc='center left', \
-                   bbox_to_anchor=(0.82,0.82),ncol=1)
-        rcParams.update({'font.size':14})
+                   bbox_to_anchor=(0.20,0.22),ncol=1)
     #plt.gcf().subplots_adjust(left=0.16)
     #plt.gcf().subplots_adjust(bottom=0.22)
     #plt.gcf().subplots_adjust(right=0.05)
@@ -503,7 +514,7 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
 def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
                   colors=None, styles=None,
                   xmax=-1, ymax=-1, ymin=None, xmin=None, ylog=True, xdates=False,
-                  vertlines=None, vlinelabel=None, xlog=False, title=None):
+                  vertlines=None, vlinelabel=None, xlog=False, title=None,  figsize=(12, 9)):
     if colors is None:
         colors = []
     if styles is None:
@@ -512,7 +523,8 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
         xaxis = mdate.epoch2num(xaxis)
         if(vertlines):
             vertlines = mdate.epoch2num(vertlines)
-    fig = plt.figure()
+    rcParams.update({'font.size': 18})
+    fig = plt.figure(figsize=(12, 6.5))
     ax1 = fig.add_subplot(111)
     ax1.set_xlabel(xlabel)
     ax1.set_ylabel(ylabel)
@@ -578,9 +590,9 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
     else:
         if(title):
             ax1.set_title(title)
-        ax1.set_position([box.x0,box.y0,box.width*0.75,box.height])
+        ax1.set_position([box.x0,box.y0,box.width,box.height])
         ax1.legend(line_labels,loc='center left', \
-                   bbox_to_anchor=(1.0,0.75),ncol=1)
+                   bbox_to_anchor=(0.3,0.85),ncol=1)
         rcParams.update({'font.size':14})
     #plt.gcf().subplots_adjust(left=0.16)
     #plt.gcf().subplots_adjust(bottom=0.22)

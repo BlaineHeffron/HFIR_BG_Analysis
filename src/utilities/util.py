@@ -209,6 +209,54 @@ def background_subtract(data_dict, subkey, bin_edges):
         d[key] = subtract_spectra(data_dict[key], subtract)
     return d
 
+def plot_ratio_spectra(fdict, compare_name, fname, rebin=1, emin=20, emax=None):
+    ys = []
+    absys = []
+    percys = []
+    names = []
+    start_index = 0
+    end_index = 0
+    x = []
+    errs = []
+    if len(fdict.keys()) < 2:
+        raise ValueError("fdict must contain at least 2 keys")
+    comparespec = fdict[compare_name]
+    if rebin > 1:
+        comparespec = copy(comparespec)
+        comparespec.rebin_factor(rebin)
+    compare_spec_norm = comparespec.get_normalized_hist()
+    for name in fdict.keys():
+        if name == compare_name:
+            continue
+        spec = fdict[name]
+        if rebin > 1:
+            spec = copy(spec)
+            spec.rebin_factor(rebin)
+        data_norm = spec.get_normalized_hist()
+        subtracted = safe_divide(data_norm , compare_spec_norm)
+        if start_index == 0 and emin is not None:
+            start_index = spec.find_start_index(emin)
+            if start_index < 0:
+                start_index = 0
+        if emax is not None and end_index == 0:
+            end_index = spec.find_start_index(emax) - 1
+        elif end_index == 0:
+            end_index = spec.find_start_index(1.0e12) - 1
+        y = [abs(d) for d in subtracted[start_index:end_index]]
+        absys.append(y)
+        y = [d for d in subtracted[start_index:end_index]]
+        ys.append(y)
+        sub_errs = np.sqrt(spec.hist / (spec.live ** 2) + comparespec.hist / (comparespec.live ** 2)) / (
+                spec.bin_edges[1] - spec.bin_edges[0])
+        err = [e for e in sub_errs[start_index + 1:end_index + 1]]
+        x = spec.bin_midpoints[start_index:end_index]
+        errs.append(err)
+        names.append("{0} / {1}".format(name, compare_name))
+    MultiScatterPlot(x, ys, errs, names, "Energy [keV]", "Rate Ratio ", ylog=False)
+    if rebin > 1:
+        fname = fname + "_rebin{}".format(rebin)
+    plt.savefig("{}.png".format(fname))
+
 
 def plot_subtract_spectra(fdict, compare_name, fname, rebin=1, emin=20, emax=None):
     ys = []
@@ -285,7 +333,7 @@ def set_indices(start_index, end_index, emin, emax, spec):
     return start_index, end_index
 
 
-def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None):
+def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None, loc="upper right"):
     ys = []
     names = []
     x = []
@@ -312,7 +360,7 @@ def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None):
         # err = [d / live / A1 for d in errs]
         # MultiScatterPlot(x, [y], [err], [name], "Energy [keV]", "Rate [hz/keV]")
         # plt.savefig("{}_errors.png".format(name))
-    fig = MultiLinePlot(x, ys, names, "Energy [keV]", "Rate [hz/keV]")
+    fig = MultiLinePlot(x, ys, names, "Energy [keV]", "Rate [hz/keV]", ylog=False)
     plt.savefig("{}.png".format(n))
     plt.close(fig)
 
