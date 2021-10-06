@@ -1,0 +1,5 @@
+direction|R (x, z) [in]|L(x, z) [in]|angle [deg]|filename
+north|41.5, 164.5|59, 164.5|57.5|NOMINAL_NORTH
+east|32, 182.5|32, 65|57.5|NOMINAL_EAST
+south|52.5, 196.5|35, 196.5|57.5|NOMINAL_SOUTH
+west|64, 177|64, 194.5|57.5|NOMINAL_WEST

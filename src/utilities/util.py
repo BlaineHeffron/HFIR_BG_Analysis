@@ -151,6 +151,12 @@ def write_x_y_csv(name, xlabel, ylabel, err_label, xs, ys, errors):
             writer.writerow([x, y, e])
 
 
+def write_rows_csv(f, header, rows):
+    writer = csv.writer(f, delimiter='|', quoting=csv.QUOTE_MINIMAL)
+    writer.writerow(header)
+    for row in rows:
+        writer.writerow(row)
+
 def get_data_dir():
     if "HFIRBGDATA" not in os.environ:
         raise RuntimeError("Error: set environment variable HFIRBGDATA to the directory with your files")
@@ -456,3 +462,78 @@ def write_spe(fpath, spec):
     # from write_spe.so import WSPEC
     # WSPEC(fname, spec, spec.shape[0])
     shutil.move(fname, fpath)
+
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+def fix_table(fpath):
+    base_path = os.path.dirname(fpath)
+    def write_rows_new_file(f, header, rows, n):
+        if len(header) == 0:
+            return f, n
+        write_rows_csv(f, header, rows)
+        f.flush()
+        f.close()
+        f = open(join(base_path, "position_scan_{}.csv".format(n+1)), 'w')
+        return f, n + 1
+
+    with open(fpath,'r') as read_f:
+        cur_header = []
+        cur_rows = []
+        cur_row = []
+        check_header = False
+        n_csv = 1
+        f = open(join(base_path, "position_scan_{}.csv".format(n_csv)),'w')
+        lines = read_f.readlines()
+        line_num = len(lines)
+        for line_number, line in enumerate(lines):
+            line = line.strip()
+            if not line:
+                continue
+            if line == "direction" and check_header is False:
+                cur_rows.append(cur_row)
+                print(cur_header)
+                print(cur_rows)
+                print(n_csv)
+                f, n_csv = write_rows_new_file(f, cur_header, cur_rows, n_csv)
+                cur_header = [line]
+                check_num = False
+                check_header = True
+                cur_rows = []
+                cur_row = []
+            elif (line.startswith("R ") or line == "R") and check_header is False:
+                if len(cur_header) > 0:
+                    cur_rows.append(cur_row)
+                    f, n_csv = write_rows_new_file(f, cur_header, cur_rows, n_csv)
+                cur_header = [line]
+                cur_rows = []
+                cur_row = []
+                check_num = True
+                check_header = True
+            else:
+                if check_header:
+                    if check_num:
+                        data = line.split(',')
+                        if len(data) == 2 and is_number(data[0].strip()) and is_number(data[1].strip()):
+                            check_header = False
+                    else:
+                        if line == "north":
+                            check_header = False
+                if check_header:
+                    cur_header.append(line)
+                else:
+                    if len(cur_row) == len(cur_header):
+                        cur_rows.append(copy(cur_row))
+                        cur_row = []
+                    cur_row.append(line)
+            if line_number == line_num - 2:
+                write_rows_new_file(f, cur_header, cur_rows, n_csv)
+
+
+
+if __name__ == "__main__":
+    fix_table(os.path.expanduser("~/src/HFIR_BG_Analysis/db/position_scans.txt"))
