@@ -42,15 +42,26 @@ plot_name = "rate_increase_aug27-29"
 compare_to = "4405"
 bins = get_bins(100, 11500, 11400)
 
-rundata = {"rxoff": [i for i in range(4011, 4018)], "rxon": [i for i in range(3051, 3055)], "rxoff_lead": [i for i in range(4410, 4426)], "rxon_lead" : [i for i in range(4395,4409)] }
-plot_name = "full_energy_range_RD"
-compare_to = "rxoff"
-bins = get_bins(100, 11500, 11400)
 
 rundata = {"rxon_lead": [4587 + i for i in range(4)], "rxon_lead_6water": [4779 + i for i in range(3)]}
 plot_name = "low_energy_RD_90kev"
 compare_to = "rxon_lead"
 bins = get_bins(70., 90., 2000)
+
+
+#rundata = {"Russian Doll": [i for i in range(3819, 3829)], "Russian Doll + Water": [4971 + i for i in range(7)], "Collimator": [2091 + i for i in range(30)]}
+rundata = {"Russian Doll - RxOn": [i for i in range(3819, 3829)], "Russian Doll + Water - RxOn": [4971 + i for i in range(7)], "Russian Doll - RxOff": [i for i in range(3830,3836)], "Collimator - RxOn": [i for i in range(2026,2088)]}
+#rundata = {"RxOn": [i for i in range(3819, 3829)], "Russian Doll + Water": [4971 + i for i in range(7)], "Collimator": [2091 + i for i in range(30)]}
+plot_name = "low_energy_RD_60kev"
+compare_to = "Russian Doll - RxOff"
+bins = get_bins(1., 60., 5900)
+
+#rundata = {"rxoff": [i for i in range(4011, 4018)], "rxon": [i for i in range(3051, 3055)], "rxoff_lead": [i for i in range(4410, 4426)], "rxon_lead" : [i for i in range(4395,4409)] }
+rundata = {"Russian Doll - RxOff": [i for i in range(4012, 4018)], "Russian Doll - RxOn": [i for i in range(3051, 3055)], "Collimator - RxOn": [54,55]}
+plot_name = "full_energy_range_RD"
+compare_to = "Russian Doll - RxOff"
+bins = get_bins(100, 11500, 11400)
+
 
 def main():
     datadir = get_data_dir()
@@ -58,8 +69,8 @@ def main():
     combine_runs(data)
     rebin_spectra(data, bins)
     #data = background_subtract(data, "Rxoff", get_bins(100, 9400, 3100))
-    plot_multi_spectra(data, plot_name, rebin=10)
-    plot_subtract_spectra(data, compare_to, plot_name + "_subtract", rebin=100)
+    plot_multi_spectra(data, plot_name, rebin=10, emin=15)
+    plot_subtract_spectra(data, compare_to, plot_name + "_subtract", rebin=100, emin=15)
     emin = [800*i for i in range(15)]
     emax = [800*(i+1) for i in range(15)]
     #for i in range(len(emin)):

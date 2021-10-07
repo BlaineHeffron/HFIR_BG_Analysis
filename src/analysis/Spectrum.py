@@ -93,6 +93,12 @@ class SpectrumData:
         norm /= self.live
         return norm
 
+    def sum_hist_rate(self):
+        """
+        :return: sum of histogram (excluding underflow, overflow) divided by live time
+        """
+        return np.sum(self.hist[1:-1]) / self.live
+
     def find_start_index(self, emin):
         """
         :param emin: minimum energy in same units as bin edges

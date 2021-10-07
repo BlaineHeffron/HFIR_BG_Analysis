@@ -366,7 +366,7 @@ def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None, loc="upper right")
         # err = [d / live / A1 for d in errs]
         # MultiScatterPlot(x, [y], [err], [name], "Energy [keV]", "Rate [hz/keV]")
         # plt.savefig("{}_errors.png".format(name))
-    fig = MultiLinePlot(x, ys, names, "Energy [keV]", "Rate [hz/keV]", ylog=False)
+    fig = MultiLinePlot(x, ys, names, "Energy [keV]", "Rate [hz/keV]", ylog=True)
     plt.savefig("{}.png".format(n))
     plt.close(fig)
 
@@ -418,12 +418,41 @@ def creation_date(path_to_file):
             return stat.st_mtime
 
 
-def read_csv_list_of_tuples(fpath):
+def read_csv_list_of_tuples(fpath, delimiter=','):
     with open(fpath, 'r') as read_obj:
-        csv_reader = reader(read_obj)
+        csv_reader = reader(read_obj, delimiter=delimiter)
         list_of_tuples = list(map(tuple, csv_reader))
     return list_of_tuples
 
+def retrieve_position_scans():
+    path = os.path.abspath(os.path.join(__file__, "../../.."))
+    path = join(path, "db")
+    files = []
+    for root, directories, file in os.walk(path):
+        for file in file:
+            if file.endswith(".csv") and file.startswith("position_scan"):
+                files.append(join(path,file))
+    position_metadata = []
+    for f in files:
+        data = read_csv_list_of_tuples(f, delimiter='|')
+        r_pos = -1
+        l_pos = -1
+        angle_pos = -1
+        fname_pos = -1
+        for i, colname in enumerate(data[0]):
+            if colname == "R" or colname.startswith("R"):
+                r_pos = i
+            elif colname == "L" or colname.startswith("L"):
+                l_pos = i
+            elif colname.startswith("angle") or colname.startswith("theta"):
+                angle_pos = i
+            elif colname.startswith("file"):
+                fname_pos = i
+        if r_pos == -1 or l_pos == -1 or angle_pos == -1 or fname_pos == -1:
+            raise IOError("Error: cannot parse file {0}, cant find header info".format(f))
+        for row in data[1:]:
+            position_metadata.append((row[r_pos], row[l_pos], row[angle_pos], row[fname_pos]))
+    return position_metadata
 
 def get_json(fpath):
     with open(fpath, 'r') as f:
@@ -469,6 +498,7 @@ def is_number(s):
         return True
     except ValueError:
         return False
+
 
 def fix_table(fpath):
     base_path = os.path.dirname(fpath)

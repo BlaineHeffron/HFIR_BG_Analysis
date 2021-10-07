@@ -503,7 +503,7 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
             ax1.set_title(title)
         ax1.set_position([box.x0,box.y0,box.width,box.height])
         ax1.legend(line_labels,loc='center left', \
-                   bbox_to_anchor=(0.20,0.22),ncol=1)
+                   bbox_to_anchor=(0.30,0.82),ncol=1)
     #plt.gcf().subplots_adjust(left=0.16)
     #plt.gcf().subplots_adjust(bottom=0.22)
     #plt.gcf().subplots_adjust(right=0.05)
@@ -592,11 +592,51 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
             ax1.set_title(title)
         ax1.set_position([box.x0,box.y0,box.width,box.height])
         ax1.legend(line_labels,loc='center left', \
-                   bbox_to_anchor=(0.3,0.85),ncol=1)
+                   bbox_to_anchor=(0.5,0.85),ncol=1)
         rcParams.update({'font.size':14})
     #plt.gcf().subplots_adjust(left=0.16)
     #plt.gcf().subplots_adjust(bottom=0.22)
     #plt.gcf().subplots_adjust(right=0.05)
     #plt.savefig(outname)
     #plt.close()
+    return fig
+
+def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, xmin=None, xmax=None, invert_y=False, invert_x=False):
+    rcParams.update({'font.size': 18})
+    fig = plt.figure(figsize=(12, 6.5))
+    ax1 = fig.add_subplot(111)
+    ax1.set_xlabel(xlabel)
+    ax1.set_ylabel(ylabel)
+    if ymin is None:
+        ymin = min(y)
+        if ymin < 0:
+            ymin *= 1.05
+        else:
+            ymin *= .95
+    if xmin is None:
+        xmin = min(x) * .95
+    if ymax is None:
+        if invert_y:
+            ax1.set_ylim(max(y)*1.05, ymin)
+        else:
+            ax1.set_ylim(ymin, max(y) * 1.05)
+    else:
+        if invert_y:
+            ax1.set_ylim(ymax,ymin)
+        else:
+            ax1.set_ylim(ymin, ymax)
+    if xmax is None:
+        if invert_x:
+            ax1.set_xlim(max(x)*1.05, xmin)
+        else:
+            ax1.set_xlim(xmin, max(x) * 1.05)
+    else:
+        if invert_x:
+            ax1.set_xlim(xmax,xmin)
+        else:
+            ax1.set_xlim(xmin, xmax)
+    h = ax1.scatter(x,y,c=c, cmap='viridis')
+    ax1.set_title(title)
+    cb = plt.colorbar(h)
+    cb.set_label(zlabel, rotation=270, labelpad=20)
     return fig
