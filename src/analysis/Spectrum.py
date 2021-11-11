@@ -54,6 +54,9 @@ class SpectrumData:
         self.nbins = self.bin_edges.shape[0] - 1
         self.calculate_bin_midpoints()
 
+    def get_data_energies(self):
+        return [self.A0 + self.A1*i for i in range(1,self.data.shape[0]+1)]
+
     def rebin(self, bin_edges=None):
         set_to_data = False
         if bin_edges is None:

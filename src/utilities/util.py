@@ -151,8 +151,8 @@ def write_x_y_csv(name, xlabel, ylabel, err_label, xs, ys, errors):
             writer.writerow([x, y, e])
 
 
-def write_rows_csv(f, header, rows):
-    writer = csv.writer(f, delimiter='|', quoting=csv.QUOTE_MINIMAL)
+def write_rows_csv(f, header, rows, delimiter="|"):
+    writer = csv.writer(f, delimiter=delimiter, quoting=csv.QUOTE_MINIMAL)
     writer.writerow(header)
     for row in rows:
         writer.writerow(row)
@@ -337,6 +337,26 @@ def set_indices(start_index, end_index, emin, emax, spec):
     elif end_index == 0:
         end_index = spec.find_start_index(1.e12) - 1
     return start_index, end_index
+
+def write_spectra(fdict, outdir):
+    for name in fdict.keys():
+        if isinstance(fdict[name], SpectrumData):
+            spec = fdict[name]
+        else:
+            spec = retrieve_data(fdict[name][0])
+            for i, f in enumerate(fdict[name]):
+                if i == 0:
+                    continue
+                spec2 = retrieve_data(f)
+                spec.add(spec2)
+        x = spec.get_data_energies()
+        y = spec.data
+        rate = spec.data / spec.live
+        rows = [(xi, yi, ri) for xi, yi, ri in zip(x,y,rate)]
+        f = open(join(outdir,name + ".csv"), 'w')
+        write_rows_csv(f, ["energy [keV]", "counts", "rate [Hz]"], rows, delimiter=",")
+        f.flush()
+        f.close()
 
 
 def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None, loc="upper right"):

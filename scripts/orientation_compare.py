@@ -42,6 +42,10 @@ plot_name = "rate_increase_aug27-29"
 compare_to = "4405"
 bins = get_bins(100, 11500, 11400)
 
+rundata = {"rxoff": [i for i in range(4011, 4018)], "rxon": [i for i in range(3051, 3055)], "rxoff_lead": [i for i in range(4410, 4426)], "rxon_lead" : [i for i in range(4395,4409)] }
+plot_name = "full_energy_range_RD"
+compare_to = "rxoff"
+bins = get_bins(100, 11500, 11400)
 
 rundata = {"rxon_lead": [4587 + i for i in range(4)], "rxon_lead_6water": [4779 + i for i in range(3)]}
 plot_name = "low_energy_RD_90kev"
@@ -63,12 +67,68 @@ compare_to = "Russian Doll - RxOff"
 bins = get_bins(100, 11500, 11400)
 
 
+rundata = {"anomaly":"HB4_DOWN_31", "normal": "HB4_DOWN_36"}
+plot_name = "high_rate_anomaly"
+compare_to = "normal"
+bins = get_bins(100, 11500, 11400)
+
+rundata = {"rxoff": [3830 + i for i in range(6)], "rxon": [3819 + i for i in range(10)], "rxon_lead": [4587 + i for i in range(4)], "rxon_lead_6water": [4779 + i for i in range(3)]}
+plot_name = "low_energy_RD"
+compare_to = "rxoff"
+bins = get_bins(20., 60., 4000)
+
+rundata = {str(i) : [i] for i in range(4400,4406)}
+plot_name = "rate_increase_aug27-29"
+compare_to = "4405"
+bins = get_bins(100, 11500, 11400)
+
+rundata = {"rxon_RD":[i  for i in range(3819,3829)], "rxoff_RD": [i for i in range(3830,3836)]}
+plot_name = "high_gain_russian_doll"
+compare_to = "rxoff_RD"
+bins = get_bins(1, 64, 630)
+
+rundata = {"rxon_RD_lowgain":[i for i in range(3051,3055)], "rxoff_RD_lowgain": [i for i in range(4011,4018)]}
+plot_name = "low_gain_russian_doll"
+compare_to = "rxoff_RD_lowgain"
+bins = get_bins(100, 11500, 11400)
+
+rundata = {"rxoff": [i for i in range(4011, 4018)], "rxon": [i for i in range(3051, 3055)], "rxoff_lead": [i for i in range(4410, 4426)], "rxon_lead" : [i for i in range(4395,4409)] }
+plot_name = "full_energy_range_RD"
+compare_to = "rxoff"
+bins = get_bins(100, 11500, 11400)
+
+rundata = {"rxon_lead": [4587 + i for i in range(4)], "rxon_lead_6water": [4779 + i for i in range(3)], "rxon_lead_60water": [4971 + i for i in range(7)]}
+plot_name = "low_energy_RD_90kev"
+compare_to = "rxon_lead"
+bins = get_bins(1., 90., 8900)
+
+rundata = {"rxon_lead": [4587 + i for i in range(4)], "rxon_lead_6water": [4779 + i for i in range(3)], "rxon_lead_60water": [4971 + i for i in range(7)], "rxon":[i  for i in range(3819,3829)], "rxoff": [i for i in range(3830,3836)]}
+plot_name = "high_gain_russian_doll"
+compare_to = "rxoff"
+bins = get_bins(1, 64, 6300)
+
+rundata = {"rxon_lead": [4587 + i for i in range(4)], "rxon_lead_6water": [4779 + i for i in range(3)], "rxon_lead_60water": [4971 + i for i in range(7)], "rxon":[i  for i in range(3819,3829)], "rxoff": [i for i in range(3830,3836)]}
+plot_name = "high_gain_russian_doll_25"
+compare_to = "rxoff"
+bins = get_bins(25, 64, 6300)
+
+rundata = {"rxoff": [i for i in range(4011, 4018)], "rxon": [i for i in range(3051, 3055)], "rxoff_lead": [i for i in range(4410, 4426)], "rxon_lead" : [i for i in range(4395,4409)] }
+plot_name = "full_energy_range_RD_2.2"
+compare_to = "rxoff"
+bins = get_bins(2100, 2300, 200)
+
+rundata = {"rxon":"MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","rxoff":"MIF_BOX_AT_REACTOR_RXOFF"}
+plot_name = "rxon_vs_off"
+compare_to = "rxoff"
+
+
 def main():
     datadir = get_data_dir()
     data = populate_data(rundata, datadir)
     combine_runs(data)
     rebin_spectra(data, bins)
     #data = background_subtract(data, "Rxoff", get_bins(100, 9400, 3100))
+    write_spectra(data, datadir)
     plot_multi_spectra(data, plot_name, rebin=10, emin=15)
     plot_subtract_spectra(data, compare_to, plot_name + "_subtract", rebin=100, emin=15)
     emin = [800*i for i in range(15)]

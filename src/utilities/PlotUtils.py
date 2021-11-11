@@ -445,7 +445,9 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
                 print("error: ymin is ", ymin, " on a log-y axis. Defaulting to 1e-5")
                 ymin = 1e-5
         else:
-            ymin = min([min(y)  for y in yvals])*0.95
+            ymin = min([min(y)  for y in yvals])
+            if ymin < 0: ymin *= 1.05
+            else: ymin *= .95
     if(xmin is None):
         xmin = min(xaxis)
     if(xlog):
@@ -503,7 +505,7 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
             ax1.set_title(title)
         ax1.set_position([box.x0,box.y0,box.width,box.height])
         ax1.legend(line_labels,loc='center left', \
-                   bbox_to_anchor=(0.30,0.82),ncol=1)
+                   bbox_to_anchor=(0.20,0.22),ncol=1)
     #plt.gcf().subplots_adjust(left=0.16)
     #plt.gcf().subplots_adjust(bottom=0.22)
     #plt.gcf().subplots_adjust(right=0.05)
@@ -535,7 +537,9 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
                 print("error: ymin is ", ymin, " on a log-y axis. Defaulting to 1e-5")
                 ymin = 1e-5
         else:
-            ymin = min([min(y)  for y in yvals])*0.95
+            ymin = min([min(y)  for y in yvals])
+            if ymin < 0: ymin *= 1.05
+            else: ymin *= .95
     if(xmin is None):
         xmin = min(xaxis)
     if(xlog):
