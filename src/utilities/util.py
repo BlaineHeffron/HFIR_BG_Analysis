@@ -503,11 +503,11 @@ def write_spe(fpath, spec):
     fname_bytes = fname.encode('utf-8')
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
-    write_spe = ctypes.CDLL(os.path.join(dir_path, "write_spe.so"))
+    spe_write = ctypes.CDLL(os.path.join(dir_path, "write_spe.so"))
     spec = spec.astype(np.float32)
     spec_p = spec.ctypes.data_as(c_float_p)
-    write_spe.wspec.argtypes = [ctypes.c_char_p, c_float_p, ctypes.c_int]
-    write_spe.wspec(fname_bytes, spec_p, spec.shape[0])
+    spe_write.wspec.argtypes = [ctypes.c_char_p, c_float_p, ctypes.c_int]
+    spe_write.wspec(fname_bytes, spec_p, spec.shape[0])
     # from write_spe.so import WSPEC
     # WSPEC(fname, spec, spec.shape[0])
     shutil.move(fname, fpath)

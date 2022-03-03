@@ -2,6 +2,7 @@ from copy import copy
 
 import numba as nb
 import numpy as np
+from ROOT import TH1F
 
 
 class SpectrumData:
@@ -113,6 +114,14 @@ class SpectrumData:
             if bedge > emin:
                 return i
         return len(self.bin_edges)
+
+    def generate_root_hist(self, name, title):
+        bin_low = self.A0 + self.A1 / 2.
+        bin_high = self.A0 + self.A1 * self.data.shape[0] + self.A1 / 2.
+        hist = TH1F(name,title,self.data.shape[0],bin_low,bin_high)
+        for i, d in enumerate(self.data):
+            hist.SetBinContent(i+1, d)
+        return hist
 
 
 def rebin_data(a, n):
