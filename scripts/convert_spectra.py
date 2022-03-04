@@ -1,5 +1,6 @@
 import sys
 from os.path import dirname, realpath
+
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
 import subprocess
 from src.utilities.util import *
@@ -22,8 +23,9 @@ def convert_to_spe():
         print("converting {0} to {1}".format(f, fname))
         xmax = round(spec.A0 + spec.A1 * spec.data.shape[0] + spec.A1 / 2.)
         # rebin to 0.5 keV bins
-        #spec.rebin(get_bins(0, xmax, int(xmax*2)))
-        write_spe(join(fdir,fname), spec.data)
+        # spec.rebin(get_bins(0, xmax, int(xmax*2)))
+        write_spe(join(fdir, fname), spec.data)
+
 
 def convert_to_root():
     datadir = os.path.expanduser(get_data_dir())
@@ -36,17 +38,11 @@ def convert_to_root():
             continue
         fdir, fname = ntpath.split(f)
         fname = fname.replace(".txt", ".root")
-        histname = fname.replace(".root","")
-        if os.path.exists(join(fdir,fname)):
-            print("{} already exists, skipping",fname)
+        histname = fname.replace(".root", "")
+        if os.path.exists(join(fdir, fname)):
+            print("{} already exists, skipping", fname)
         print("converting {0} to {1}".format(f, fname))
-        hist = spec.generate_root_hist(histname,histname)
-        myFile = TFile.Open(join(fdir,fname),"RECREATE")
-        myFile.WriteObject(hist, "GeDataHist")
-        myFile.Close()
-
-
-
+        write_root(spec, histname, join(fdir, fname))
 
 
 def main():
@@ -61,10 +57,10 @@ def main():
             if not os.path.exists(newf):
                 shutil.copyfile(f, newf)
 
-    #subprocess.run("cnf2txtall")
+    # subprocess.run("cnf2txtall")
 
 
 if __name__ == "__main__":
     main()
-    #convert_to_spe()
+    # convert_to_spe()
     convert_to_root()

@@ -15,6 +15,7 @@ import numpy as np
 from src.analysis.Spectrum import SpectrumData
 from src.utilities.PlotUtils import MultiLinePlot, MultiScatterPlot
 from copy import copy
+from ROOT import TFile
 
 FILEEXPR = re.compile('[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].txt')
 
@@ -519,6 +520,14 @@ def is_number(s):
     except ValueError:
         return False
 
+def write_root(spec, name, fpath, title=''):
+    if title == '':
+        title = name
+    hist = spec.generate_root_hist(name,title)
+    myFile = TFile.Open(fpath, "RECREATE")
+    myFile.WriteObject(hist, "GeDataHist")
+    myFile.Close()
+
 
 def fix_table(fpath):
     base_path = os.path.dirname(fpath)
@@ -582,6 +591,7 @@ def fix_table(fpath):
                     cur_row.append(line)
             if line_number == line_num - 2:
                 write_rows_new_file(f, cur_header, cur_rows, n_csv)
+
 
 
 
