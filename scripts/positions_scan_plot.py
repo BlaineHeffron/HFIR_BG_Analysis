@@ -43,10 +43,10 @@ def main():
             rates_3_up.append(spec.sum_hist_rate())
             x.append(xc)
             y.append(yc)
-    fig = scatter_plot(x, y, rates_to_3, "z", "x", "rate [hz]", "Down Facing Scan, 0.1 to 3.0 MeV", xmin=40, ymin=0, invert_y=True)
+    fig = scatter_plot(x, y, rates_to_3, "z", "x", "rate [hz]", "Down Facing Scan, 0.1 to 3.0 MeV", xmin=40, ymin=0, xmax=420, ymax=160, invert_y=True)
     plt.savefig("{}.png".format(name + "_to_3.png"))
     plt.close(fig)
-    fig = scatter_plot(x, y, rates_3_up, "z", "x", "rate [hz]", "Down Facing Scan, 3.0 to 11.5 MeV", xmin=40, ymin=0, invert_y=True)
+    fig = scatter_plot(x, y, rates_3_up, "z", "x", "rate [hz]", "Down Facing Scan, 3.0 to 11.5 MeV", xmin=40, ymin=0, xmax=420, ymax=160, invert_y=True)
     plt.savefig("{}.png".format(name + "_3_up.png"))
     plt.close(fig)
 

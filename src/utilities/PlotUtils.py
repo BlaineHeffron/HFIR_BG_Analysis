@@ -607,7 +607,11 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
 
 def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, xmin=None, xmax=None, invert_y=False, invert_x=False):
     rcParams.update({'font.size': 18})
-    fig = plt.figure(figsize=(12, 6.5))
+    if xmin is not None and xmax is not None and ymin is not None and ymax is not None:
+        ratio = abs((ymax - ymin) / (xmax - xmin))*4./5
+        fig = plt.figure(figsize=(12, 12*ratio))
+    else:
+        fig = plt.figure(figsize=(12, 6.5))
     ax1 = fig.add_subplot(111)
     ax1.set_xlabel(xlabel)
     ax1.set_ylabel(ylabel)
