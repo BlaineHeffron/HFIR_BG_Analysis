@@ -2,6 +2,7 @@ import csv
 import os
 import json
 import re
+from datetime import datetime
 from os.path import join
 import matplotlib.pyplot as plt
 import ntpath
@@ -15,7 +16,7 @@ import numpy as np
 from src.analysis.Spectrum import SpectrumData
 from src.utilities.PlotUtils import MultiLinePlot, MultiScatterPlot
 from copy import copy
-from ROOT import TFile
+from ROOT import TFile, TVectorF
 
 FILEEXPR = re.compile('[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].txt')
 
@@ -158,6 +159,7 @@ def write_rows_csv(f, header, rows, delimiter="|"):
     for row in rows:
         writer.writerow(row)
 
+
 def get_data_dir():
     if "HFIRBGDATA" not in os.environ:
         raise RuntimeError("Error: set environment variable HFIRBGDATA to the directory with your files")
@@ -216,6 +218,7 @@ def background_subtract(data_dict, subkey, bin_edges):
         d[key] = subtract_spectra(data_dict[key], subtract)
     return d
 
+
 def plot_ratio_spectra(fdict, compare_name, fname, rebin=1, emin=20, emax=None):
     ys = []
     absys = []
@@ -240,7 +243,7 @@ def plot_ratio_spectra(fdict, compare_name, fname, rebin=1, emin=20, emax=None):
             spec = copy(spec)
             spec.rebin_factor(rebin)
         data_norm = spec.get_normalized_hist()
-        subtracted = safe_divide(data_norm , compare_spec_norm)
+        subtracted = safe_divide(data_norm, compare_spec_norm)
         if start_index == 0 and emin is not None:
             start_index = spec.find_start_index(emin)
             if start_index < 0:
@@ -339,6 +342,7 @@ def set_indices(start_index, end_index, emin, emax, spec):
         end_index = spec.find_start_index(1.e12) - 1
     return start_index, end_index
 
+
 def write_spectra(fdict, outdir):
     for name in fdict.keys():
         if isinstance(fdict[name], SpectrumData):
@@ -353,8 +357,8 @@ def write_spectra(fdict, outdir):
         x = spec.get_data_energies()
         y = spec.data
         rate = spec.data / spec.live
-        rows = [(xi, yi, ri) for xi, yi, ri in zip(x,y,rate)]
-        f = open(join(outdir,name + ".csv"), 'w')
+        rows = [(xi, yi, ri) for xi, yi, ri in zip(x, y, rate)]
+        f = open(join(outdir, name + ".csv"), 'w')
         write_rows_csv(f, ["energy [keV]", "counts", "rate [Hz]"], rows, delimiter=",")
         f.flush()
         f.close()
@@ -417,8 +421,25 @@ def plot_spectra(fs, name, rebin=1, emin=None, emax=None):
     err = err[start_index:end_index]
     MultiScatterPlot(x, [y], [err], [name], "Energy [keV]", "Rate [hz/keV]")
     plt.savefig("{}_errors.png".format(name))
+    plt.close()
     MultiLinePlot(x, [y], [name], "Energy [keV]", "Rate [hz/keV]")
     plt.savefig("{}.png".format(name))
+    plt.close()
+
+
+def start_date(file):
+    # assumes file has a line like this:
+    # Start time:    2021-02-20, 00:37:56
+    dt = None
+    with open(file) as f:
+        for line in f.readlines():
+            if line.startswith("# Start time:"):
+                data = line[13:].strip()
+                dt = datetime.strptime(data, "%Y-%m-%d, %H:%M:%S")
+    if dt:
+        return dt.timestamp()
+    else:
+        return creation_date(file)
 
 
 def creation_date(path_to_file):
@@ -445,6 +466,7 @@ def read_csv_list_of_tuples(fpath, delimiter=','):
         list_of_tuples = list(map(tuple, csv_reader))
     return list_of_tuples
 
+
 def retrieve_position_scans():
     path = os.path.abspath(os.path.join(__file__, "../../.."))
     path = join(path, "db")
@@ -452,7 +474,7 @@ def retrieve_position_scans():
     for root, directories, file in os.walk(path):
         for file in file:
             if file.endswith(".csv") and file.startswith("position_scan"):
-                files.append(join(path,file))
+                files.append(join(path, file))
     position_metadata = []
     for f in files:
         data = read_csv_list_of_tuples(f, delimiter='|')
@@ -475,18 +497,21 @@ def retrieve_position_scans():
             position_metadata.append((row[r_pos], row[l_pos], row[angle_pos], row[fname_pos]))
     return position_metadata
 
+
 def get_json(fpath):
     with open(fpath, 'r') as f:
         data = json.load(f)
     return data
 
+
 def write_json(fpath, data, prettyprint=False):
     with open(fpath, 'w') as f:
         if prettyprint:
-            json.dump(data,f, indent=4)
+            json.dump(data, f, indent=4)
         else:
-            json.dump(data,f)
+            json.dump(data, f)
     return True
+
 
 def write_spe(fpath, spec):
     """
@@ -513,6 +538,7 @@ def write_spe(fpath, spec):
     # WSPEC(fname, spec, spec.shape[0])
     shutil.move(fname, fpath)
 
+
 def is_number(s):
     try:
         float(s)
@@ -520,33 +546,38 @@ def is_number(s):
     except ValueError:
         return False
 
+
 def write_root(spec, name, fpath, title=''):
     if title == '':
         title = name
-    hist = spec.generate_root_hist(name,title)
+    hist = spec.generate_root_hist(name, title)
     myFile = TFile.Open(fpath, "RECREATE")
     myFile.WriteObject(hist, "GeDataHist")
+    lt = TVectorF(1)
+    lt[0] = spec.live
+    myFile.WriteObject(lt, "LiveTime")
     myFile.Close()
 
 
 def fix_table(fpath):
     base_path = os.path.dirname(fpath)
+
     def write_rows_new_file(f, header, rows, n):
         if len(header) == 0:
             return f, n
         write_rows_csv(f, header, rows)
         f.flush()
         f.close()
-        f = open(join(base_path, "position_scan_{}.csv".format(n+1)), 'w')
+        f = open(join(base_path, "position_scan_{}.csv".format(n + 1)), 'w')
         return f, n + 1
 
-    with open(fpath,'r') as read_f:
+    with open(fpath, 'r') as read_f:
         cur_header = []
         cur_rows = []
         cur_row = []
         check_header = False
         n_csv = 1
-        f = open(join(base_path, "position_scan_{}.csv".format(n_csv)),'w')
+        f = open(join(base_path, "position_scan_{}.csv".format(n_csv)), 'w')
         lines = read_f.readlines()
         line_num = len(lines)
         for line_number, line in enumerate(lines):
@@ -591,8 +622,6 @@ def fix_table(fpath):
                     cur_row.append(line)
             if line_number == line_num - 2:
                 write_rows_new_file(f, cur_header, cur_rows, n_csv)
-
-
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+from matplotlib.ticker import AutoMinorLocator, FormatStrFormatter
 from matplotlib import rcParams
 import matplotlib.dates as mdate
 from pytz import timezone
@@ -369,6 +370,12 @@ def plot_hist1d(xedges, vals, title, xlabel, ylabel, norm_to_bin_width=True):
     h = plt.hist(xs, bins=xedges, weights=vals)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+    ax.xaxis.set_minor_locator(AutoMinorLocator())
+    ax.yaxis.set_minor_locator(AutoMinorLocator())
+    ax.tick_params(axis="x", direction="in", length=16, width=1)
+    ax.tick_params(axis="y", direction="in", length=16, width=1)
+    ax.tick_params(axis="x", which="minor", direction="in", length=8, width=1)
+    ax.tick_params(axis="y", which="minor", direction="in", length=8, width=1)
     ax.set_title(title, fontsize=TITLE_SIZE)
     return fig
 
@@ -438,6 +445,7 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
     ax1 = fig.add_subplot(111)
     ax1.set_xlabel(xlabel)
     ax1.set_ylabel(ylabel)
+
     if(ymin is None):
         if(ylog):
             ymin = min([min(y)  for y in yvals])*0.5
@@ -458,7 +466,6 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
         ax1.set_yscale('log')
     else:
         ax1.set_yscale('linear')
-    ax1.xaxis.grid(True, which='minor')
     if(ymax == -1):
         if(ylog):
             ax1.set_ylim(ymin,max([max(y) for y in yvals])*1.5)
@@ -506,6 +513,13 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
         ax1.set_position([box.x0,box.y0,box.width,box.height])
         ax1.legend(line_labels,loc='center left', \
                    bbox_to_anchor=(0.20,0.22),ncol=1)
+    ax1.xaxis.set_minor_locator(AutoMinorLocator())
+    if not ylog:
+        ax1.yaxis.set_minor_locator(AutoMinorLocator())
+    ax1.tick_params(axis="x", direction="in", length=16, width=1)
+    ax1.tick_params(axis="y", direction="in", length=16, width=1)
+    ax1.tick_params(axis="x", which="minor", direction="in", length=8, width=1)
+    ax1.tick_params(axis="y", which="minor", direction="in", length=8, width=1)
     #plt.gcf().subplots_adjust(left=0.16)
     #plt.gcf().subplots_adjust(bottom=0.22)
     #plt.gcf().subplots_adjust(right=0.05)
@@ -598,6 +612,13 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
         ax1.legend(line_labels,loc='center left', \
                    bbox_to_anchor=(0.5,0.85),ncol=1)
         rcParams.update({'font.size':14})
+    ax1.xaxis.set_minor_locator(AutoMinorLocator())
+    if not ylog:
+        ax1.yaxis.set_minor_locator(AutoMinorLocator())
+    ax1.tick_params(axis="x", direction="in", length=16, width=1)
+    ax1.tick_params(axis="y", direction="in", length=16, width=1)
+    ax1.tick_params(axis="x", which="minor", direction="in", length=8, width=1)
+    ax1.tick_params(axis="y", which="minor", direction="in", length=8, width=1)
     #plt.gcf().subplots_adjust(left=0.16)
     #plt.gcf().subplots_adjust(bottom=0.22)
     #plt.gcf().subplots_adjust(right=0.05)
@@ -645,6 +666,12 @@ def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, x
             ax1.set_xlim(xmin, xmax)
     h = ax1.scatter(x,y,c=c, cmap='viridis')
     ax1.set_title(title)
+    ax1.xaxis.set_minor_locator(AutoMinorLocator())
+    ax1.yaxis.set_minor_locator(AutoMinorLocator())
+    ax1.tick_params(axis="x", direction="in", length=16, width=1)
+    ax1.tick_params(axis="y", direction="in", length=16, width=1)
+    ax1.tick_params(axis="x", which="minor", direction="in", length=8, width=1)
+    ax1.tick_params(axis="y", which="minor", direction="in", length=8, width=1)
     cb = plt.colorbar(h)
     cb.set_label(zlabel, rotation=270, labelpad=20)
     return fig

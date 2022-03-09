@@ -3,6 +3,9 @@ from copy import copy
 import numba as nb
 import numpy as np
 from ROOT import TH1F
+from math import sqrt, erfc, exp, floor
+
+from scipy.optimize import curve_fit
 
 
 class SpectrumData:
@@ -19,6 +22,19 @@ class SpectrumData:
         self.bin_midpoints = None
         self.nbins = None
         self.rebin()
+
+    def get_data_x(self):
+        """return raw data x values"""
+        return np.linspace(self.A0 + self.A1, self.A0 + self.A1 * self.data.shape[0], self.data.shape[0])
+
+    def data_at_x(self, x):
+        """return the index of the raw data closest to x"""
+        closest = int(round((x - self.A0) / self.A1 - 1))
+        if closest < 0:
+            return 0
+        elif closest >= self.data.shape[0]:
+            return self.data.shape[0] - 1
+        return closest
 
     def add(self, s):
         if s.A0 != self.A0 or s.A1 != self.A1:
@@ -56,7 +72,7 @@ class SpectrumData:
         self.calculate_bin_midpoints()
 
     def get_data_energies(self):
-        return [self.A0 + self.A1*i for i in range(1,self.data.shape[0]+1)]
+        return [self.A0 + self.A1 * i for i in range(1, self.data.shape[0] + 1)]
 
     def rebin(self, bin_edges=None):
         set_to_data = False
@@ -118,9 +134,9 @@ class SpectrumData:
     def generate_root_hist(self, name, title):
         bin_low = self.A0 + self.A1 / 2.
         bin_high = self.A0 + self.A1 * self.data.shape[0] + self.A1 / 2.
-        hist = TH1F(name,title,self.data.shape[0],bin_low,bin_high)
+        hist = TH1F(name, title, self.data.shape[0], bin_low, bin_high)
         for i, d in enumerate(self.data):
-            hist.SetBinContent(i+1, d)
+            hist.SetBinContent(i + 1, d)
         return hist
 
 
@@ -177,3 +193,63 @@ def pad_data(a, new_shape):
     else:
         result[:a.shape[0]] = a
     return result
+
+
+def ge_peak_function(x, c1, c2, c3, centroid, sigma, beta):
+    """
+    modelled after https://radware.phy.ornl.gov/gf3/
+    """
+    gaussian = c1 * exp(-0.5 * ((x - centroid) / sigma) ** 2)
+    skew_gaussian = c2 * exp((x - centroid) / beta) * erfc(
+        (x - centroid) / (sqrt(2) * sigma) + sigma / (sqrt(2) * beta))
+    background = c3 * erfc((x - centroid) / (sqrt(2) * sigma))
+    return gaussian + skew_gaussian + background
+
+
+class SpectrumFitter:
+    def __init__(self, expected_peaks=None):
+        # 2.26 keV sigma for 11386 keV peak
+        # 0.79 keV at 1332.5 keV peak
+        # using a simple linear fit to estimate the window size we get sigma = .5918 + 0.0001465*x
+        self.expected_peaks = expected_peaks
+        self.R = 0.1
+        self.step = 0.01
+        self.sigma_guess_offset = 0.59  # keV
+        self.sigma_guess_slope = 0.0001465  # keV
+        self.window_factor = 8
+        self.fit_values = {}
+
+    def get_sigma_guess(self, x):
+        return self.sigma_guess_offset + self.sigma_guess_slope * x
+
+    def fit_peaks(self, spec):
+        for peak_x in self.expected_peaks:
+            self.fit(spec, peak_x)
+
+    def fit(self, spec: SpectrumData, peak_x):
+        peak_guess = spec.data_at_x(peak_x)
+        sigma_guess = self.get_sigma_guess(peak_x)
+        num_samples = int(round(self.window_factor * sigma_guess / spec.A1))
+        start_ind = peak_guess - int(floor(num_samples / 2))
+        stop_ind = peak_guess + int(floor(num_samples / 2)) + 1
+        max_val = np.amax(spec.data[start_ind:stop_ind])
+        indice = np.where(spec.data[start_ind:stop_ind] == max_val)
+        if indice.shape[0] > 1:
+            max_ind = int(round(np.average(indice) + start_ind))
+        else:
+            max_ind = start_ind + indice[0]
+        centroid_guess = (max_ind + 1) * spec.A1 + spec.A0
+        beta_guess = sigma_guess / 2.
+        guesses = [max_val * (1 - self.R), max_val * self.R, max_val * self.step, centroid_guess, sigma_guess,
+                   beta_guess]
+        parameters, covariance = curve_fit(ge_peak_function, spec.get_data_x(), spec.data, p0=guesses,
+                                           sigma=np.sqrt(spec.data))
+        errs = np.sqrt(np.diag(covariance))
+        print("fit parameters for x = {0}:".format(peak_x))
+        print("guassian scale: {0} ~ {1} counts".format(parameters[0], errs[0]))
+        print("skew guassian scale: {0} ~ {1} counts".format(parameters[1], errs[1]))
+        print("background scale: {0} ~ {1} counts".format(parameters[2], errs[2]))
+        print("centroid: {0} ~ {1} keV".format(parameters[3], errs[3]))
+        print("std deviation: {0} ~ {1} keV".format(parameters[4], errs[4]))
+        print("skewness: {0} ~ {1} keV".format(parameters[5], errs[5]))
+        self.fit_values[peak_x] = (parameters, errs)

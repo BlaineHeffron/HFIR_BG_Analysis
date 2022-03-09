@@ -3,7 +3,7 @@ import os
 import re
 
 from src.utilities.util import get_data_dir, retrieve_file_extension, creation_date, file_number, \
-    read_csv_list_of_tuples, get_json
+    read_csv_list_of_tuples, get_json, start_date
 
 FOREIGNKEYREGEX = re.compile(r'FOREIGN KEY\(\"(.*)\"\) REFERENCES \"(.*)\"\(\"(.*)\"\)')
 PARENTHREGEX = re.compile(r'\"(.*)\"')
@@ -220,7 +220,7 @@ class HFIRBG_DB(SQLiteBase):
         for dir in dir_key.keys():
             dirid = dir_ids[dir]
             for fname in dir_key[dir]:
-                create_time = creation_date(os.path.join(dir, fname))
+                create_time = start_date(os.path.join(dir, fname))
                 run_number = file_number(fname)
                 skip = False
                 for curf in cur_files:
@@ -317,6 +317,14 @@ class HFIRBG_DB(SQLiteBase):
                 fids = self.retrieve_file_ids(flist)
                 if fids is not None:
                     self.insert_file_list(run_id, fids)
+
+    def insert_calibration(self, A0, A1, fname, replace=True):
+        rp = "REPLACE"
+        if not replace:
+            rp = "IGNORE"
+        vals = "{0},{1},1,(SELECT id FROM datafile WHERE name = '{2}')".format(A0,A1,fname)
+        self.cur.execute("INSERT OR {0} INTO calibrations (A0,A1,det,file_id) VALUES ({1})".format(rp, vals))
+        return self.cur.lastrowid
 
 
 
