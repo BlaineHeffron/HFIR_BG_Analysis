@@ -398,15 +398,9 @@
       "detector_configuration": 15,
       "detector_coordinates": 23
     },{
-      "file_list": ["1909-2087"], #FIX THIS
+      "file_list": ["2026-2087"],
       "description": "Cycle 491 nominal position max gain hour runs",
       "name": "Cycle491_nominal_max_gain_hour_runs",
-      "detector_configuration": 15,
-      "detector_coordinates": 3
-    }{
-      "file_list": ["1909-2087"],
-      "description": "Cycle 491 nominal position max gain hour runs",
-      "name": "Cycle491_max_gain_strong_am_ltc_on",
       "detector_configuration": 15,
       "detector_coordinates": 3
     },{
@@ -482,12 +476,12 @@
       "detector_configuration": 5,
       "detector_coordinates": 37
     },{
-      "file_list": ["EAST_FACING_EAST"], #FIX THIS NAME
+      "file_list": ["EAST_FACE_1"],
       "description": "Cycle 492 middle of East face of PROSPECT facing East towards HB4 hot spot",
       "name": "Cycle492_East_facing_East",
       "detector_configuration": 5,
       "detector_coordinates": 38
-    }{
+    },{
       "file_list": ["HB4_HOT_SPOT"],
       "description": "Cycle 492 HB4 hot spot facing down",
       "name": "Cycle492_HB4_hot_spot",
