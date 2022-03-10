@@ -288,6 +288,8 @@ class HFIRBG_DB(SQLiteBase):
                     self.batch_insert(fname, columns, data)
                 except Exception as e:
                     raise RuntimeError(e)
+            elif fname.startswith("position_scan"):
+                print("position scan insert not yet implemented (implement me!)")
             else:
                 raise RuntimeWarning("Warning: the file {} is not being included because it doesnt match a table in "
                                      "your database!".format(fname))

@@ -13,7 +13,7 @@ import ctypes
 
 import numpy as np
 
-from src.analysis.Spectrum import SpectrumData
+from src.analysis.Spectrum import SpectrumData, SpectrumFitter
 from src.utilities.PlotUtils import MultiLinePlot, MultiScatterPlot
 from copy import copy
 from ROOT import TFile, TVectorF
@@ -111,6 +111,7 @@ def retrieve_data(myf):
     start = ''
     live = 0.
     counter = 0
+    fname = os.path.basename(myf)
     with open(myf, 'r') as f:
         try:
             for line in f.readlines():
@@ -128,7 +129,7 @@ def retrieve_data(myf):
         except Exception as e:
             f.close()
             raise IOError("{0} is not a valid .cnf formatted file. Error: {1}".format(myf, e))
-    return SpectrumData(data, start, live, A0, A1)
+    return SpectrumData(data, start, live, A0, A1, fname)
 
 
 def safe_divide(a, b):
@@ -622,6 +623,18 @@ def fix_table(fpath):
                     cur_row.append(line)
             if line_number == line_num - 2:
                 write_rows_new_file(f, cur_header, cur_rows, n_csv)
+
+
+def calibrate_spectra(data, expected_peaks, db, plot_dir=None, user_verify=False, tolerate_fails=False, plot_fit=False):
+    for name, spec in data.items():
+        spec_fitter = SpectrumFitter(expected_peaks,name=name)
+        spec_fitter.fit_peaks(spec)
+        if plot_dir is not None:
+            plot_dir = join(plot_dir, name)
+            if not os.path.exists(plot_dir):
+                os.mkdir(plot_dir)
+        cal = spec_fitter.retrieve_calibration(user_verify, tolerate_fails, plot_dir, plot_fit)
+        db.insert_calibration(cal[0], cal[1], spec.fname)
 
 
 if __name__ == "__main__":
