@@ -50,12 +50,12 @@ def retrieve_spectra_and_files(n, datadir):
     return retrieve_spectra(n, fs), fs
 
 
-def spectrum_name_check(name, flist):
+def spectrum_name_check(name, flist, db):
     if isinstance(name, int):
         for f in flist:
             file = os.path.basename(f)
             if name == file_number(file):
-                return retrieve_data(f)
+                return retrieve_data(f, db)
     else:
         if name.endswith(".txt"):
             checkname = name
@@ -64,11 +64,11 @@ def spectrum_name_check(name, flist):
         for f in flist:
             path, fname = ntpath.split(f)
             if fname == checkname:
-                return retrieve_data(f)
+                return retrieve_data(f, db)
 
 
-def retrieve_spectra(n, flist):
-    return spectrum_name_check(n, flist)
+def retrieve_spectra(n, flist, db):
+    return spectrum_name_check(n, flist, db)
 
 
 def retrieve_file_extension(mydir, ext):
@@ -99,9 +99,10 @@ def file_number(fname):
         return -1
 
 
-def retrieve_data(myf):
+def retrieve_data(myf, db=None):
     """
     :param myf: path to .txt file containing cnf converted spectrum
+    :param db: HFIRBG_DB object for retrieving calibration
     :return:  SpectrumData object containing the spectrum data and metadata,
     raises IOError if the .txt file is not a valid cnf file
     """
@@ -129,6 +130,13 @@ def retrieve_data(myf):
         except Exception as e:
             f.close()
             raise IOError("{0} is not a valid .cnf formatted file. Error: {1}".format(myf, e))
+    if db is not None:
+        row = db.retrieve_calibration(fname)
+        if row:
+            print("found calibration for file {0} in database, using values A0 = {1}, A1 = {2} instead of A0 = {3}, A1 = {4}".format(fname, row[0], row[1], A0, A1))
+            A0 = row[0]
+            A1 = row[1]
+
     return SpectrumData(data, start, live, A0, A1, fname)
 
 
@@ -167,7 +175,7 @@ def get_data_dir():
     return os.path.expanduser(os.environ["HFIRBGDATA"])
 
 
-def populate_data(data_dict, data_dir):
+def populate_data(data_dict, data_dir, db):
     """
     given data_dict, a dictionary whose values are numbers or list of numbers, populate
     a new dictionary with same keys and either SpectrumData or lists of SpectrumData for the
@@ -179,9 +187,9 @@ def populate_data(data_dict, data_dir):
         if isinstance(data_dict[key], list):
             out[key] = []
             for n in data_dict[key]:
-                out[key].append(retrieve_spectra(n, fs))
+                out[key].append(retrieve_spectra(n, fs, db))
         else:
-            out[key] = retrieve_spectra(data_dict[key], fs)
+            out[key] = retrieve_spectra(data_dict[key], fs, db)
     return out
 
 
@@ -344,16 +352,16 @@ def set_indices(start_index, end_index, emin, emax, spec):
     return start_index, end_index
 
 
-def write_spectra(fdict, outdir):
+def write_spectra(fdict, outdir, db):
     for name in fdict.keys():
         if isinstance(fdict[name], SpectrumData):
             spec = fdict[name]
         else:
-            spec = retrieve_data(fdict[name][0])
+            spec = retrieve_data(fdict[name][0], db)
             for i, f in enumerate(fdict[name]):
                 if i == 0:
                     continue
-                spec2 = retrieve_data(f)
+                spec2 = retrieve_data(f, db)
                 spec.add(spec2)
         x = spec.get_data_energies()
         y = spec.data
@@ -375,12 +383,7 @@ def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None, loc="upper right")
         if isinstance(fdict[name], SpectrumData):
             spec = fdict[name]
         else:
-            spec = retrieve_data(fdict[name][0])
-            for i, f in enumerate(fdict[name]):
-                if i == 0:
-                    continue
-                spec2 = retrieve_data(f)
-                spec.add(spec2)
+            raise Exception("not supported")
         if rebin > 1:
             spec = copy(spec)
             spec.rebin_factor(rebin)
@@ -440,6 +443,7 @@ def start_date(file):
     if dt:
         return dt.timestamp()
     else:
+        print("couldnt find datetime, using creation date of file")
         return creation_date(file)
 
 
@@ -625,6 +629,7 @@ def fix_table(fpath):
                 write_rows_new_file(f, cur_header, cur_rows, n_csv)
 
 
+
 def calibrate_spectra(data, expected_peaks, db, plot_dir=None, user_verify=False, tolerate_fails=False, plot_fit=False):
     for name, spec in data.items():
         spec_fitter = SpectrumFitter(expected_peaks,name=name)
@@ -633,7 +638,7 @@ def calibrate_spectra(data, expected_peaks, db, plot_dir=None, user_verify=False
             plot_dir = join(plot_dir, name)
             if not os.path.exists(plot_dir):
                 os.mkdir(plot_dir)
-        cal = spec_fitter.retrieve_calibration(user_verify, tolerate_fails, plot_dir, plot_fit)
+        cal, _ = spec_fitter.retrieve_calibration(user_verify, tolerate_fails, plot_dir, plot_fit)
         db.insert_calibration(cal[0], cal[1], spec.fname)
 
 

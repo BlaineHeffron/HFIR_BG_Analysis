@@ -1,3 +1,9 @@
+import sys
+from os.path import dirname, realpath
+
+sys.path.insert(1, dirname(dirname(realpath(__file__))))
+
+from src.database.SqliteManager import HFIRBG_DB
 from src.utilities.util import *
 
 #rundata = {   "original": [54,55], "original_cart_xzrot_90":56, "corner_no_shield":
@@ -123,12 +129,13 @@ compare_to = "rxoff"
 
 
 def main():
+    db = HFIRBG_DB()
     datadir = get_data_dir()
-    data = populate_data(rundata, datadir)
+    data = populate_data(rundata, datadir, db)
     combine_runs(data)
     rebin_spectra(data, bins)
     #data = background_subtract(data, "Rxoff", get_bins(100, 9400, 3100))
-    write_spectra(data, datadir)
+    write_spectra(data, datadir, db)
     plot_multi_spectra(data, plot_name, rebin=10, emin=15)
     plot_subtract_spectra(data, compare_to, plot_name + "_subtract", rebin=100, emin=15)
     emin = [800*i for i in range(15)]

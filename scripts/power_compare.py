@@ -1,3 +1,8 @@
+import sys
+from os.path import dirname, realpath
+sys.path.insert(1, dirname(dirname(realpath(__file__))))
+
+from src.database.SqliteManager import HFIRBG_DB
 from src.utilities.util import *
 from math import floor
 from src.utilities.PlotUtils import MultiScatterPlot
@@ -33,14 +38,14 @@ def integrate_ranges(ene_range, data, A0, A1):
     return results
 
 
-def retrieve_power_data(ene_range, fs):
+def retrieve_power_data(ene_range, fs, db=None):
     pwr_data = {0: np.zeros((len(ene_range) - 1,), dtype=np.float32)}
     live_time = {0: 0.}
     for key in pwr:
         pwr_data[key] = np.zeros((len(ene_range) - 1,), dtype=np.float32)
         live_time[key] = 0.
     for f in fs:
-        spec = retrieve_data(f)
+        spec = retrieve_data(f, db)
         l, A0, A1, data = spec.live, spec.A0, spec.A1, spec.data
         power = find_power(file_number(basename(f)))
         live_time[power] += l
@@ -85,6 +90,7 @@ def plot_power_spectra(files):
         plot_spectra(file_sets[power], "{}_power".format(power), rebin=20)
 
     multi_plot = {"rx on": file_sets[100], "rx off": file_sets[0]}
+    multi_plot = populate_data(multi_plot)
     plot_multi_spectra(multi_plot, "rxonvsoff.png", rebin=20)
 
 
@@ -93,12 +99,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", help="path to data")
     args = parser.parse_args()
+    db = HFIRBG_DB()
     if not args.data:
         files = retrieve_files(datadir)
     else:
         files = retrieve_files(args.data)
     plot_power_spectra(files)
-    pwr, lt = retrieve_power_data(ENERGY_RANGES, files)
+    pwr, lt = retrieve_power_data(ENERGY_RANGES, files, db)
     plot_power_data(pwr, lt)
 
 

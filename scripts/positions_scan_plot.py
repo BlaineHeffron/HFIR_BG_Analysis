@@ -1,9 +1,11 @@
-from src.analysis.Spectrum import SpectrumData
+import sys
+from os.path import dirname, realpath
+sys.path.insert(1, dirname(dirname(realpath(__file__))))
+from src.database.SqliteManager import HFIRBG_DB
 from src.utilities.PlotUtils import scatter_plot
-from src.utilities.util import retrieve_position_scans, retrieve_data, get_bins, get_data_dir, retrieve_files, \
+from src.utilities.util import retrieve_position_scans, get_bins, get_data_dir, retrieve_files, \
     retrieve_spectra, retrieve_file_extension
-import matplotlib.pyplot  as plt
-from numpy import sum
+import matplotlib.pyplot as plt
 
 
 def parse_coord(s):
@@ -21,6 +23,7 @@ def get_x_y(r, l):
 
 def main():
     datadir = get_data_dir()
+    db = HFIRBG_DB()
     fs = retrieve_file_extension(datadir, ".txt")
     position_metadata = retrieve_position_scans() # r, l, angle, fname
     name = "down_facing_scan"
@@ -33,7 +36,7 @@ def main():
     for data in position_metadata:
         if float(data[2]) == 0:
             yc, xc = get_x_y(data[0], data[1])
-            spec = retrieve_spectra(data[-1], fs)
+            spec = retrieve_spectra(data[-1], fs, db)
             if spec is None:
                 print(data[-1])
                 continue

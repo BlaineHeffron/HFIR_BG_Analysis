@@ -1,8 +1,9 @@
 import sys
 from os.path import dirname, realpath
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
-from src.utilities.util import *
 
+from src.utilities.util import *
+from src.database.SqliteManager import HFIRBG_DB
 
 rundata = { "corner_no_shield": "CORNER_MEASUREMENT_NO_SHIELD_WALL_LOW_GAIN",
             "MIF_no_shield":"CORNER_TPS_OVERNIGHT" }
@@ -13,7 +14,8 @@ bins = get_bins(0, 11500, 11500)
 
 def main():
     datadir = get_data_dir()
-    data = populate_data(rundata, datadir)
+    db = HFIRBG_DB()
+    data = populate_data(rundata, datadir, db)
     combine_runs(data)
     rebin_spectra(data, bins)
     #data = background_subtract(data, "Rxoff", get_bins(100, 9400, 3100))

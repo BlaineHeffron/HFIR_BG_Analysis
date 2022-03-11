@@ -2,7 +2,7 @@ import sqlite3
 import os
 import re
 
-from src.utilities.util import get_data_dir, retrieve_file_extension, creation_date, file_number, \
+from src.utilities.util import get_data_dir, retrieve_file_extension, file_number, \
     read_csv_list_of_tuples, get_json, start_date
 
 FOREIGNKEYREGEX = re.compile(r'FOREIGN KEY\(\"(.*)\"\) REFERENCES \"(.*)\"\(\"(.*)\"\)')
@@ -324,9 +324,18 @@ class HFIRBG_DB(SQLiteBase):
         rp = "REPLACE"
         if not replace:
             rp = "IGNORE"
-        vals = "{0},{1},1,(SELECT id FROM datafile WHERE name = '{2}')".format(A0,A1,fname)
+        myid = self.fetchone("SELECT id FROM datafile WHERE name = '{}'".format(fname))
+        if myid:
+            myid = myid[0]
+        else:
+            print("no id found for filename {}, make sure it exists in the database.".format(fname))
+            return None
+        vals = "{0},{1},1,{2}".format(A0,A1,myid)
         self.cur.execute("INSERT OR {0} INTO calibrations (A0,A1,det,file_id) VALUES ({1})".format(rp, vals))
+        self.commit()
         return self.cur.lastrowid
 
+    def retrieve_calibration(self, fname):
+        return self.fetchone("SELECT A0, A1 FROM calibrations where file_id = (select id from datafile where name = '{}')".format(fname))
 
 

@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+from matplotlib.patches import PathPatch
+from matplotlib.path import Path
 from matplotlib.ticker import AutoMinorLocator, FormatStrFormatter
 from matplotlib import rcParams
 import matplotlib.dates as mdate
@@ -12,7 +14,7 @@ from collections import OrderedDict
 
 #from util import safe_divide, write_x_y_csv
 
-mpl.use('Agg')
+#mpl.use('Agg')
 plt.rcParams['font.size'] = '12'
 TITLE_SIZE = 16
 
@@ -527,6 +529,101 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
     #plt.close()
     return fig
 
+def ScatterLinePlot(xaxis, yvals, errors, linex, liney, lineerr, line_labels, xlabel, ylabel,
+                     colors=None, styles=None,
+                     xmax=-1, ymax=-1, ymin=None, xmin=None, ylog=True, xdates=False,
+                     vertlines=None, vlinelabel=None, xlog=False, title=None,  figsize=(12, 9)):
+    if colors is None:
+        colors = []
+    if styles is None:
+        styles = []
+    if(xdates):
+        xaxis = mdate.epoch2num(xaxis)
+        if(vertlines):
+            vertlines = mdate.epoch2num(vertlines)
+    rcParams.update({'font.size': 18})
+    fig = plt.figure(figsize=(12, 6.5))
+    ax1 = fig.add_subplot(111)
+    ax1.set_xlabel(xlabel)
+    ax1.set_ylabel(ylabel)
+    if(ymin is None):
+        if(ylog):
+            ymin = min(yvals)*0.5
+            if(ymin <= 0):
+                print("error: ymin is ", ymin, " on a log-y axis. Defaulting to 1e-5")
+                ymin = 1e-5
+        else:
+            ymin = min(yvals)
+            if ymin < 0: ymin *= 1.05
+            else: ymin *= .95
+    if(xmin is None):
+        xmin = min(xaxis)
+    if(xlog):
+        ax1.set_xscale('log')
+    else:
+        ax1.set_xscale('linear')
+    if(ylog):
+        ax1.set_yscale('log')
+    else:
+        ax1.set_yscale('linear')
+    if(ymax == -1):
+        if(ylog):
+            ax1.set_ylim(ymin,max(yvals)*1.5)
+        else:
+            ax1.set_ylim(ymin,max(yvals)*1.05)
+    else:
+        ax1.set_ylim(ymin,ymax)
+    if(xmax == -1):
+        ax1.set_xlim(xmin,max(xaxis))
+    else:
+        ax1.set_xlim(xmin,xmax)
+    if not colors:
+        colors = tab_colors
+    if not styles:
+        styles = category_styles
+    ax1.errorbar(xaxis,yvals,yerr=errors, fmt='o')
+    ax1.plot(linex, liney)
+    ax1.fill_between(linex, liney - lineerr, liney + lineerr, alpha=0.2)
+    if(vertlines is not None):
+        for v in vertlines:
+            ax1.axvline(v,color='k',linestyle='-')#,label=vlinelabel)
+    if(xdates):
+        #date_fmt = '%y-%m-%d %H:%M:%S'
+        date_fmt = '%y-%m-%d'
+        date_formatter = mdate.DateFormatter(date_fmt,tz=timezone('US/Eastern'))
+        ax1.xaxis.set_major_formatter(date_formatter)
+        fig.autofmt_xdate()
+    else:
+        pass
+        #start,end = ax1.get_xlim()
+        #diff = (end - start) / 8.
+        #ax1.xaxis.set_ticks(np.arange(start,end,diff))
+        #ax1.xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.1f'))
+        #plt.setp(ax1.get_xticklabels(), rotation=30,\
+        #horizontalalignment='right')
+    if(not title):
+        ax1.set_title(line_labels[0])
+    else:
+        ax1.set_title(title)
+    box = ax1.get_position()
+    ax1.set_position([box.x0, box.y0, box.width, box.height])
+    ax1.legend(line_labels, loc='center left', \
+               bbox_to_anchor=(0.75, 0.85), ncol=1)
+    rcParams.update({'font.size': 14})
+    ax1.xaxis.set_minor_locator(AutoMinorLocator())
+    if not ylog:
+        ax1.yaxis.set_minor_locator(AutoMinorLocator())
+    ax1.tick_params(axis="x", direction="in", length=16, width=1)
+    ax1.tick_params(axis="y", direction="in", length=16, width=1)
+    ax1.tick_params(axis="x", which="minor", direction="in", length=8, width=1)
+    ax1.tick_params(axis="y", which="minor", direction="in", length=8, width=1)
+    #plt.gcf().subplots_adjust(left=0.16)
+    #plt.gcf().subplots_adjust(bottom=0.22)
+    #plt.gcf().subplots_adjust(right=0.05)
+    #plt.savefig(outname)
+    #plt.close()
+    return fig
+
 def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
                   colors=None, styles=None,
                   xmax=-1, ymax=-1, ymin=None, xmin=None, ylog=True, xdates=False,
@@ -675,3 +772,26 @@ def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, x
     cb = plt.colorbar(h)
     cb.set_label(zlabel, rotation=270, labelpad=20)
     return fig
+
+def draw_error_band(ax, x, y, err, **kwargs):
+    # Calculate normals via centered finite differences (except the first point
+    # which uses a forward difference and the last point which uses a backward
+    # difference).
+    dx = np.concatenate([[x[1] - x[0]], x[2:] - x[:-2], [x[-1] - x[-2]]])
+    dy = np.concatenate([[y[1] - y[0]], y[2:] - y[:-2], [y[-1] - y[-2]]])
+    l = np.hypot(dx, dy)
+    nx = dy / l
+    ny = -dx / l
+
+    # end points of errors
+    xp = x + nx * err
+    yp = y + ny * err
+    xn = x - nx * err
+    yn = y - ny * err
+
+    vertices = np.block([[xp, xn[::-1]],
+                         [yp, yn[::-1]]]).T
+    codes = np.full(len(vertices), Path.LINETO)
+    codes[0] = codes[len(xp)] = Path.MOVETO
+    path = Path(vertices, codes)
+    ax.add_patch(PathPatch(path, **kwargs))

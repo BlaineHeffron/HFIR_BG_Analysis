@@ -5,11 +5,15 @@ import numpy as np
 from ROOT import TH1F
 from math import sqrt, floor
 from os.path import join
+import matplotlib as mpl
 
+
+from scipy.special import erfc
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 
-from src.utilities.PlotUtils import MultiScatterPlot
+from src.utilities.PlotUtils import MultiScatterPlot, ScatterLinePlot
+from src.utilities.NumbaFunctions import average_median
 
 
 class SpectrumData:
@@ -199,84 +203,123 @@ def pad_data(a, new_shape):
         result[:a.shape[0]] = a
     return result
 
-def gauss(x, const, c, s):
-    return const * np.exp(-0.5 * np.pow(((x - c) / s),2))
+def gauss(x, H, R, c, s):
+    return H * (1. - R) * np.exp(-0.5 * np.power(((x - c) / s),2))
 
-def dgaussds(x, const, c, s):
-    return np.pow(c-x,2)*gauss(x,const,c,s) / (s**3)
+def dgaussdR(x, H, R, c, s):
+    return -H * np.exp(-0.5 * np.power(((x - c) / s),2))
 
-def dgaussdc(x, const, c, s):
-    return (x-c)*gauss(x,const,c,s) / (s**2)
+def dgaussds(x, H, R, c, s):
+    return np.power(c-x,2)*gauss(x,H,R,c,s) / (s**3)
+
+def dgaussdc(x, H, R, c, s):
+    return (x-c)*gauss(x,H,R,c,s) / (s**2)
 
 
-def skewguass(x, const, c, s, b):
-    return  const * np.exp((x - c) / b) * np.erfc(
+def skewguass(x, H, R, c, s, b):
+    return H * R * np.exp((x - c) / b) * erfc(
         (x - c) / (sqrt(2) * s) + s / (sqrt(2) * b))
 
-def dskewgaussds(x, const, c, s, b):
-    return -(2 * const * np.exp((x - c) / b - np.pow((s / (sqrt(2) * b) + (x - c) / (sqrt(2) * s)), 2)) * (1 / (sqrt(2) * b) - (x - c) / (sqrt(2) * s**2))) / sqrt(np.pi)
+def dskewgaussds(x, H, R, c, s, b):
+    return -(2 * H * R * np.exp((x - c) / b - np.power((s / (sqrt(2) * b) + (x - c) / (sqrt(2) * s)), 2)) * (1 / (sqrt(2) * b) - (x - c) / (sqrt(2) * s**2))) / sqrt(np.pi)
 
-def dskewgaussdc(x, const, c, s, b):
-    return sqrt(2 / np.pi) * const * np.exp((x - c) / b - np.pow((s / (sqrt(2) * b) + (x - c) / (sqrt(2) * s)),2)) / s - (const * np.exp((x - c) / b) * np.erfc(s / (sqrt(2) * b) + (x - c) / (sqrt(2) * s))) / b
+def dskewgaussdc(x, H, R, c, s, b):
+    return sqrt(2 / np.pi) * H * R * np.exp((x - c) / b - np.power((s / (sqrt(2) * b) + (x - c) / (sqrt(2) * s)),2)) / s - (H * R * np.exp((x - c) / b) * erfc(s / (sqrt(2) * b) + (x - c) / (sqrt(2) * s))) / b
 
-def dskewgaussdb(x, const, c, s, b):
-    return (sqrt(2 / np.pi) * const * s * np.exp((x - c) / b - np.pow((s / (sqrt(2) * b) + (x - c) / (sqrt(2) * s)), 2)) - (const * (x - c) * np.exp((x - c) / b) * np.erfc( s / (sqrt(2) * b) + (x - c) / (sqrt(2) * s)))) / (b**2)
+def dskewgaussdb(x, H, R, c, s, b):
+    return (sqrt(2 / np.pi) * H * R * s * np.exp((x - c) / b - np.power((s / (sqrt(2) * b) + (x - c) / (sqrt(2) * s)), 2)) - (H * R * (x - c) * np.exp((x - c) / b) * erfc( s / (sqrt(2) * b) + (x - c) / (sqrt(2) * s)))) / (b**2)
 
-def peak_background(x, const, c, s):
-    return const * np.erfc((x - c) / (sqrt(2) * s))
+def peak_background(x, H, step, c, s):
+    return H * step * erfc((x - c) / (sqrt(2) * s))
 
-def dpeak_backgrounddc(x, const, c, s):
-    return (sqrt(2 / np.pi) * const * np.exp(-np.pow((x - c), 2) / (2 * s**2))) / s
+def dpeak_backgrounddc(x, H, step, c, s):
+    return (sqrt(2 / np.pi) * H * step * np.exp(-np.power((x - c), 2) / (2 * s**2))) / s
 
-def dpeak_backgroundds(x, const, c, s):
-    return (sqrt(2 / np.pi) * const *  (x - c) * np.exp(-np.pow((x - c), 2) / (2 * s**2))) / (s**2)
+def dpeak_backgroundds(x, H, c, step, s):
+    return (sqrt(2 / np.pi) * H * step * (x - c) * np.exp(-np.power((x - c), 2) / (2 * s**2))) / (s**2)
 
-def ge_peak_function(x, c1, c2, c3, centroid, sigma, beta):
+def background(x, A, B, C):
+    return A + B*x + C*x*x
+
+def dbackgrounddA(x):
+    return np.ones(len(x))
+
+def dbackgrounddB(x):
+    return x
+
+def dbackgrounddC(x):
+    return x*x
+
+def ge_peak_function(x, H, R, centroid, sigma, beta, A, B, C):
     """
     modelled after https://radware.phy.ornl.gov/gf3/
     """
-    return gauss(x, c1, centroid, sigma) + skewguass(x, c2, centroid, sigma, beta) + peak_background(x, c3, centroid, sigma)
+    #return gauss(x, H, R, centroid, sigma) + skewguass(x, H, R, centroid, sigma, beta) + peak_background(x, H, step, centroid, sigma) + background(x, A, B, C)
+    return gauss(x, H, R, centroid, sigma) + skewguass(x, H, R, centroid, sigma, beta) + background(x, A, B, C)
 
-def ge_peak_function_jac(x, c1, c2, c3, centroid, sigma, beta):
-    dc1 = gauss(x, 1, centroid, sigma)
-    dc2 = skewguass(x, 1, centroid, sigma, beta)
-    dc3 = peak_background(x, 1, centroid, sigma)
-    dcentroid = dgaussdc(x, c1, centroid, sigma) + dskewgaussdc(x, c2, centroid, sigma, beta) + dpeak_backgrounddc(x, c3, centroid, sigma)
-    dsigma = dgaussds(x, c1, centroid, sigma) + dskewgaussds(x, c2, centroid, sigma, beta) + dpeak_backgroundds(x, c3, centroid, sigma)
-    dbeta = dskewgaussdb(x, c2, centroid, sigma, beta)
-    return np.hstack( ( dc1.reshape(-1,1), dc2.reshape(-1,1), dc3.reshape(-1,1), dcentroid.reshape(-1,1), dsigma.reshape(-1,1), dbeta.reshape(-1,1)))
+
+def ge_peak_function_jac(x, H, R, centroid, sigma, beta, A, B, C):
+    dH = gauss(x, 1, R, centroid, sigma) + skewguass(x, 1, R, centroid, sigma, beta) # + peak_background(x, 1, step, centroid, sigma)
+    dR = dgaussdR(x, H, R, centroid, sigma) + skewguass(x, H, 1, centroid, sigma, beta)
+    #dstep = peak_background(x, step, 1, centroid, sigma)
+    dcentroid = dgaussdc(x, H, R, centroid, sigma) + dskewgaussdc(x, H, R, centroid, sigma, beta) #+ dpeak_backgrounddc(x, H, step, centroid, sigma)
+    dsigma = dgaussds(x, H, R, centroid, sigma) + dskewgaussds(x, H, R, centroid, sigma, beta) #+ dpeak_backgroundds(x, H, step, centroid, sigma)
+    dbeta = dskewgaussdb(x, H, R, centroid, sigma, beta)
+    dA = dbackgrounddA(x)
+    dB = dbackgrounddB(x)
+    dC = dbackgrounddC(x)
+    return np.hstack( ( dH.reshape(-1,1), dR.reshape(-1,1), dcentroid.reshape(-1,1), dsigma.reshape(-1,1), dbeta.reshape(-1,1), dA.reshape(-1,1), dB.reshape(-1,1), dC.reshape(-1,1)))
 
 
 class PeakFit:
-    def __init__(self, parameters, errors, xs, ys):
-        self.c1 = parameters[0]
-        self.c2 = parameters[1]
-        self.c3 = parameters[2]
-        self.centroid = parameters[3]
-        self.sigma = parameters[4]
-        self.beta = parameters[5]
-        self.dc1 = errors[0]
-        self.dc2 = errors[1]
-        self.dc3 = errors[2]
-        self.dcentroid = errors[3]
-        self.dsigma = errors[4]
-        self.dbeta = errors[5]
+    def __init__(self, parameters, errors, cov, xs, ys):
+        #self.c = parameters[0]
+        #self.R = parameters[1]
+        #self.step = parameters[2]
+        self.centroid = parameters[2]
+        self.sigma = parameters[3]
+        #self.beta = parameters[5]
+        #self.dc = errors[0]
+        #self.dR = errors[1]
+        #self.dstep = errors[2]
+        #self.dcentroid = errors[3]
+        #self.dsigma = errors[4]
+        #self.dbeta = errors[5]
         self.parameters = parameters
         self.errors = errors
+        self.cov = cov
         self.xs = xs
         self.ys = ys
 
     def get_y(self):
         return ge_peak_function(self.xs, *self.parameters)
 
-    def plot(self, display=False, outname=None):
-        yvals = [self.ys, self.get_y()]
-        errors = np.sqrt(np.dot(np.pow(ge_peak_function_jac(self.xs, *self.parameters),2), np.pow(self.errors, 2)))
-        fig = MultiScatterPlot(self.xs, yvals, errors, ["data", "fit"], "uncorrected energy [keV]", "counts")
-        if display:
-            fig.show()
+    def plot(self, outname=None):
+        yvals = self.ys
+        linex = np.linspace(self.xs[0], self.xs[-1], 100)
+        liney = ge_peak_function(linex, *self.parameters)
+        jac = ge_peak_function_jac(linex, *self.parameters)
+        lineerr = np.sqrt(np.diag(np.matmul(jac,np.matmul(self.cov, jac.T))))
+        ScatterLinePlot(self.xs, yvals, np.sqrt(yvals), linex, liney, lineerr, ["fit", r'1 $\sigma$ error', "data"], "uncorrected energy [keV]", "counts")
         if outname is not None:
-            plt.savefig(outname)
+            plt.savefig(outname + ".png")
+
+    def display(self):
+        print("H: {0} ~ {1} counts".format(self.parameters[0], self.errors[0]))
+        print("R: {0} ~ {1} ".format(self.parameters[1], self.errors[1]))
+        #print("step: {0} ~ {1} ".format(self.parameters[2], self.errors[2]))
+        print("centroid: {0} ~ {1} keV".format(self.parameters[2], self.errors[2]))
+        print("std deviation: {0} ~ {1} keV".format(self.parameters[3], self.errors[3]))
+        print("skewness: {0} ~ {1} keV".format(self.parameters[4], self.errors[4]))
+        print("A: {0} ~ {1} counts".format(self.parameters[5], self.errors[5]))
+        print("B: {0} ~ {1} counts/keV".format(self.parameters[6], self.errors[6]))
+        print("C: {0} ~ {1} counts/keV^2".format(self.parameters[7], self.errors[7]))
+        print("data energies:")
+        print(self.xs)
+        print("data values:")
+        print(self.ys)
+        print("fit values:")
+        print(self.get_y().astype('int'))
 
 
 class SpectrumFitter:
@@ -286,12 +329,19 @@ class SpectrumFitter:
         # using a simple linear fit to estimate the window size we get sigma = .5918 + 0.0001465*x
         self.expected_peaks = expected_peaks
         self.R = 0.1
-        self.step = 0.01
+        self.step = 0.002
+        self.low_bound_gaus_scale = 0.8
+        self.up_bound_gaus_scale = 1.2
+        self.low_bound_skew_scale = 0.1
+        self.up_bound_skew_scale = 3.0
+        self.low_bound_bkg_scale = 0.1
+        self.up_bound_bkg_scale = 30.0
         self.sigma_guess_offset = 0.59  # keV
-        self.sigma_guess_slope = 0.0001465  # keV
-        self.window_factor = 8
+        self.sigma_guess_slope = 0.00015  # keV
+        self.window_factor = 20
         self.fit_values = {}
         self.n_retries = 5
+        self.expected_offset_factor = 1
         self.name = None
         self.A0 = None
         self.A1 = None
@@ -306,35 +356,49 @@ class SpectrumFitter:
             self.fit(spec, peak_x)
 
     def fit(self, spec: SpectrumData, peak_x):
-        peak_guess = spec.data_at_x(peak_x)
         sigma_guess = self.get_sigma_guess(peak_x)
-        num_samples = int(round(self.window_factor * sigma_guess / spec.A1))
+        peak_guess = spec.data_at_x(peak_x * self.expected_offset_factor)
+        if self.expected_offset_factor == 1:
+            #use a larger window at first to get the expected offset
+            num_samples = int(round(3*self.window_factor * sigma_guess / spec.A1))
+        else:
+            num_samples = int(round(self.window_factor * sigma_guess / spec.A1))
         start_ind = peak_guess - int(floor(num_samples / 2))
         stop_ind = peak_guess + int(floor(num_samples / 2)) + 1
         max_val = np.amax(spec.data[start_ind:stop_ind])
-        indice = np.where(spec.data[start_ind:stop_ind] == max_val)
+        indice = np.where(spec.data[start_ind:stop_ind] == max_val)[0]
         if indice.shape[0] > 1:
             max_ind = int(round(np.average(indice) + start_ind))
         else:
             max_ind = start_ind + indice[0]
+        if self.expected_offset_factor == 1:
+            self.expected_offset_factor = max_ind / peak_guess
+            print("setting expected offset factor to {} for subsequent peak searches".format(self.expected_offset_factor))
+        num_samples = int(round(self.window_factor * sigma_guess / spec.A1))
         start_ind = max_ind - int(floor(num_samples / 2))
         stop_ind = max_ind + int(floor(num_samples / 2)) + 1
-        centroid_guess = (max_ind + 1) * spec.A1 + spec.A0
-        beta_guess = sigma_guess / 2.
-        guesses = [max_val * (1 - self.R), max_val * self.R, max_val * self.step, centroid_guess, sigma_guess,
-                   beta_guess]
         xs = spec.get_data_x()[start_ind:stop_ind]
-        parameters, covariance = curve_fit(ge_peak_function, xs, spec.data[start_ind:stop_ind], p0=guesses,
-                                           sigma=np.sqrt(spec.data[start_ind:stop_ind]), absolute_sigma=True, jac=ge_peak_function_jac)
+        centroid_guess = (max_ind + 1) * spec.A1 + spec.A0
+        beta_guess = sigma_guess
+        bkg_guess = average_median(spec.data[start_ind-10:start_ind])
+        bkg_guess2 = average_median(spec.data[stop_ind:stop_ind+10])
+        B_guess = (bkg_guess2 - bkg_guess) / (self.A1*(stop_ind - start_ind))
+        A_guess = bkg_guess - B_guess*start_ind*self.A1
+        #guesses = [max_val - A_guess - B_guess*centroid_guess, self.R, self.step, centroid_guess, sigma_guess,
+        guesses = [max_val - A_guess - B_guess*centroid_guess, self.R, centroid_guess, sigma_guess,
+                    beta_guess, A_guess, B_guess, 0]
+        lower_bounds = [guesses[0]*self.low_bound_gaus_scale, 0,
+                        centroid_guess*0.98, sigma_guess*0.3, beta_guess*0.1, 0, -np.inf, -1]
+        upper_bounds = [guesses[0]*self.up_bound_gaus_scale, 1,
+                        centroid_guess*1.02, sigma_guess*3.0, beta_guess*10.0, np.inf, np.inf, 1]
+        ys = spec.data[start_ind:stop_ind]
+        sigma = np.sqrt(ys)
+        sigma[sigma == 0] = 1
+        parameters, covariance = curve_fit(ge_peak_function, xs, ys, p0=guesses, #sigma=sigma,
+                                           bounds=(lower_bounds, upper_bounds), sigma=sigma,
+                                           absolute_sigma=True, jac=ge_peak_function_jac, maxfev=4000)
         errs = np.sqrt(np.diag(covariance))
-        print("fit parameters for x = {0}:".format(peak_x))
-        print("guassian scale: {0} ~ {1} counts".format(parameters[0], errs[0]))
-        print("skew guassian scale: {0} ~ {1} counts".format(parameters[1], errs[1]))
-        print("background scale: {0} ~ {1} counts".format(parameters[2], errs[2]))
-        print("centroid: {0} ~ {1} keV".format(parameters[3], errs[3]))
-        print("std deviation: {0} ~ {1} keV".format(parameters[4], errs[4]))
-        print("skewness: {0} ~ {1} keV".format(parameters[5], errs[5]))
-        self.fit_values[peak_x] = PeakFit(parameters, errs, xs, spec.data[start_ind:stop_ind])
+        self.fit_values[peak_x] = PeakFit(parameters, errs, covariance, xs, ys)
 
     def get_plot_name(self, peak_x, outdir):
         if self.name is None:
@@ -352,18 +416,28 @@ class SpectrumFitter:
             figname = None
             if write_to_dir is not None:
                 figname = self.get_plot_name(peak_x, write_to_dir)
-            fit.plot(user_prompt, figname)
+            fit.plot(figname)
             if user_prompt:
                 answer = None
                 retried = 0
                 while(answer is None):
+                    print("displying fit for peak {} keV".format(peak_x))
+                    fit.display()
+                    if retried == 0:
+                        plt.show(block=False)
+                        plt.pause(1)
+                        plt.close()
                     answer = input("Accept fit? [y/n]")
                     if answer.lower() in ["y", "yes"]:
                         print("accepting fit.")
                         accept[i] = True
+                        plt.close()
+                        break
                     elif answer.lower() in["n", "no"]:
                         print("rejecting fit.")
                         accept[i] = False
+                        plt.close()
+                        break
                     else:
                         answer = None
                         if(retried >= self.n_retries):
@@ -380,11 +454,12 @@ class SpectrumFitter:
         return (e - self.A0) / self.A1
 
     def linfit(self, x, y, sigma, plot=None):
+        print("fitting x values {0} y values {1} with sigma {2}".format(x,y,sigma))
         coeff, cov = np.polyfit(x, y, 1, cov=True, w=(1 / sigma))
         if plot is not None:
             fit_y_errs = [sqrt(cov[1,1] + i**2*cov[0,0] + 2*i*cov[0,1]) for i in x]
             MultiScatterPlot(x, [y, [coeff[0]*i + coeff[1] for i in x]], [sigma, fit_y_errs], ["peak fits to data", "best linear fit"], "channel #", "Peak Energy [keV]", ylog=False)
-            plt.savefig(plot)
+            plt.savefig(plot + ".png")
             plt.close()
         return coeff, cov
 
@@ -423,6 +498,9 @@ class SpectrumFitter:
             sigmas.append(fit.sigma)
             values.append(peak_x)
             i += 1
+        sigmas = np.array(sigmas)
+        values = np.array(values)
+        centroids = np.array(centroids)
         if plot_fit:
             if self.name:
                 fit_name = "{0}_calibration_fit".format(self.name)
@@ -436,6 +514,4 @@ class SpectrumFitter:
         print("old coefficients were A0 = {0} A1 = {1}".format(self.A0, self.A1))
         print("new coefficients are A0 = {0} ~ {1} A1 = {2} ~ {3}".format(coeff[0], errs[0], coeff[1], errs[1]))
         return coeff, errs
-
-
 
