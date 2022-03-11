@@ -2,7 +2,7 @@ import sys
 from os.path import dirname, realpath
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
 from src.database.SqliteManager import HFIRBG_DB
-from src.utilities.util import get_data_dir, populate_data, calibrate_spectra
+from src.utilities.util import get_data_dir, populate_data, calibrate_spectra, write_root_with_db
 from os.path import join, exists
 import os
 
@@ -18,6 +18,11 @@ def main():
     if not exists(outdir):
         os.mkdir(outdir)
     calibrate_spectra(data, expected_peaks, db, outdir, True, True, True)
+    print("writing root files of newly calibrated spectra")
+    data = populate_data(rundata, datadir,db)
+    for name,spec in data.items():
+        write_root_with_db(spec, name, db)
+
 
 
 if __name__ == "__main__":

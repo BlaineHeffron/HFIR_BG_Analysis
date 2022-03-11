@@ -338,4 +338,12 @@ class HFIRBG_DB(SQLiteBase):
     def retrieve_calibration(self, fname):
         return self.fetchone("SELECT A0, A1 FROM calibrations where file_id = (select id from datafile where name = '{}')".format(fname))
 
+    def get_file_path_from_name(self, fname):
+        data = self.fetchone("SELECT f.directory_id, d.path from datafile f join directory d on f.directory_id = d.id where f.name = '{}'".format(fname))
+        if data:
+            return os.path.join(data[1],fname)
+        else:
+            print("file name {} not in database!".format(fname))
+            return None
+
 

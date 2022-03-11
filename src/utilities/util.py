@@ -551,6 +551,20 @@ def is_number(s):
     except ValueError:
         return False
 
+def write_root_with_db(spec, name, db, title=''):
+    if title == '':
+        title = name
+    hist = spec.generate_root_hist(name, title)
+    fpath = db.get_file_path_from_name(spec.fname)
+    if fpath.endswith(".txt"):
+        fpath = fpath[0:-4] + ".root"
+    myFile = TFile.Open(fpath, "RECREATE")
+    myFile.WriteObject(hist, "GeDataHist")
+    lt = TVectorF(1)
+    lt[0] = spec.live
+    myFile.WriteObject(lt, "LiveTime")
+    myFile.Close()
+
 
 def write_root(spec, name, fpath, title=''):
     if title == '':

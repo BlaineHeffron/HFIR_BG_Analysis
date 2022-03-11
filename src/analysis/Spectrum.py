@@ -425,18 +425,17 @@ class SpectrumFitter:
                     fit.display()
                     if retried == 0:
                         plt.show(block=False)
-                        plt.pause(1)
+                        plt.gcf().canvas.draw_idle()
+                        plt.gcf().canvas.start_event_loop(0.3)
                         plt.close()
-                    answer = input("Accept fit? [y/n]")
+                    answer = str(input("Accept fit? [y/n] (hit enter for default = y)") or "y")
                     if answer.lower() in ["y", "yes"]:
                         print("accepting fit.")
                         accept[i] = True
-                        plt.close()
                         break
                     elif answer.lower() in["n", "no"]:
                         print("rejecting fit.")
                         accept[i] = False
-                        plt.close()
                         break
                     else:
                         answer = None
@@ -446,8 +445,8 @@ class SpectrumFitter:
                             break
                         print("input must be yes (y) or no (n), retrying prompt..")
                         retried += 1
-            plt.close()
             i += 1
+            plt.close()
         return accept
 
     def get_index_from_energy(self, e):
@@ -457,8 +456,10 @@ class SpectrumFitter:
         print("fitting x values {0} y values {1} with sigma {2}".format(x,y,sigma))
         coeff, cov = np.polyfit(x, y, 1, cov=True, w=(1 / sigma))
         if plot is not None:
-            fit_y_errs = [sqrt(cov[1,1] + i**2*cov[0,0] + 2*i*cov[0,1]) for i in x]
-            MultiScatterPlot(x, [y, [coeff[0]*i + coeff[1] for i in x]], [sigma, fit_y_errs], ["peak fits to data", "best linear fit"], "channel #", "Peak Energy [keV]", ylog=False)
+            linex = np.linspace(x[0], x[-1], 100)
+            liney = np.array([coeff[0]*i + coeff[1] for i in linex])
+            fit_y_errs = [sqrt(cov[1,1] + i**2*cov[0,0] + 2*i*cov[0,1]) for i in linex]
+            ScatterLinePlot(x, y, sigma, linex,liney,fit_y_errs, ["best linear fit", r'1 $\sigma$ error', "peak fits to data"], "channel #", "Peak Energy [keV]", ylog=False)
             plt.savefig(plot + ".png")
             plt.close()
         return coeff, cov
