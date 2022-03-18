@@ -133,7 +133,9 @@ def retrieve_data(myf, db=None):
     if db is not None:
         row = db.retrieve_calibration(fname)
         if row:
-            print("found calibration for file {0} in database, using values A0 = {1}, A1 = {2} instead of A0 = {3}, A1 = {4}".format(fname, row[0], row[1], A0, A1))
+            print(
+                "found calibration for file {0} in database, using values A0 = {1}, A1 = {2} instead of A0 = {3}, A1 = {4}".format(
+                    fname, row[0], row[1], A0, A1))
             A0 = row[0]
             A1 = row[1]
 
@@ -190,6 +192,23 @@ def populate_data(data_dict, data_dir, db):
                 out[key].append(retrieve_spectra(n, fs, db))
         else:
             out[key] = retrieve_spectra(data_dict[key], fs, db)
+    return out
+
+
+def populate_data_root(data_dict, spec_path, live_path, isParam=False, xScale=1, rebin=1):
+    """
+    given data_dict, a dictionary whose values are numbers or list of numbers, populate
+    a new dictionary with same keys and either SpectrumData or lists of SpectrumData for the
+    spectrum filepaths equating the numbers
+    """
+    out = {}
+    for key in data_dict:
+        if isinstance(data_dict[key], list):
+            out[key] = []
+            for n in data_dict[key]:
+                out[key].append(get_spec_from_root(n, spec_path, live_path, isParam, xScale, rebin))
+        else:
+            out[key] = get_spec_from_root(data_dict[key], spec_path, live_path, isParam, xScale, rebin)
     return out
 
 
@@ -551,6 +570,7 @@ def is_number(s):
     except ValueError:
         return False
 
+
 def write_root_with_db(spec, name, db, title=''):
     if title == '':
         title = name
@@ -576,6 +596,29 @@ def write_root(spec, name, fpath, title=''):
     lt[0] = spec.live
     myFile.WriteObject(lt, "LiveTime")
     myFile.Close()
+
+
+def get_spec_from_root(fname, spec_path, live_path, isParam=False, xScale=1, rebin=1):
+    myFile = TFile.Open(fname, "READ")
+    myHist = myFile.Get(spec_path)
+    if rebin != 1:
+        myHist.Rebin(rebin)
+    data = np.zeros((myHist.GetNbinsX(),))
+    for i in range(myHist.GetNbinsX()):
+        data[i] = myHist.GetBinContent(i + 1)
+    if isParam:
+        live = myFile.Get(live_path).GetVal()
+    else:
+        live = myFile.Get(live_path)[0]
+    A1 = myHist.GetXaxis().GetBinLowEdge(2) - myHist.GetXaxis().GetBinLowEdge(1)
+    A0 = myHist.GetXaxis().GetBinLowEdge(1) - A1 / 2.
+    if (xScale != 1):
+        A1 *= xScale
+        A0 *= xScale
+    start = 0
+    spec = SpectrumData(data, start, live, A0, A1, fname)
+    myFile.Close()
+    return spec
 
 
 def fix_table(fpath):
@@ -643,10 +686,23 @@ def fix_table(fpath):
                 write_rows_new_file(f, cur_header, cur_rows, n_csv)
 
 
+def fit_spectra(data, expected_peaks, plot_dir=None, user_verify=False, tolerate_fails=False, plot_fit=False):
+    fit_data = {}
+    for name, spec in data.items():
+        spec_fitter = SpectrumFitter(expected_peaks, name=name)
+        spec_fitter.fit_peaks(spec)
+        if plot_dir is not None:
+            plot_dir = join(plot_dir, name)
+            if not os.path.exists(plot_dir):
+                os.mkdir(plot_dir)
+        _, _ = spec_fitter.retrieve_calibration(user_verify, tolerate_fails, plot_dir, plot_fit)
+        fit_data.update(spec_fitter.fit_values)
+    return fit_data
+
 
 def calibrate_spectra(data, expected_peaks, db, plot_dir=None, user_verify=False, tolerate_fails=False, plot_fit=False):
     for name, spec in data.items():
-        spec_fitter = SpectrumFitter(expected_peaks,name=name)
+        spec_fitter = SpectrumFitter(expected_peaks, name=name)
         spec_fitter.fit_peaks(spec)
         if plot_dir is not None:
             plot_dir = join(plot_dir, name)
@@ -654,6 +710,210 @@ def calibrate_spectra(data, expected_peaks, db, plot_dir=None, user_verify=False
                 os.mkdir(plot_dir)
         cal, _ = spec_fitter.retrieve_calibration(user_verify, tolerate_fails, plot_dir, plot_fit)
         db.insert_calibration(cal[0], cal[1], spec.fname)
+
+
+def get_areas(peak_data, areas, dareas):
+    for peak, data in peak_data.items():
+        if isinstance(peak, str):
+            peak = peak.split(',')
+            a = data.area()
+            for i, p in enumerate(peak):
+                p = float(p)
+                areas["{:.2f}".format(p)], dareas["{:.2f}".format(p)] = a[i]
+        else:
+            peak = float(peak)
+            areas["{:.2f}".format(peak)], dareas["{:.2f}".format(peak)] = data.area()
+
+
+def get_peak_fit_data(peak_data, d):
+    # height, ratio, centroid, stdev, skewness,
+    for peak, data in peak_data.items():
+        if isinstance(peak, str):
+            peak = peak.split(',')
+            for i, p in enumerate(peak):
+                p = float(p)
+                key = "{:.2f}".format(p)
+                params = data.get_peak_parameters(i)
+                errors = data.get_peak_errors(i)
+                d[key] = []
+                for param, e in zip(params, errors):
+                    d[key].append(param)
+                    d[key].append(e)
+                d[key].append(data.parameters[-3])
+                d[key].append(data.errors[-3])
+                d[key].append(data.parameters[-2])
+                d[key].append(data.errors[-2])
+                d[key].append(data.parameters[-1])
+                d[key].append(data.errors[-1])
+        else:
+            peak = float(peak)
+            key = "{:.2f}".format(peak)
+            d[key] = []
+            for p, e in zip(data.parameters, data.errors):
+                d[key].append(p)
+                d[key].append(e)
+
+
+def unc_ratio(A, B, dA, dB):
+    Asqr = A * A
+    Bsqr = B * B
+    return np.sqrt((Asqr / Bsqr) * ((dA * dA / Asqr) + (dB * dB / Bsqr)))
+
+
+def compare_peaks(data, simdata, expected_peaks, plot_dir=None, user_verify=False, tolerate_fails=False,
+                  plot_fit=False):
+    print("fitting peaks for data")
+    peak_data = fit_spectra(data, expected_peaks, plot_dir, user_verify, tolerate_fails, plot_fit)
+    print("fitting peaks for simulation")
+    peak_data_sim_true = {}
+    peak_data_sim_false = {}
+    for sd in simdata.keys():
+        for p in expected_peaks:
+            if str(p) in sd:
+                mysim = {sd: simdata[sd]}
+                if "false" in sd:
+                    peak_data_sim_false.update(fit_spectra(mysim, [p, p - 511, p - 511 * 2], plot_dir, user_verify,
+                                                           tolerate_fails, plot_fit))
+                else:
+                    peak_data_sim_true.update(
+                        fit_spectra(mysim, [p, p - 511, p - 511 * 2], plot_dir, user_verify, tolerate_fails, plot_fit))
+    ratios_data = {}
+    ratios_data_sim_true = {}
+    ratios_data_sim_false = {}
+    orig_peaks = []
+    areas = {}
+    areas_sim_true = {}
+    areas_sim_false = {}
+    dareas = {}
+    dareas_sim_true = {}
+    dareas_sim_false = {}
+    for p in expected_peaks:
+        if p - 511 in expected_peaks and p - 2 * 511 in expected_peaks:
+            orig_peaks.append(p)
+    peak_data_vals = {}
+    peak_data_sim_true_vals = {}
+    peak_data_sim_false_vals = {}
+    get_areas(peak_data, areas, dareas)
+    get_areas(peak_data_sim_true, areas_sim_true, dareas_sim_true)
+    get_areas(peak_data_sim_false, areas_sim_false, dareas_sim_false)
+    get_peak_fit_data(peak_data, peak_data_vals)
+    get_peak_fit_data(peak_data_sim_true, peak_data_sim_true_vals)
+    get_peak_fit_data(peak_data_sim_false, peak_data_sim_false_vals)
+    for peak in orig_peaks:
+        key = "{:.2f}".format(peak)
+        key1 = "{:.2f}".format(peak - 511)
+        key2 = "{:.2f}".format(peak - 2 * 511)
+        ratios_data[key] = [areas[key] / areas[key1], unc_ratio(areas[key], areas[key1], dareas[key], dareas[key1]),
+                            areas[key] / areas[key2], unc_ratio(areas[key], areas[key2], dareas[key], dareas[key2]),
+                            areas[key1] / areas[key2], unc_ratio(areas[key1], areas[key2], dareas[key1], dareas[key2])]
+        ratios_data_sim_true[key] = [areas_sim_true[key] / areas_sim_true[key1],
+                                unc_ratio(areas_sim_true[key], areas_sim_true[key1], dareas_sim_true[key], dareas_sim_true[key1]),
+                                areas_sim_true[key] / areas_sim_true[key2],
+                                unc_ratio(areas_sim_true[key], areas_sim_true[key2], dareas_sim_true[key], dareas_sim_true[key2]),
+                                areas_sim_true[key1] / areas_sim_true[key2],
+                                unc_ratio(areas_sim_true[key1], areas_sim_true[key2], dareas_sim_true[key1], dareas_sim_true[key2])]
+        ratios_data_sim_false[key] = [areas_sim_false[key] / areas_sim_false[key1],
+                            unc_ratio(areas_sim_false[key], areas_sim_false[key1], dareas_sim_false[key], dareas_sim_false[key1]),
+                            areas_sim_false[key] / areas_sim_false[key2],
+                            unc_ratio(areas_sim_false[key], areas_sim_false[key2], dareas_sim_false[key], dareas_sim_false[key2]),
+                            areas_sim_false[key1] / areas_sim_false[key2],
+                            unc_ratio(areas_sim_false[key1], areas_sim_false[key2], dareas_sim_false[key1], dareas_sim_false[key2])]
+    print("peak data")
+    header = ["energy [keV]", "type", "area", "darea", "height", "dheight", "ratio", "dratio", "centroid", "dcentroid",
+              "sigma", "dsigma", "beta", "dbeta", "A", "dA", "B", "dB", "C", "dC"]
+    print("| {} |".format(" | ".join(header)))
+    print("| {} |".format(" | ".join(["---"] * len(header))))
+    rows = []
+    for e, dat in peak_data_vals.items():
+        rows.append([e, "data", areas[e], dareas[e]] + dat)
+        if e in peak_data_sim_true_vals.keys():
+            rows.append([e, "sim through", areas_sim_true[e], dareas_sim_true[e]] + peak_data_sim_true_vals[e])
+        if e in peak_data_sim_false_vals.keys():
+            rows.append([e, "sim all", areas_sim_false[e], dareas_sim_false[e]] + peak_data_sim_false_vals[e])
+    ens = []
+    sigmas = [[],[],[]]
+    sig_errs = [[],[],[]]
+    for row in rows:
+        strow = ["{:.2f}".format(r) if isinstance(r, float) else r for r in row]
+        print("| {} |".format(" | ".join(strow)))
+        if row[1] == "data":
+            ens.append(float(row[0]))
+            sigmas[0].append(row[10])
+            sig_errs[0].append(row[11])
+        elif row[1] == "sim through":
+            sigmas[1].append(row[10])
+            sig_errs[1].append(row[11])
+        else:
+            sigmas[2].append(row[10])
+            sig_errs[2].append(row[11])
+    if plot_dir is not None:
+        namebase = ""
+        for k in data.keys():
+            namebase = k
+        out_fname = join(plot_dir, namebase + "_peak_data.csv")
+        print("writing peak data to {}".format(out_fname))
+        f = open(out_fname, 'w')
+        write_rows_csv(f, header, rows, delimiter=",")
+        f.flush()
+        f.close()
+        MultiScatterPlot(ens, sigmas, sig_errs, ["real", "sim through", "sim all"], "peak energy [keV]", "peak sigma [keV]", ylog=False)
+        plt.savefig(join(plot_dir,namebase + "_peak_sigmas.png"))
+    rows = []
+    header = ["energy [keV]", "type", "ratio 0/1", "dratio 0/1", "ratio 0/2", "dratio 0/2", "ratio 1/2", "dratio 1/2"]
+    for e, ratios in ratios_data.items():
+        rows.append([e, "data"] + ratios)
+        rows.append([e, "sim through"] + ratios_data_sim_true[e])
+        rows.append([e, "sim all"] + ratios_data_sim_false[e])
+    print("| {} |".format(" | ".join(header)))
+    print("| {} |".format(" | ".join(["---"] * len(header))))
+    ens = []
+    ratios01 = [[],[],[]]
+    ratios12 = [[],[],[]]
+    ratios02 = [[],[],[]]
+    ratios01_e = [[],[],[]]
+    ratios12_e = [[],[],[]]
+    ratios02_e = [[],[],[]]
+    for row in rows:
+        strow = ["{:.2f}".format(r) if isinstance(r, float) else r for r in row]
+        print("| {} |".format(" | ".join(strow)))
+        if row[1] == "data":
+            ens.append(float(row[0]))
+            ratios01[0].append(row[2])
+            ratios01_e[0].append(row[3])
+            ratios02[0].append(row[4])
+            ratios02_e[0].append(row[5])
+            ratios12[0].append(row[6])
+            ratios12_e[0].append(row[7])
+        elif row[1] == "sim through":
+            ratios01[1].append(row[2])
+            ratios01_e[1].append(row[3])
+            ratios02[1].append(row[4])
+            ratios02_e[1].append(row[5])
+            ratios12[1].append(row[6])
+            ratios12_e[1].append(row[7])
+        else:
+            ratios01[2].append(row[2])
+            ratios01_e[2].append(row[3])
+            ratios02[2].append(row[4])
+            ratios02_e[2].append(row[5])
+            ratios12[2].append(row[6])
+            ratios12_e[2].append(row[7])
+    if plot_dir is not None:
+        nm = ""
+        for k in data.keys():
+            nm = k
+        out_fname = join(plot_dir, nm + "_peak_ratios.csv")
+        print("writing peak ratios to {}".format(out_fname))
+        f = open(out_fname, 'w')
+        write_rows_csv(f, header, rows, delimiter=",")
+        f.flush()
+        f.close()
+        MultiScatterPlot(ens, ratios01,ratios01_e, ["real", "sim through", "sim all"], "full energy [keV]", "full to 1st escape area ratio", ylog=False)
+        plt.savefig(join(plot_dir,namebase + "_peak_ratios_01.png"))
+        MultiScatterPlot(ens, ratios02,ratios02_e, ["real", "sim through", "sim all"], "full energy [keV]", "full to 2nd escape area ratio", ylog=False)
+        plt.savefig(join(plot_dir,namebase + "_peak_ratios_02.png"))
+        MultiScatterPlot(ens, ratios12,ratios12_e, ["real", "sim through", "sim all"], "full energy [keV]", "1st to 2nd escape area ratio", ylog=False)
+        plt.savefig(join(plot_dir,namebase + "_peak_ratios_12.png"))
 
 
 if __name__ == "__main__":

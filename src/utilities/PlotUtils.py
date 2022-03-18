@@ -581,8 +581,8 @@ def ScatterLinePlot(xaxis, yvals, errors, linex, liney, lineerr, line_labels, xl
         colors = tab_colors
     if not styles:
         styles = category_styles
-    ax1.errorbar(xaxis,yvals,yerr=errors, fmt='o')
     ax1.plot(linex, liney)
+    ax1.errorbar(xaxis,yvals,yerr=errors, fmt='o')
     ax1.fill_between(linex, liney - lineerr, liney + lineerr, alpha=0.2)
     if(vertlines is not None):
         for v in vertlines:
@@ -652,7 +652,7 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
             if ymin < 0: ymin *= 1.05
             else: ymin *= .95
     if(xmin is None):
-        xmin = min(xaxis)
+        xmin = min(xaxis)*.95
     if(xlog):
         ax1.set_xscale('log')
     else:
@@ -669,7 +669,7 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
     else:
         ax1.set_ylim(ymin,ymax)
     if(xmax == -1):
-        ax1.set_xlim(xmin,max(xaxis))
+        ax1.set_xlim(xmin,max(xaxis)*1.05)
     else:
         ax1.set_xlim(xmin,xmax)
     #for i, y in enumerate(yvals):
@@ -678,7 +678,7 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
     if not styles:
         styles = category_styles
     for i in range(len(yvals)):
-        ax1.errorbar(xaxis,yvals[i],yerr=errors[i],color=colors[i%10],fmt=category_markers[i%len(category_markers)])
+        ax1.errorbar(xaxis,yvals[i],yerr=errors[i],color=colors[i%10],fmt=category_markers[i%len(category_markers)], capsize=3)
     if(vertlines is not None):
         for v in vertlines:
             ax1.axvline(v,color='k',linestyle='-')#,label=vlinelabel)

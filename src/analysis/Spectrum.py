@@ -13,7 +13,7 @@ from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 
 from src.utilities.PlotUtils import MultiScatterPlot, ScatterLinePlot
-from src.utilities.NumbaFunctions import average_median
+from src.utilities.NumbaFunctions import average_median, integrate_lininterp_range
 
 
 class SpectrumData:
@@ -258,6 +258,25 @@ def ge_peak_function(x, H, R, centroid, sigma, beta, A, B, C):
     return gauss(x, H, R, centroid, sigma) + skewguass(x, H, R, centroid, sigma, beta) + background(x, A, B, C)
 
 
+def ge_multi_peak_function(*params):
+    if (len(params) - 4) % 5 == 0:
+        n = int((len(params) - 4) / 5)
+        if n <= 1:
+            raise ValueError("Incorrect number of parameters, should be n*5 + 4 for n peaks")
+        x = params[0]
+        A = params[-3]
+        B = params[-2]
+        C = params[-1]
+        total = np.zeros((len(x),))
+        ind = 1
+        while ind + 8 <= len(params):
+            total += ge_peak_function(x, *params[ind:ind+5], A, B, C)
+            ind += 5
+        return total
+    else:
+        raise ValueError("Incorrect number of parameters, should be n*5 + 4 for n peaks")
+
+
 def ge_peak_function_jac(x, H, R, centroid, sigma, beta, A, B, C):
     dH = gauss(x, 1, R, centroid, sigma) + skewguass(x, 1, R, centroid, sigma, beta) # + peak_background(x, 1, step, centroid, sigma)
     dR = dgaussdR(x, H, R, centroid, sigma) + skewguass(x, H, 1, centroid, sigma, beta)
@@ -270,6 +289,124 @@ def ge_peak_function_jac(x, H, R, centroid, sigma, beta, A, B, C):
     dC = dbackgrounddC(x)
     return np.hstack( ( dH.reshape(-1,1), dR.reshape(-1,1), dcentroid.reshape(-1,1), dsigma.reshape(-1,1), dbeta.reshape(-1,1), dA.reshape(-1,1), dB.reshape(-1,1), dC.reshape(-1,1)))
 
+def ge_multi_peak_function_jac(*params):
+    if (len(params) - 4) % 5 == 0:
+        n = int((len(params) - 4) / 5)
+        if n <= 1:
+            raise ValueError("Incorrect number of parameters, should be n*5 + 4 for n peaks")
+        x = params[0]
+        A = params[-3]
+        B = params[-2]
+        C = params[-1]
+        total = np.zeros((len(x),len(params)-1))
+        ind = 1
+        while ind + 8 <= len(params):
+            jac = ge_peak_function_jac(x, *params[ind:ind+5], A, B, C)
+            total[:, ind-1:ind+4] = jac[:, 0:5]
+            total[:, -3:] += jac[:, -3:]
+            ind += 5
+        return total
+    else:
+        raise ValueError("Incorrect number of parameters, should be n*5 + 4 for n peaks")
+
+
+
+class MultiPeakFit:
+    def __init__(self, parameters, errors, cov, xs, ys):
+        self.parameters = parameters
+        self.errors = errors
+        self.cov = cov
+        self.xs = xs
+        self.ys = ys
+        self.centroids = []
+        self.sigmas = []
+        ind = 0
+        while ind + 8 <= len(self.parameters):
+            self.centroids.append(self.parameters[ind + 2])
+            self.sigmas.append(self.parameters[ind + 3])
+            ind += 5
+
+    def get_y(self):
+        return ge_multi_peak_function(self.xs, *self.parameters)
+
+    def bound_to_index(self, bounds):
+        inds = [0,0]
+        if bounds[0] < self.xs[0]:
+            inds[0] = 0
+        else:
+            for i,x in enumerate(self.xs):
+                if bounds[0] < x:
+                    inds[0] = i - ((x - bounds[0]) / (self.xs[i] - self.xs[i-1]))
+                    break
+        if bounds[1] > self.xs[-1]:
+            inds[1] = len(self.xs)
+        else:
+            for i,x in enumerate(self.xs):
+                if bounds[1] < x:
+                    inds[1] = i - ((x - bounds[1]) / (self.xs[i] - self.xs[i-1]))
+                    break
+        return inds
+
+
+    def area(self):
+        areas = []
+        for centroid, sigma in zip(self.centroids, self.sigmas):
+            bounds = [centroid - 3.5*sigma, centroid + 3.5*sigma]
+            inds = self.bound_to_index(bounds)
+            area = integrate_lininterp_range(self.ys, inds[0], inds[1])
+            bgs = self.parameters[-3] + self.xs * self.parameters[-2] + self.xs * self.xs * self.parameters[-1]
+            bgtot = integrate_lininterp_range(bgs, inds[0], inds[1])
+            #dbgsqr = self.errors[-3] * self.errors[-3]# + self.xs * self.xs * self.errors[-2] * self.errors[-2] #+ self.xs * self.xs * self.xs * self.xs * self.errors[-1] * self.errors[-1]
+            #dbgtotsqr = integrate_lininterp_range(dbgsqr, inds[0], inds[1])
+            tot = area - bgtot
+            #dtot = sqrt(area + dbgtotsqr)
+            dtot = sqrt(area + .25 * bgtot * bgtot)
+            areas.append((tot,dtot))
+            #for x, y in zip(self.xs, self.ys):
+            #    if (x > centroid - 3.5 * sigma) and (x < centroid + 3 * sigma):
+            #        tot += y - self.parameters[-3] - self.parameters[-2] * x - self.parameters[-1] * x * x
+            #        unc += (y + self.errors[-3] * self.errors[-3] + self.errors[-2] * self.errors[-2] * x * x + self.errors[-1]*self.errors[-1] * x * x * x * x)
+        return areas
+
+    def get_peak_parameters(self, peak_number):
+        if peak_number > (len(self.centroids) - 1):
+            raise ValueError("requested peak number larger than there are peaks available")
+        return self.parameters[peak_number*5:peak_number*5+5]
+
+    def get_peak_errors(self, peak_number):
+        if peak_number > (len(self.centroids) - 1):
+            raise ValueError("requested errors for peak number larger than there are peaks available")
+        return self.errors[peak_number*5:peak_number*5+5]
+
+    def plot(self, outname=None):
+        yvals = self.ys
+        linex = np.linspace(self.xs[0], self.xs[-1], 100)
+        liney = ge_multi_peak_function(linex, *self.parameters)
+        jac = ge_multi_peak_function_jac(linex, *self.parameters)
+        lineerr = np.sqrt(np.diag(np.matmul(jac,np.matmul(self.cov, jac.T))))
+        ScatterLinePlot(self.xs, yvals, np.sqrt(yvals), linex, liney, lineerr, ["fit", r'1 $\sigma$ error', "data"], "uncorrected energy [keV]", "counts")
+        if outname is not None:
+            plt.savefig(outname + ".png")
+
+    def display(self):
+        ind = 0
+        while ind + 8 <= len(self.parameters):
+            i = int(ind / 5) + 1
+            print("H {0}: {1} ~ {2} counts".format(i,self.parameters[ind + 0], self.errors[ind + 0]))
+            print("R {0}: {1} ~ {2} ".format(i,self.parameters[ind + 1], self.errors[ind + 1]))
+            print("centroid {0}: {1} ~ {2} keV".format(i,self.parameters[ind + 2], self.errors[ind + 2]))
+            print("std deviation {0}: {1} ~ {2} keV".format(i,self.parameters[ind + 3], self.errors[ind + 3]))
+            print("skewness {0}: {1} ~ {2} keV".format(i,self.parameters[ind + 4], self.errors[ind + 4]))
+            ind += 5
+        print("A: {0} ~ {1} counts".format(self.parameters[-3], self.errors[-3]))
+        print("B: {0} ~ {1} counts/keV".format(self.parameters[-2], self.errors[-2]))
+        print("C: {0} ~ {1} counts/keV^2".format(self.parameters[-1], self.errors[-1]))
+        print("data energies:")
+        print(self.xs)
+        print("data values:")
+        print(self.ys)
+        print("fit values:")
+        print(self.get_y().astype('int'))
 
 class PeakFit:
     def __init__(self, parameters, errors, cov, xs, ys):
@@ -293,6 +430,45 @@ class PeakFit:
 
     def get_y(self):
         return ge_peak_function(self.xs, *self.parameters)
+
+    def bound_to_index(self, bounds):
+        inds = [0,0]
+        if bounds[0] < self.xs[0]:
+            inds[0] = 0
+        else:
+            for i,x in enumerate(self.xs):
+                if bounds[0] < x:
+                    inds[0] = i - ((x - bounds[0]) / (self.xs[i] - self.xs[i-1]))
+                    break
+        if bounds[1] > self.xs[-1]:
+            inds[1] = len(self.xs)
+        else:
+            for i,x in enumerate(self.xs):
+                if bounds[1] < x:
+                    inds[1] = i - ((x - bounds[1]) / (self.xs[i] - self.xs[i-1]))
+                    break
+        return inds
+
+    def area(self):
+        bounds = [self.centroid - 3.5 * self.sigma, self.centroid + 3.5 * self.sigma]
+        inds = self.bound_to_index(bounds)
+        area = integrate_lininterp_range(self.ys, inds[0], inds[1])
+        bgs = self.parameters[-3] + self.xs*self.parameters[-2] + self.xs*self.xs*self.parameters[-1]
+        bgtot = integrate_lininterp_range(bgs, inds[0], inds[1])
+        #dbgsqr = self.errors[-3]*self.errors[-3] #+ self.xs*self.xs*self.errors[-2]*self.errors[-2]# + self.xs*self.xs*self.xs*self.xs*self.errors[-1]*self.errors[-1]
+        #dbgtotsqr = integrate_lininterp_range(dbgsqr, inds[0], inds[1])
+        tot = area - bgtot
+        dtot = sqrt(area + .25*bgtot*bgtot)
+        #dtot = sqrt(area + dbgtotsqr)
+        return tot, dtot
+        #tot = 0.
+        #unc = 0.
+        #for x, y in zip(self.xs, self.ys):
+        #    if (x > self.centroid - 3*self.sigma) and (x < self.centroid + 3*self.sigma):
+        #        tot += y - self.parameters[5] - self.parameters[6]*x - self.parameters[7]*x*x
+        #        unc += (y + self.errors[5]*self.errors[5] + self.errors[6]*self.errors[6]*x*x + self.errors[7]*self.errors[7]*x*x*x*x)
+        #return tot, sqrt(unc)
+
 
     def plot(self, outname=None):
         yvals = self.ys
@@ -328,6 +504,7 @@ class SpectrumFitter:
         # 0.79 keV at 1332.5 keV peak
         # using a simple linear fit to estimate the window size we get sigma = .5918 + 0.0001465*x
         self.expected_peaks = expected_peaks
+        self.peak_groups = []
         self.R = 0.1
         self.step = 0.002
         self.low_bound_gaus_scale = 0.8
@@ -352,8 +529,112 @@ class SpectrumFitter:
     def fit_peaks(self, spec: SpectrumData):
         self.A0 = spec.A0
         self.A1 = spec.A1
-        for peak_x in self.expected_peaks:
-            self.fit(spec, peak_x)
+        self.group_peaks(spec)
+        for peaks in self.peak_groups:
+            self.fit_multiple(spec, peaks)
+
+    def group_peaks(self, spec):
+        peak_groups = [[]]
+        if len(self.expected_peaks) == 1:
+            self.peak_groups = [[self.expected_peaks[0]]]
+            return
+        grouped = [False]*len(self.expected_peaks)
+        current_group = 0
+        for i, peak_x in enumerate(self.expected_peaks[0:-1]):
+            if grouped[i]:
+                continue
+            sigma_guess = self.get_sigma_guess(peak_x)
+            peak_guess = spec.data_at_x(peak_x)
+            num_samples = int(round(self.window_factor * sigma_guess / spec.A1))
+            start_ind = peak_guess - int(floor(num_samples / 2))
+            stop_ind = peak_guess + int(floor(num_samples / 2)) + 1
+            peak_groups[current_group].append(peak_x)
+            for j, peak_x_2 in enumerate(self.expected_peaks[i+1:]):
+                sigma_guess_2 = self.get_sigma_guess(peak_x_2)
+                peak_guess_2 = spec.data_at_x(peak_x_2)
+                num_samples_2 = int(round(self.window_factor * sigma_guess_2 / spec.A1))
+                start_ind_2 = peak_guess_2 - int(floor(num_samples_2 / 2))
+                stop_ind_2 = peak_guess_2 + int(floor(num_samples_2 / 2)) + 1
+                if (start_ind_2 < stop_ind and start_ind_2 > start_ind) or (stop_ind_2 > start_ind and stop_ind_2 < stop_ind): #overlap detected
+                    peak_groups[current_group].append(peak_x_2)
+                    grouped[i+j+1] = True
+            current_group += 1
+            peak_groups.append([])
+        if not grouped[-1]:
+            if not peak_groups[-1]:
+                peak_groups[-1] = [self.expected_peaks[-1]]
+        else:
+            if not peak_groups[-1]:
+                del peak_groups[-1]
+        self.peak_groups = peak_groups
+
+    def fit_multiple(self, spec: SpectrumData, peaks):
+        if len(peaks) == 1:
+            self.fit(spec, peaks[0])
+        else:
+            peaks.sort()
+            sigma_guesses = []
+            centroid_guesses = [] #indice of centroid
+            for peak in peaks:
+                sigma_guesses.append(self.get_sigma_guess(peak))
+                centroid_guesses.append( spec.data_at_x(peak * self.expected_offset_factor))
+            num_samples_first = int(round(self.window_factor * sigma_guesses[0] / spec.A1))
+            start_ind = centroid_guesses[0] - int(floor(num_samples_first / 2))
+            num_samples_last = int(round(self.window_factor * sigma_guesses[-1] / spec.A1))
+            stop_ind = centroid_guesses[-1] + int(floor(num_samples_last / 2)) + 1
+            xs = spec.get_data_x()[start_ind:stop_ind]
+            bkg_guess = average_median(spec.data[start_ind - 10:start_ind])
+            bkg_guess2 = average_median(spec.data[stop_ind:stop_ind + 10])
+            B_guess = (bkg_guess2 - bkg_guess) / (self.A1 * (stop_ind - start_ind))
+            A_guess = bkg_guess - B_guess * start_ind * self.A1
+            # guesses = [max_val - A_guess - B_guess*centroid_guess, self.R, self.step, centroid_guess, sigma_guess,
+            guess_list = []
+            lower_bound_list = []
+            upper_bound_list = []
+            for i in range(len(peaks)):
+                peak_val = spec.data[centroid_guesses[i]]
+                centroid_guess = spec.A0 + spec.A1*(centroid_guesses[i] + 1)
+                beta_guess = sigma_guesses[i]
+                guesses = [peak_val - A_guess - B_guess * centroid_guess, self.R, centroid_guess, sigma_guesses[i],
+                           beta_guess]
+                lower_bounds = [guesses[0] * self.low_bound_gaus_scale, 0,
+                                centroid_guess * 0.98, sigma_guesses[i] * 0.3, beta_guess * 0.1]
+                upper_bounds = [guesses[0] * self.up_bound_gaus_scale, 1,
+                                centroid_guess * 1.02, sigma_guesses[i] * 3.0, beta_guess * 10.0]
+                guess_list.append(guesses)
+                lower_bound_list.append(lower_bounds)
+                upper_bound_list.append(upper_bounds)
+            ys = spec.data[start_ind:stop_ind]
+            sigma = np.sqrt(ys)
+            sigma[sigma == 0] = 1
+            guesses = []
+            lower_bounds = []
+            upper_bounds = []
+            for g, l, u in zip(guess_list, lower_bound_list, upper_bound_list):
+                for guess in g:
+                    guesses.append(guess)
+                for low in l:
+                    lower_bounds.append(low)
+                for up in u:
+                    upper_bounds.append(up)
+            guesses.append(A_guess)
+            guesses.append(B_guess)
+            guesses.append(0.)
+            lower_bounds.append(-np.inf)
+            lower_bounds.append(-np.inf)
+            lower_bounds.append(-np.inf)
+            upper_bounds.append(np.inf)
+            upper_bounds.append(np.inf)
+            upper_bounds.append(np.inf)
+            parameters, covariance = curve_fit(ge_multi_peak_function, xs, ys, p0=guesses,  # sigma=sigma,
+                                               bounds=(lower_bounds, upper_bounds), sigma=sigma,
+                                               #absolute_sigma=True,  maxfev=100000,
+                                               absolute_sigma=True, jac=ge_multi_peak_function_jac, maxfev=100000)
+            errs = np.sqrt(np.diag(covariance))
+
+            peak_str = [str(peak) for peak in peaks]
+            peak_str = ','.join(peak_str)
+            self.fit_values[peak_str] = MultiPeakFit(parameters, errs, covariance, xs, ys)
 
     def fit(self, spec: SpectrumData, peak_x):
         sigma_guess = self.get_sigma_guess(peak_x)
@@ -381,22 +662,25 @@ class SpectrumFitter:
         centroid_guess = (max_ind + 1) * spec.A1 + spec.A0
         beta_guess = sigma_guess
         bkg_guess = average_median(spec.data[start_ind-10:start_ind])
-        bkg_guess2 = average_median(spec.data[stop_ind:stop_ind+10])
+        if stop_ind + 10 > len(spec.data):
+            bkg_guess2 = average_median(spec.data[-5:])
+        else:
+            bkg_guess2 = average_median(spec.data[stop_ind:stop_ind+10])
         B_guess = (bkg_guess2 - bkg_guess) / (self.A1*(stop_ind - start_ind))
-        A_guess = bkg_guess - B_guess*start_ind*self.A1
+        A_guess = bkg_guess - B_guess*(start_ind*self.A1 + self.A0)
         #guesses = [max_val - A_guess - B_guess*centroid_guess, self.R, self.step, centroid_guess, sigma_guess,
         guesses = [max_val - A_guess - B_guess*centroid_guess, self.R, centroid_guess, sigma_guess,
                     beta_guess, A_guess, B_guess, 0]
         lower_bounds = [guesses[0]*self.low_bound_gaus_scale, 0,
-                        centroid_guess*0.98, sigma_guess*0.3, beta_guess*0.1, 0, -np.inf, -1]
+                        centroid_guess*0.98, sigma_guess*0.3, beta_guess*0.1, -np.inf, -np.inf, -np.inf]
         upper_bounds = [guesses[0]*self.up_bound_gaus_scale, 1,
-                        centroid_guess*1.02, sigma_guess*3.0, beta_guess*10.0, np.inf, np.inf, 1]
+                        centroid_guess*1.02, sigma_guess*3.0, beta_guess*10.0, np.inf, np.inf, np.inf]
         ys = spec.data[start_ind:stop_ind]
         sigma = np.sqrt(ys)
         sigma[sigma == 0] = 1
         parameters, covariance = curve_fit(ge_peak_function, xs, ys, p0=guesses, #sigma=sigma,
                                            bounds=(lower_bounds, upper_bounds), sigma=sigma,
-                                           absolute_sigma=True, jac=ge_peak_function_jac, maxfev=4000)
+                                           absolute_sigma=True, jac=ge_peak_function_jac, maxfev=100000)
         errs = np.sqrt(np.diag(covariance))
         self.fit_values[peak_x] = PeakFit(parameters, errs, covariance, xs, ys)
 
@@ -453,7 +737,7 @@ class SpectrumFitter:
         return (e - self.A0) / self.A1
 
     def linfit(self, x, y, sigma, plot=None):
-        print("fitting x values {0} y values {1} with sigma {2}".format(x,y,sigma))
+        #print("fitting x values {0} y values {1} with sigma {2}".format(x,y,sigma))
         coeff, cov = np.polyfit(x, y, 1, cov=True, w=(1 / sigma))
         if plot is not None:
             linex = np.linspace(x[0], x[-1], 100)
@@ -492,12 +776,19 @@ class SpectrumFitter:
         sigmas = []
         values = []
         for peak_x, fit in self.fit_values.items():
-            if not accept[i]:
-                i+=1
-                continue
-            centroids.append(self.get_index_from_energy(fit.centroid))
-            sigmas.append(fit.sigma)
-            values.append(peak_x)
+            if not isinstance(peak_x, str):
+                if not accept[i]:
+                    i+=1
+                    continue
+                centroids.append(self.get_index_from_energy(fit.centroid))
+                sigmas.append(fit.sigma)
+                values.append(peak_x)
+            else:
+                peak_x = peak_x.split(',')
+                for p, centroid, sigma in zip(peak_x, fit.centroids, fit.sigmas):
+                    centroids.append(centroid)
+                    sigmas.append(sigma)
+                    values.append(float(p))
             i += 1
         sigmas = np.array(sigmas)
         values = np.array(values)

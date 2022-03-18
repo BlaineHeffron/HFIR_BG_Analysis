@@ -1,4 +1,5 @@
 import numpy as np
+from math import ceil, floor
 from numba import jit
 SMALL_MERGESORT_NUMBA = 40
 
@@ -147,4 +148,45 @@ def average_median(v, centerfrac=0.33):
     for i in range(istart, iend):
         dsum += v[i]
     return dsum / (iend - istart)
+
+
+@jit(nopython=True)
+def sum_range(v, r0, r1):
+    if r0 >= 0:
+        r0 = r0
+    else:
+        r0 = 0
+    if not r0 < v.size:
+        return 0
+    if r1 < v.size:
+        r1 = r1
+    else:
+        r1 = v.size - 1
+    if not (r0 <= r1):
+        return 0
+    sum = 0
+    for i in range(r0, r1 + 1):
+        sum += v[i]
+    return sum
+
+
+@jit(nopython=True)
+def integrate_lininterp_range(v, r0, r1):
+    i0 = ceil(r0)
+    d0 = i0 - r0
+    i1 = floor(r1)
+    d1 = r1 - i1
+    if i0 <= i1:
+        s = sum_range(v, i0, i1)
+    else:
+        s = 0
+    if 0 <= i0 < v.size:
+        s -= (1 - d0) * (1 - d0) / 2 * v[i0]
+    if 1 <= i0 <= v.size:
+        s += d0 * d0 / 2 * v[i0 - 1]
+    if 0 <= i1 < v.size:
+        s -= (1 - d1) * (1 - d1) / 2 * v[i1]
+    if -1 <= i1 < v.size - 1:
+        s += d1 * d1 / 2 * v[i1 + 1]
+    return s
 
