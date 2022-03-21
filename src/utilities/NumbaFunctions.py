@@ -2,6 +2,7 @@ import numpy as np
 from math import ceil, floor
 from numba import jit
 SMALL_MERGESORT_NUMBA = 40
+from numpy import zeros, int32, float32
 
 
 @jit(nopython=True)
@@ -189,4 +190,74 @@ def integrate_lininterp_range(v, r0, r1):
     if -1 <= i1 < v.size - 1:
         s += d1 * d1 / 2 * v[i1 + 1]
     return s
+
+
+@jit(nopython=True)
+def find_peaks(v, maxloc, sep):
+    local_maxima = zeros(shape=(50,), dtype=int32)
+    maxima_vals = zeros(shape=(50,), dtype=float32)
+    local_maxpos = 100000
+    max_index = 0
+    global_maxpos = 0
+    for i in range(1, v.shape[0]):
+        if v[i] > v[i - 1]:
+            local_maxpos = i
+        elif v[i] < v[i - 1] and local_maxpos != 100000:
+            lmax = int((local_maxpos + i - 1) / 2)
+            local_maxima[max_index] = lmax
+            maxima_vals[max_index] = v[lmax]
+            max_index += 1
+            if v[lmax] > v[global_maxpos]:
+                global_maxpos = lmax
+            if max_index >= 50:
+                break
+            local_maxpos = 100000
+    local_maxima = remove_end_zeros(local_maxima)
+    maxima_vals = remove_end_zeros(maxima_vals)
+    if local_maxima.shape[0] == 1 and local_maxima[0] == 0 and maxima_vals[0] == 0:
+        return 0
+    maxima_vals, local_maxima = merge_sort_two(maxima_vals, local_maxima)
+    if local_maxima.shape[0] == 1:
+        maxloc[0] = local_maxima[0]
+        return global_maxpos
+    global_maxpos = local_maxima[0]
+    maxloc[0] = global_maxpos
+    max_index = 1
+    for i in range(local_maxima.shape[0] - 1):
+        within_range = True
+        for j in range(max_index):
+            if abs(local_maxima[i + 1] - maxloc[j]) <= sep * 2:
+                within_range = False
+                break
+        if within_range:
+            maxloc[max_index] = local_maxima[i + 1]
+            max_index += 1
+        if max_index > 4:
+            break
+
+    """
+    current_candidate = local_maxima[0]
+    for i in range(1, local_maxima.shape[0]):
+        if (local_maxima[i] - current_candidate) <= sep:
+            if v[local_maxima[i]] > v[current_candidate]:
+                current_candidate = local_maxima[i]
+        else:
+            maxloc[max_index] = current_candidate
+            max_index += 1
+            if max_index > 4:
+                return global_maxpos
+            current_candidate = local_maxima[i]
+    """
+    return global_maxpos
+
+
+@jit(nopython=True)
+def remove_end_zeros(v, val=0):
+    if v[0] == val and val == 0:
+        return v[0:1]
+    elif v[0] == val:
+        return None
+    for i in range(1, v.shape[0]):
+        if v[i] == val:
+            return v[0:i]
 

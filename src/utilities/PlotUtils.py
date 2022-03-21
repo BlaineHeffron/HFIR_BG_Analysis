@@ -532,7 +532,8 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
 def ScatterLinePlot(xaxis, yvals, errors, linex, liney, lineerr, line_labels, xlabel, ylabel,
                      colors=None, styles=None,
                      xmax=-1, ymax=-1, ymin=None, xmin=None, ylog=True, xdates=False,
-                     vertlines=None, vlinelabel=None, xlog=False, title=None,  figsize=(12, 9)):
+                     vertlines=None, vlinelabel=None, xlog=False, title=None,  figsize=(12, 9),
+                    legend_loc='center left'):
     if colors is None:
         colors = []
     if styles is None:
@@ -542,7 +543,7 @@ def ScatterLinePlot(xaxis, yvals, errors, linex, liney, lineerr, line_labels, xl
         if(vertlines):
             vertlines = mdate.epoch2num(vertlines)
     rcParams.update({'font.size': 18})
-    fig = plt.figure(figsize=(12, 6.5))
+    fig = plt.figure(figsize=figsize)
     ax1 = fig.add_subplot(111)
     ax1.set_xlabel(xlabel)
     ax1.set_ylabel(ylabel)
@@ -607,8 +608,9 @@ def ScatterLinePlot(xaxis, yvals, errors, linex, liney, lineerr, line_labels, xl
         ax1.set_title(title)
     box = ax1.get_position()
     ax1.set_position([box.x0, box.y0, box.width, box.height])
-    ax1.legend(line_labels, loc='center left', \
-               bbox_to_anchor=(0.75, 0.85), ncol=1)
+    #ax1.legend(line_labels, loc=legend_loc, \
+    #           bbox_to_anchor=(0.75, 0.85), ncol=1)
+    ax1.legend(line_labels, loc=legend_loc)
     rcParams.update({'font.size': 14})
     ax1.xaxis.set_minor_locator(AutoMinorLocator())
     if not ylog:

@@ -5,15 +5,16 @@ import numpy as np
 from ROOT import TH1F
 from math import sqrt, floor
 from os.path import join
-import matplotlib as mpl
-
+from itertools import combinations
 
 from scipy.special import erfc
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 
-from src.utilities.PlotUtils import MultiScatterPlot, ScatterLinePlot
-from src.utilities.NumbaFunctions import average_median, integrate_lininterp_range
+
+from src.utilities.FitUtils import linfit_to_calibration, linfit
+from src.utilities.PlotUtils import ScatterLinePlot
+from src.utilities.NumbaFunctions import average_median, integrate_lininterp_range, find_peaks
 
 
 class SpectrumData:
@@ -270,7 +271,10 @@ def ge_multi_peak_function(*params):
         total = np.zeros((len(x),))
         ind = 1
         while ind + 8 <= len(params):
-            total += ge_peak_function(x, *params[ind:ind+5], A, B, C)
+            if ind == 1:
+                total += ge_peak_function(x, *params[ind:ind+5], A, B, C)
+            else:
+                total += ge_peak_function(x, *params[ind:ind + 5], 0, 0, 0)
             ind += 5
         return total
     else:
@@ -303,7 +307,8 @@ def ge_multi_peak_function_jac(*params):
         while ind + 8 <= len(params):
             jac = ge_peak_function_jac(x, *params[ind:ind+5], A, B, C)
             total[:, ind-1:ind+4] = jac[:, 0:5]
-            total[:, -3:] += jac[:, -3:]
+            if ind == 1:
+                total[:, -3:] = jac[:, -3:]
             ind += 5
         return total
     else:
@@ -320,10 +325,14 @@ class MultiPeakFit:
         self.ys = ys
         self.centroids = []
         self.sigmas = []
+        self.sigma_errs = []
+        self.centroid_errs = []
         ind = 0
         while ind + 8 <= len(self.parameters):
             self.centroids.append(self.parameters[ind + 2])
             self.sigmas.append(self.parameters[ind + 3])
+            self.centroid_errs.append(self.errors[ind + 2])
+            self.sigma_errs.append(self.errors[ind + 3])
             ind += 5
 
     def get_y(self):
@@ -346,7 +355,6 @@ class MultiPeakFit:
                     inds[1] = i - ((x - bounds[1]) / (self.xs[i] - self.xs[i-1]))
                     break
         return inds
-
 
     def area(self):
         areas = []
@@ -401,12 +409,12 @@ class MultiPeakFit:
         print("A: {0} ~ {1} counts".format(self.parameters[-3], self.errors[-3]))
         print("B: {0} ~ {1} counts/keV".format(self.parameters[-2], self.errors[-2]))
         print("C: {0} ~ {1} counts/keV^2".format(self.parameters[-1], self.errors[-1]))
-        print("data energies:")
-        print(self.xs)
-        print("data values:")
-        print(self.ys)
-        print("fit values:")
-        print(self.get_y().astype('int'))
+        #print("data energies:")
+        #print(self.xs)
+        #print("data values:")
+        #print(self.ys)
+        #print("fit values:")
+        #print(self.get_y().astype('int'))
 
 class PeakFit:
     def __init__(self, parameters, errors, cov, xs, ys):
@@ -415,6 +423,8 @@ class PeakFit:
         #self.step = parameters[2]
         self.centroid = parameters[2]
         self.sigma = parameters[3]
+        self.sigma_err = errors[3]
+        self.centroid_err = errors[2]
         #self.beta = parameters[5]
         #self.dc = errors[0]
         #self.dR = errors[1]
@@ -490,12 +500,12 @@ class PeakFit:
         print("A: {0} ~ {1} counts".format(self.parameters[5], self.errors[5]))
         print("B: {0} ~ {1} counts/keV".format(self.parameters[6], self.errors[6]))
         print("C: {0} ~ {1} counts/keV^2".format(self.parameters[7], self.errors[7]))
-        print("data energies:")
-        print(self.xs)
-        print("data values:")
-        print(self.ys)
-        print("fit values:")
-        print(self.get_y().astype('int'))
+        #print("data energies:")
+        #print(self.xs)
+        #print("data values:")
+        #print(self.ys)
+        #print("fit values:")
+        #print(self.get_y().astype('int'))
 
 
 class SpectrumFitter:
@@ -558,6 +568,10 @@ class SpectrumFitter:
                 if (start_ind_2 < stop_ind and start_ind_2 > start_ind) or (stop_ind_2 > start_ind and stop_ind_2 < stop_ind): #overlap detected
                     peak_groups[current_group].append(peak_x_2)
                     grouped[i+j+1] = True
+                    if start_ind_2 < start_ind:
+                        start_ind = start_ind_2
+                    if stop_ind_2 > stop_ind:
+                        stop_ind = stop_ind_2
             current_group += 1
             peak_groups.append([])
         if not grouped[-1]:
@@ -567,6 +581,66 @@ class SpectrumFitter:
             if not peak_groups[-1]:
                 del peak_groups[-1]
         self.peak_groups = peak_groups
+        print(self.peak_groups)
+
+    def smallest_separation(self, peaks):
+        diffs = []
+        for i in range(len(peaks)-1):
+            for j in range(i+1, len(peaks)):
+                diffs.append(abs(peaks[j] - peaks[i]))
+        diffs.sort()
+        return int(floor(diffs[0]/self.A1))
+
+    def match_peak_locs(self, maxlocs, peaks):
+        """assumes peaks are sorted, removes locs from maxlocs that dont match"""
+        if len(maxlocs) <= len(peaks):
+            return maxlocs
+        peak_diffs_list = []
+        max_diffs_list = []
+        ndiff = len(maxlocs) - len(peaks)
+        for i in range(len(peaks)-1):
+            peak_diffs = []
+            for j in range(i+1, len(peaks)):
+                peak_diffs.append((peaks[j] - peaks[i])/self.A1)
+            peak_diffs_list.append(np.array(peak_diffs))
+        for i in range(len(maxlocs) - 1):
+            max_diffs = []
+            for j in range(i+1, len(maxlocs)):
+                max_diffs.append(maxlocs[j] - maxlocs[i])
+            max_diffs_list.append(np.array(max_diffs))
+        cur_match = 0
+        while len(maxlocs) > len(peaks):
+            best_match_ind = 0
+            best_match_val = np.inf
+            for i in range(cur_match, ndiff + 1):
+                #look at all possible combinations
+                #print("current match is {0}, ndiff is {1}".format(cur_match,ndiff))
+                #print("max diffs list length is {0} index is {1}".format(len(max_diffs_list),i))
+                indices = list(combinations(range(len(max_diffs_list[i])), len(peak_diffs_list[cur_match])))
+                if not indices:
+                    continue
+                tots = np.zeros((len(indices),))
+                for j, inds in enumerate(indices):
+                    inds = list(inds)
+                    tots[j] = np.sum(np.abs(max_diffs_list[i][inds] - peak_diffs_list[cur_match]))
+                best_match = np.amin(tots)
+                if best_match < best_match_val:
+                    best_match_val = best_match
+                    best_match_ind = i
+            inds_to_del = []
+            for i in range(cur_match, ndiff + 1):
+                if i != best_match_ind:
+                    inds_to_del.append(i)
+            j = 0
+            for delind in inds_to_del:
+                maxlocs = np.delete(maxlocs,delind-j)
+                del max_diffs_list[delind - j]
+                j += 1
+            ndiff = len(maxlocs) - len(peaks)
+            cur_match += 1
+        return maxlocs
+
+
 
     def fit_multiple(self, spec: SpectrumData, peaks):
         if len(peaks) == 1:
@@ -575,6 +649,8 @@ class SpectrumFitter:
             peaks.sort()
             sigma_guesses = []
             centroid_guesses = [] #indice of centroid
+            maxlocs = np.full((len(peaks)*3,),-1)
+            smallest_sep = self.smallest_separation(peaks)
             for peak in peaks:
                 sigma_guesses.append(self.get_sigma_guess(peak))
                 centroid_guesses.append( spec.data_at_x(peak * self.expected_offset_factor))
@@ -582,9 +658,19 @@ class SpectrumFitter:
             start_ind = centroid_guesses[0] - int(floor(num_samples_first / 2))
             num_samples_last = int(round(self.window_factor * sigma_guesses[-1] / spec.A1))
             stop_ind = centroid_guesses[-1] + int(floor(num_samples_last / 2)) + 1
+            #find_peaks(spec.data[start_ind:stop_ind], maxlocs, smallest_sep)
+            #maxlocs = maxlocs + start_ind
+            #maxlocs.sort()
+            #maxlocs = np.unique(maxlocs)
+            #maxlocs = self.match_peak_locs(maxlocs, peaks)
+            #centroid_guesses = []
+            #for peak in maxlocs:
+            #    centroid_guesses.append(peak)
+            #start_ind = centroid_guesses[0] - int(floor(num_samples_first / 2))
+            #stop_ind = centroid_guesses[-1] + int(floor(num_samples_last / 2)) + 1
             xs = spec.get_data_x()[start_ind:stop_ind]
-            bkg_guess = average_median(spec.data[start_ind - 10:start_ind])
-            bkg_guess2 = average_median(spec.data[stop_ind:stop_ind + 10])
+            bkg_guess = average_median(spec.data[start_ind:start_ind+10])
+            bkg_guess2 = average_median(spec.data[stop_ind-10:stop_ind])
             B_guess = (bkg_guess2 - bkg_guess) / (self.A1 * (stop_ind - start_ind))
             A_guess = bkg_guess - B_guess * start_ind * self.A1
             # guesses = [max_val - A_guess - B_guess*centroid_guess, self.R, self.step, centroid_guess, sigma_guess,
@@ -601,6 +687,10 @@ class SpectrumFitter:
                                 centroid_guess * 0.98, sigma_guesses[i] * 0.3, beta_guess * 0.1]
                 upper_bounds = [guesses[0] * self.up_bound_gaus_scale, 1,
                                 centroid_guess * 1.02, sigma_guesses[i] * 3.0, beta_guess * 10.0]
+                if guesses[0] < 0:
+                    guesses[0] = peak_val/2.
+                    lower_bounds[0] = 0
+                    upper_bounds[0] = peak_val
                 guess_list.append(guesses)
                 lower_bound_list.append(lower_bounds)
                 upper_bound_list.append(upper_bounds)
@@ -736,26 +826,6 @@ class SpectrumFitter:
     def get_index_from_energy(self, e):
         return (e - self.A0) / self.A1
 
-    def linfit(self, x, y, sigma, plot=None):
-        #print("fitting x values {0} y values {1} with sigma {2}".format(x,y,sigma))
-        coeff, cov = np.polyfit(x, y, 1, cov=True, w=(1 / sigma))
-        if plot is not None:
-            linex = np.linspace(x[0], x[-1], 100)
-            liney = np.array([coeff[0]*i + coeff[1] for i in linex])
-            fit_y_errs = [sqrt(cov[1,1] + i**2*cov[0,0] + 2*i*cov[0,1]) for i in linex]
-            ScatterLinePlot(x, y, sigma, linex,liney,fit_y_errs, ["best linear fit", r'1 $\sigma$ error', "peak fits to data"], "channel #", "Peak Energy [keV]", ylog=False)
-            plt.savefig(plot + ".png")
-            plt.close()
-        return coeff, cov
-
-    def linfit_to_calibration(self, coeff, cov):
-        errs = np.sqrt(np.diag(cov))
-        A0 = -coeff[1]/coeff[0]
-        A1 = 1/coeff[0]
-        dA0 = abs(A0)*sqrt((errs[1]/coeff[1])**2 + (errs[0]/coeff[0])**2 + 2*cov[0, 1]/(coeff[0]*coeff[1]))
-        dA1 = abs(errs[1]*A1**2)
-        return (A0, A1), (dA0, dA1)
-
     def retrieve_calibration(self, user_prompt=False, tolerate_fails=False, write_to_dir=None, plot_fit=False):
         accept = self.plot_fits(user_prompt, write_to_dir)
         use_fits = True
@@ -800,9 +870,9 @@ class SpectrumFitter:
                 fit_name = "spectrum_calibration_fit"
             if write_to_dir is not None:
                 fit_name = join(write_to_dir, fit_name)
-            coeff, errs = self.linfit_to_calibration(*self.linfit(values, centroids, sigmas, plot=fit_name))
+            coeff, errs = linfit_to_calibration(*linfit(values, centroids, sigmas, plot=fit_name))
         else:
-            coeff, errs = self.linfit_to_calibration(*self.linfit(values, centroids, sigmas))
+            coeff, errs = linfit_to_calibration(*linfit(values, centroids, sigmas))
         print("old coefficients were A0 = {0} A1 = {1}".format(self.A0, self.A1))
         print("new coefficients are A0 = {0} ~ {1} A1 = {2} ~ {3}".format(coeff[0], errs[0], coeff[1], errs[1]))
         return coeff, errs

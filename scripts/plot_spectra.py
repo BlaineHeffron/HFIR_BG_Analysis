@@ -19,8 +19,8 @@ def main():
     combine_runs(data)
     rebin_spectra(data, bins)
     #data = background_subtract(data, "Rxoff", get_bins(100, 9400, 3100))
-    emin = [700+1200*i for i in range(9)]
-    emax = [700+1200*(i+1) for i in range(9)]
+    emin = [700+100*i for i in range(9)]
+    emax = [700+100*(i+1) for i in range(9)]
     for key in data.keys():
         plot_spectra([data[key]], key)
         for i in range(len(emin)):

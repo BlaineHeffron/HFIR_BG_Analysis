@@ -15,6 +15,7 @@ import numpy as np
 
 from src.analysis.Spectrum import SpectrumData, SpectrumFitter
 from src.utilities.PlotUtils import MultiLinePlot, MultiScatterPlot
+from src.utilities.FitUtils import linfit
 from copy import copy
 from ROOT import TFile, TVectorF
 
@@ -712,6 +713,19 @@ def calibrate_spectra(data, expected_peaks, db, plot_dir=None, user_verify=False
         db.insert_calibration(cal[0], cal[1], spec.fname)
 
 
+def get_sigmas(peak_data, sigmas, dsigmas):
+    for peak, data in peak_data.items():
+        if isinstance(peak, str):
+            peak = peak.split(',')
+            for i, p in enumerate(peak):
+                p = float(p)
+                sigmas["{:.2f}".format(p)] = data.sigmas[i]
+                dsigmas["{:.2f}".format(p)] = data.sigma_errs[i]
+        else:
+            peak = float(peak)
+            sigmas["{:.2f}".format(peak)] = data.sigma
+            dsigmas["{:.2f}".format(peak)] = data.sigma_err
+
 def get_areas(peak_data, areas, dareas):
     for peak, data in peak_data.items():
         if isinstance(peak, str):
@@ -758,6 +772,36 @@ def unc_ratio(A, B, dA, dB):
     Asqr = A * A
     Bsqr = B * B
     return np.sqrt((Asqr / Bsqr) * ((dA * dA / Asqr) + (dB * dB / Bsqr)))
+
+
+def fit_peak_sigmas(data,  expected_peaks, plot_dir=None, user_verify=False, tolerate_fails=False,
+                      plot_fit=False):
+    print("fitting peaks for data")
+    peak_data = fit_spectra(data, expected_peaks, plot_dir, user_verify, tolerate_fails, plot_fit)
+    sigmas = {}
+    dsigmas = {}
+    get_sigmas(peak_data, sigmas, dsigmas)
+    ens = []
+    sigs = []
+    dsigs = []
+    for e in sigmas.keys():
+        ens.append(float(e))
+        sigs.append(sigmas[e])
+        dsigs.append(dsigmas[e])
+    ens = np.array(ens)
+    sigs = np.array(sigs)
+    dsigs = np.array(dsigs)
+    if plot_dir is not None:
+        nm = ""
+        for key in data.keys():
+            nm = key
+            break
+        plot_name = nm + "_E_sigma_fit.png"
+        coeff, cov = linfit(ens,sigs,dsigs,join(plot_dir,plot_name),"Energy [keV]", "Peak Sigma [keV]")
+    else:
+        coeff, cov = linfit(ens,sigs,dsigs)
+    errs = np.sqrt(np.diag(cov))
+    print("fit values are sigma = A + B*(E), A = {0} ~ {1} keV, B = {2} ~ {3}".format(coeff[1], errs[1], coeff[0], errs[0]))
 
 
 def compare_peaks(data, simdata, expected_peaks, plot_dir=None, user_verify=False, tolerate_fails=False,

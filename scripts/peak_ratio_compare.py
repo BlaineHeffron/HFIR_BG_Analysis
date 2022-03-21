@@ -2,15 +2,16 @@ import sys
 from os.path import dirname, realpath
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
 from src.database.SqliteManager import HFIRBG_DB
-from src.utilities.util import get_data_dir, populate_data, calibrate_spectra, write_root_with_db, populate_data_root, \
+from src.utilities.util import get_data_dir, populate_data,  populate_data_root, \
     compare_peaks
 from os.path import join, exists
 import os
 
 rundata = {"Reactor Spectrum": "MIF_BOX_REACTOR_OPTIMIZED_OVERNIGHT_LOWEST_GAIN.txt"}
-rootdir = join(os.environ["HFIRBG_SIM"], "analysis/collimated")
+rootdir = join(os.environ["HFIRBG_SIM"], "analysis/collimated/third_scale")
 energies = ["11386.5","9718.79","8998.63","7724.034","7693.398","7645.58","7631.18"]
-outdir = join(os.environ["HFIRBG_ANALYSIS"], "peak_ratio_compare/sqrt")
+outdir = join(os.environ["HFIRBG_ANALYSIS"], "peak_ratio_compare/third_root")
+verify = False
 
 
 def main():
@@ -28,7 +29,7 @@ def main():
     simdata.update(populate_data_root(root_data_dict_true,  "GeEfficiencyPlugin/hGeEnergy", "accumulated/runtime", True, 1000.))
     if not exists(outdir):
         os.mkdir(outdir)
-    compare_peaks(data, simdata, all_energies, outdir, True, True, True)
+    compare_peaks(data, simdata, all_energies, outdir, verify, True, True)
 
 
 
