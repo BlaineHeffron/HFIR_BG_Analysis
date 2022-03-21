@@ -870,9 +870,11 @@ class SpectrumFitter:
                 fit_name = "spectrum_calibration_fit"
             if write_to_dir is not None:
                 fit_name = join(write_to_dir, fit_name)
-            coeff, errs = linfit_to_calibration(*linfit(values, centroids, sigmas, plot=fit_name))
+            p, e, _ = linfit(values,centroids,sigmas, plot=fit_name)
+            coeff, errs = linfit_to_calibration(p, e)
         else:
-            coeff, errs = linfit_to_calibration(*linfit(values, centroids, sigmas))
+            p, e, _ = linfit(values,centroids,sigmas)
+            coeff, errs = linfit_to_calibration(p, e)
         print("old coefficients were A0 = {0} A1 = {1}".format(self.A0, self.A1))
         print("new coefficients are A0 = {0} ~ {1} A1 = {2} ~ {3}".format(coeff[0], errs[0], coeff[1], errs[1]))
         return coeff, errs

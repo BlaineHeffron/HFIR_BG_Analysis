@@ -7,7 +7,7 @@ from os.path import join, exists
 import os
 
 rundata = {"Reactor Spectrum": "MIF_BOX_REACTOR_OPTIMIZED_OVERNIGHT_LOWEST_GAIN.txt"}
-expected_peaks = [11386.5, 8884.81, 9102.1, 9297.8, 8998.63, 7724.034, 1460.8, 1332.5, 1173.2, 511.0]
+expected_peaks = [11386.5, 8884.81, 9102.1, 9297.8, 8998.63, 7724.034, 1460.8, 1408.006, 1332.5, 1274.5,  1173.2, 511.0]
 
 
 def main():

@@ -15,6 +15,7 @@ energies = ["11386.5", "9718.79", "8998.63", "7724.034", "7693.398", "7645.58", 
             #"511.0"]
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "peak_sigma_fits")
 verify = False
+use_sqrt_fit = True
 
 
 def main():
@@ -29,7 +30,7 @@ def main():
     data = populate_data(rundata, datadir, db)
     if not exists(outdir):
         os.mkdir(outdir)
-    fit_peak_sigmas(data, all_energies, outdir, verify, True, True)
+    fit_peak_sigmas(data, all_energies, outdir, verify, True, True, use_sqrt_fit=use_sqrt_fit)
 
 
 if __name__ == "__main__":

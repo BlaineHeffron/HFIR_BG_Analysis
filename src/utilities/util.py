@@ -12,10 +12,11 @@ import shutil
 import ctypes
 
 import numpy as np
+from scipy import stats
 
 from src.analysis.Spectrum import SpectrumData, SpectrumFitter
 from src.utilities.PlotUtils import MultiLinePlot, MultiScatterPlot
-from src.utilities.FitUtils import linfit
+from src.utilities.FitUtils import linfit, sqrtfit
 from copy import copy
 from ROOT import TFile, TVectorF
 
@@ -775,7 +776,7 @@ def unc_ratio(A, B, dA, dB):
 
 
 def fit_peak_sigmas(data,  expected_peaks, plot_dir=None, user_verify=False, tolerate_fails=False,
-                      plot_fit=False):
+                      plot_fit=False, use_sqrt_fit=False):
     print("fitting peaks for data")
     peak_data = fit_spectra(data, expected_peaks, plot_dir, user_verify, tolerate_fails, plot_fit)
     sigmas = {}
@@ -791,17 +792,43 @@ def fit_peak_sigmas(data,  expected_peaks, plot_dir=None, user_verify=False, tol
     ens = np.array(ens)
     sigs = np.array(sigs)
     dsigs = np.array(dsigs)
+    name_app = "linear"
+    ens /= 1000.
+    sigs /= 1000.
+    dsigs /= 1000.
+    if use_sqrt_fit:
+        name_app = "sqrt"
     if plot_dir is not None:
         nm = ""
         for key in data.keys():
             nm = key
             break
-        plot_name = nm + "_E_sigma_fit.png"
-        coeff, cov = linfit(ens,sigs,dsigs,join(plot_dir,plot_name),"Energy [keV]", "Peak Sigma [keV]")
+        plot_name = nm + "_E_sigma_{0}_fit".format(name_app)
+        if use_sqrt_fit:
+            coeff, cov, chisqr = sqrtfit(ens,sigs,dsigs,join(plot_dir,plot_name),"Energy [keV]", "Peak Sigma [keV]")
+        else:
+            coeff, cov, chisqr = linfit(ens, sigs, dsigs, join(plot_dir, plot_name), "Energy [keV]", "Peak Sigma [keV]")
     else:
-        coeff, cov = linfit(ens,sigs,dsigs)
+        if use_sqrt_fit:
+            coeff, cov, chisqr = sqrtfit(ens,sigs,dsigs)
+        else:
+            coeff, cov, chisqr = linfit(ens, sigs, dsigs)
     errs = np.sqrt(np.diag(cov))
-    print("fit values are sigma = A + B*(E), A = {0} ~ {1} keV, B = {2} ~ {3}".format(coeff[1], errs[1], coeff[0], errs[0]))
+    if use_sqrt_fit:
+        B = 1/(coeff[1]**2)
+        errB = abs(B*0.5*errs[1]/coeff[1])
+        print("fit values are sigma = A + sqrt(E/B) + C*E, A = {0} ~ {1} keV, B = {2} ~ {3} charge/keV, C = {4} ~ {5}".format(coeff[0], errs[0], B, errB, coeff[2], errs[2]))
+    else:
+        print("fit values are sigma = A + B*(E), A = {0} ~ {1} keV, B = {2} ~ {3}".format(coeff[1], errs[1], coeff[0], errs[0]))
+    alpha = 0.05
+    p_value = 1 - stats.chi2.cdf(chisqr, len(ens)-1)
+    conclusion = "Failed to reject the null hypothesis."
+    if p_value <= alpha:
+        conclusion = "Null Hypothesis is rejected."
+
+    print("chisquare of fit is {0} with p value {1} and {2} degrees of freedom".format(chisqr, p_value, len(ens)-1))
+    print(conclusion)
+
 
 
 def compare_peaks(data, simdata, expected_peaks, plot_dir=None, user_verify=False, tolerate_fails=False,
