@@ -59,11 +59,11 @@ def main():
             if not os.path.exists(newf):
                 shutil.copyfile(f, newf)
 
-    # subprocess.run("cnf2txtall")
+    subprocess.run("cnf2txtall")
 
 
 if __name__ == "__main__":
     main()
     db = HFIRBG_DB()
-    # convert_to_spe(db)
-    convert_to_root(db)
+    #convert_to_spe(db)
+    #convert_to_root(db)

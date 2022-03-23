@@ -196,6 +196,17 @@ def populate_data(data_dict, data_dir, db):
             out[key] = retrieve_spectra(data_dict[key], fs, db)
     return out
 
+def populate_data_config(config,db):
+    """
+    given config, a dictionary that specifies the files to retrive using database, populates
+    a new dictionary with  keys as filenames and values as spectrumdata objects
+    """
+    fs = db.get_files_from_config(config)
+    out = {}
+    for f in fs:
+        out[f] = retrieve_spectra(f, f, db)
+    return out
+
 
 def populate_data_root(data_dict, spec_path, live_path, isParam=False, xScale=1, rebin=1):
     """
@@ -452,20 +463,41 @@ def plot_spectra(fs, name, rebin=1, emin=None, emax=None):
     plt.close()
 
 
+def get_calibration(file):
+    # assumes file has a line like this:
+    # A0:
+    # returns A0 and A1
+    A0 = None
+    A1 = None
+    with open(file) as f:
+        for line in f.readlines():
+            if "A0:" in line:
+                A0 = float(line.split(":")[1].strip())
+            if "A1:" in line:
+                A1 = float(line.split(":")[1].strip())
+                break
+    return A0, A1
+
 def start_date(file):
     # assumes file has a line like this:
     # Start time:    2021-02-20, 00:37:56
+    # returns start time and live time
     dt = None
+    lt = None
     with open(file) as f:
         for line in f.readlines():
             if line.startswith("# Start time:"):
                 data = line[13:].strip()
                 dt = datetime.strptime(data, "%Y-%m-%d, %H:%M:%S")
+            if line.startswith("# Live time:"):
+                data = line[16:].strip()
+                lt = float(data)
+                break
     if dt:
-        return dt.timestamp()
+        return dt.timestamp(), lt
     else:
         print("couldnt find datetime, using creation date of file")
-        return creation_date(file)
+        return creation_date(file), lt
 
 
 def creation_date(path_to_file):

@@ -6,7 +6,7 @@ from src.database.SqliteManager import HFIRBG_DB
 from src.utilities.util import get_data_dir, populate_data, fit_spectra
 
 rundata = {"Reactor Spectrum": "MIF_BOX_REACTOR_OPTIMIZED_OVERNIGHT_LOWEST_GAIN.txt"}
-energy_guesses = [1274, 1294, 1300, 1407]
+energy_guesses = [964.082,1112.08,1408.013,778.9006]
 verify = True
 
 

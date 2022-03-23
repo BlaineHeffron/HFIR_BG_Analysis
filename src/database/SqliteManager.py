@@ -3,7 +3,7 @@ import os
 import re
 
 from src.utilities.util import get_data_dir, retrieve_file_extension, file_number, \
-    read_csv_list_of_tuples, get_json, start_date
+    read_csv_list_of_tuples, get_json, start_date, is_number, get_calibration
 
 FOREIGNKEYREGEX = re.compile(r'FOREIGN KEY\(\"(.*)\"\) REFERENCES \"(.*)\"\(\"(.*)\"\)')
 PARENTHREGEX = re.compile(r'\"(.*)\"')
@@ -34,6 +34,23 @@ def generate_equals_where(columns, values):
         else:
             txt += " AND {0} = {1}".format(col, value_format(values[i]))
     return txt
+
+
+def generate_in_clause(values):
+    txt = " IN ("
+    isnum = is_number(values[0])
+    for i, val in enumerate(values):
+        if i == 0:
+            if isnum:
+                txt += str(val)
+            else:
+                txt += "'{}'".format(val)
+        else:
+            if isnum:
+                txt += ",{}".format(val)
+            else:
+                txt += ",'{}'".format(val)
+    return txt + ") "
 
 
 def get_db_dir():
@@ -71,7 +88,8 @@ class SQLiteBase:
                 if unique_columns:
                     unique_values = [values[i] for i in range(len(columns)) if columns[i] in unique_columns]
                     theid = self.fetchone(
-                        "SELECT id FROM {0} WHERE {1}".format(table, generate_equals_where(unique_columns, unique_values)))
+                        "SELECT id FROM {0} WHERE {1}".format(table,
+                                                              generate_equals_where(unique_columns, unique_values)))
                 else:
                     theid = self.fetchone(
                         "SELECT id FROM {0} WHERE {1}".format(table, generate_equals_where(columns, values)))
@@ -79,7 +97,8 @@ class SQLiteBase:
                     return theid[0]
                 else:
                     raise ValueError("insert to table {0} ignored and unable to "
-                                     "retrieve id with WHERE clause {1}".format(table, generate_equals_where(columns, values)))
+                                     "retrieve id with WHERE clause {1}".format(table,
+                                                                                generate_equals_where(columns, values)))
             else:
                 return self.cur.lastrowid
 
@@ -103,6 +122,7 @@ class SQLiteBase:
                 txt += ',' + col
         txt += ')'
         self.cur.execute(txt)
+        self.commit()
 
     def execute_many(self, sql, data):
         """
@@ -111,6 +131,7 @@ class SQLiteBase:
         :return: null
         """
         self.cur.executemany(sql, data)
+        self.commit()
 
     def batch_insert(self, table, columns, data):
         """
@@ -122,7 +143,6 @@ class SQLiteBase:
         instxt, qtxt = column_placeholder_string(columns)
         sql = "INSERT OR IGNORE INTO {0} {1} VALUES {2}".format(table, instxt, qtxt)
         self.execute_many(sql, data)
-        self.commit()
 
     def commit(self):
         self.__db_connection.commit()
@@ -173,6 +193,19 @@ class SQLiteBase:
         names = list(map(lambda x: x[0], self.cur.description))
         return names
 
+    def dictionary_select(self, table, dict):
+        """
+        Use a dictionary to specify the where criterion
+        """
+        where = "WHERE "
+        for key in dict.keys():
+            if is_number(dict[key]):
+                where += "{0} = {1} AND ".format(key, dict[key])
+            else:
+                where += "{0} = '{1}' AND ".format(key, dict[key])
+        where = where[0:-5]
+        return self.fetchall("SELECT * FROM {0} WHERE {1}".format(table, where))
+
     def __del__(self):
         self.__db_connection.close()
 
@@ -186,6 +219,7 @@ class SQLiteBase:
         else:
             self.__db_connection.commit()
         self.__db_connection.close()
+
 
 
 class HFIRBG_DB(SQLiteBase):
@@ -220,7 +254,7 @@ class HFIRBG_DB(SQLiteBase):
         for dir in dir_key.keys():
             dirid = dir_ids[dir]
             for fname in dir_key[dir]:
-                create_time = start_date(os.path.join(dir, fname))
+                start_time, live_time = start_date(os.path.join(dir, fname))
                 run_number = file_number(fname)
                 skip = False
                 for curf in cur_files:
@@ -229,13 +263,39 @@ class HFIRBG_DB(SQLiteBase):
                         break
                 if not skip:
                     if run_number == -1:
-                        self.insert_or_ignore("datafile", ["name", "directory_id", "creation_time"],
-                                              [fname, dirid, create_time])
+                        self.insert_or_ignore("datafile", ["name", "directory_id", "start_time", "live_time"],
+                                              [fname, dirid, start_time, live_time])
                     else:
-                        self.insert_or_ignore("datafile", ["name", "directory_id", "creation_time", "run_number"],
-                                              [fname, dirid, create_time, run_number])
+                        self.insert_or_ignore("datafile",
+                                              ["name", "directory_id", "start_time", "live_time", "run_number"],
+                                              [fname, dirid, start_time, live_time, run_number])
         self.execute("END TRANSACTION")
         self.commit()
+
+    def set_calibration_groups(self):
+        """set calibration groups based on files"""
+        files = self.retrieve_datafiles()
+        fids = list(map(lambda x: x[0], files))
+        files = self.get_file_paths_from_ids(fids)
+        if not files:
+            return
+        for f in files:
+            A0, A1 = get_calibration(f)
+            if A0 is None or A1 is None:
+                print("no calibration found for file {}".format(f))
+            else:
+                self.insert_calibration(A0, A1, os.path.basename(f), False)
+
+    def retrieve_run_from_file_id(self, file_id):
+        """
+        :param file_id: file id (int)
+        :return: run id
+        """
+        run_id = self.fetchone("SELECT run_id FROM run_file_list WHERE file_id = {0}".format(file_id))
+        if run_id:
+            return run_id[0]
+        else:
+            return None
 
     def retrieve_run_flist(self, run_id):
         """
@@ -299,7 +359,8 @@ class HFIRBG_DB(SQLiteBase):
         coord_cols = self.retrieve_columns("detector_coordinates")[1:-1]
         for run in runsfile["runs"]:
             if isinstance(run["detector_coordinates"], list):
-                coord_id = self.insert_or_ignore("detector_coordinates", coord_cols, run["detector_coordinates"], retrieve_key=True)
+                coord_id = self.insert_or_ignore("detector_coordinates", coord_cols, run["detector_coordinates"],
+                                                 retrieve_key=True)
                 run["detector_coordinates"] = coord_id
             run_id = self.insert_or_ignore("runs", columns, [run[key] for key in columns], retrieve_key=True)
             flist = run["file_list"]
@@ -320,30 +381,119 @@ class HFIRBG_DB(SQLiteBase):
                 if fids is not None:
                     self.insert_file_list(run_id, fids)
 
+    def insert_calgroup_with_name(self, name, A0, A1):
+        self.cur.execute(
+            "INSERT OR IGNORE INTO calibration_group (name, A0, A1) VALUES ('{0}', {1}, {2})".format(name, A0, A1))
+        self.commit()
+        if self.cur.lastrowid == 0:
+            raise RuntimeError("There was an error inserting the calibration group for run id {}, exiting".format(name))
+        else:
+            return self.cur.lastrowid
+
+    def insert_calgroup_with_run_id(self, run_id, A0, A1):
+        rname = self.fetchone("SELECT name FROM runs WHERE id = '{}'".format(run_id))
+        if rname:
+            rname = rname[0]
+        else:
+            raise RuntimeError("Unable to retrieve run name from run id {}, exiting".format(run_id))
+        self.cur.execute(
+            "INSERT OR IGNORE INTO calibration_group (name, A0, A1) VALUES ('{0}', {1}, {2})".format(rname, A0, A1))
+        self.commit()
+        if self.cur.lastrowid == 0:
+            raise RuntimeError(
+                "There was an error inserting the calibration group for run id {}, exiting".format(run_id))
+        else:
+            return self.cur.lastrowid
+
     def insert_calibration(self, A0, A1, fname, replace=True):
-        rp = "REPLACE"
-        if not replace:
-            rp = "IGNORE"
         myid = self.fetchone("SELECT id FROM datafile WHERE name = '{}'".format(fname))
         if myid:
             myid = myid[0]
         else:
             print("no id found for filename {}, make sure it exists in the database.".format(fname))
             return None
-        vals = "{0},{1},1,{2}".format(A0,A1,myid)
-        self.cur.execute("INSERT OR {0} INTO calibrations (A0,A1,det,file_id) VALUES ({1})".format(rp, vals))
-        self.commit()
+        groupid = self.fetchone(
+            "SELECT group_id FROM file_calibration_group WHERE file_id = {} AND det = 1".format(myid))
+        if groupid:
+            groupid = groupid[0]
+        else:
+            # first check if file belongs to a known run
+            run_id = self.retrieve_run_from_file_id(myid)
+            if run_id:
+                #print("no calibration group found for file {}, creating one based on its run name".format(fname))
+                groupid = self.insert_calgroup_with_run_id(run_id, A0, A1)
+            else:
+                #print("no run found for filename {}. Creating a new calibration group with the filename.".format(fname))
+                groupid = self.insert_calgroup_with_name(fname, A0, A1)
+            self.insert_or_ignore("file_calibration_group",["group_id","det","file_id"], [groupid, 1, myid])
+            self.commit()
+        if replace:
+            vals = "{0},(select name from calibration_group where id = {0}),{1},{2}".format(groupid, A0, A1)
+            self.cur.execute("INSERT OR REPLACE INTO calibration_group (id,name,A0,A1) VALUES ({0})".format(vals))
+            self.commit()
         return self.cur.lastrowid
 
     def retrieve_calibration(self, fname):
-        return self.fetchone("SELECT A0, A1 FROM calibrations where file_id = (select id from datafile where name = '{}')".format(fname))
+        return self.fetchone(
+            "SELECT A0, A1 FROM calibration_group where id = (select group_id from file_calibration_group where file_id = (select id from datafile where name = '{}'))".format(
+                fname))
 
     def get_file_path_from_name(self, fname):
-        data = self.fetchone("SELECT f.directory_id, d.path from datafile f join directory d on f.directory_id = d.id where f.name = '{}'".format(fname))
+        data = self.fetchone(
+            "SELECT f.directory_id, d.path from datafile f join directory d on f.directory_id = d.id where f.name = '{}'".format(
+                fname))
         if data:
-            return os.path.join(data[1],fname)
+            return os.path.join(data[1], fname)
         else:
             print("file name {} not in database!".format(fname))
             return None
 
+    def get_file_paths_from_ids(self, fids):
+        data = self.fetchall(
+            "SELECT f.directory_id, d.path, f.name from datafile f join directory d on f.directory_id = d.id where f.id {}".format(
+                generate_in_clause(fids)))
+        fs = []
+        if data:
+            for row in data:
+                fs.append(os.path.join(row[1], row[2]))
+        return fs
 
+    def retrieve_file_ids_from_detector_config(self, detector_config_id):
+        files = []
+        rows = self.fetchall("SELECT id FROM runs WHERE detector_configuration = {}".format(detector_config_id))
+        if rows:
+            for row in rows:
+                fids = self.retrieve_run_flist(row[0])
+                files += fids
+        return files
+
+    def get_files_from_config(self, config):
+        config_dict = {}
+        if "acquisition_settings" in config.keys():
+            acq_id = self.dictionary_select("acquisition_settings", config["acquisition_settings"])
+            if acq_id:
+                config_dict["acquisition_settings"] = acq_id[0][0]
+        if "shield" in config.keys():
+            config_dict["shield"] = config["shield"]
+        detector_config_ids = None
+        if config_dict:
+            detector_config_ids = self.dictionary_select("detector_configuration", config_dict)
+        file_ids = []
+        if detector_config_ids:
+            for row in detector_config_ids:
+                file_ids += self.retrieve_file_ids_from_detector_config(row[0])
+        where = "WHERE "
+        if file_ids:
+            where += generate_in_clause(file_ids) + " AND "
+        if "min_time" in config.keys():
+            where += "live_time >= {} AND ".format(config["min_time"])
+        if where == "WHERE ":
+            files = self.fetchall("SELECT id FROM datafile")
+        else:
+            where = where[0:-5]
+            files = self.fetchall("SELECT id FROM datafile {}".format(where))
+        fids = list(map(lambda x: x[0], files))
+        if fids:
+            return self.get_file_paths_from_ids(fids)
+        else:
+            return None

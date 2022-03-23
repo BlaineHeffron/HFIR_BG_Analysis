@@ -40,15 +40,21 @@ CREATE TABLE IF NOT EXISTS "run_file_list" (
 	FOREIGN KEY("file_id") REFERENCES "datafile"("id"),
     FOREIGN KEY("run_id") REFERENCES "runs"("id")
 );
-CREATE TABLE IF NOT EXISTS "calibrations" (
-	"id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-	"file_id"	INTEGER NOT NULL,
-	"det"	INTEGER NOT NULL,
-	"A0"	REAL,
-	"A1"	REAL,
-	FOREIGN KEY("file_id") REFERENCES "datafile"("id"),
-	FOREIGN KEY("det") REFERENCES "detector"("id"),
-	UNIQUE("det","file_id")
+CREATE TABLE IF NOT EXISTS "calibration_group" (
+  "id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  "name" TEXT NOT NULL UNIQUE,
+  "A0"	REAL,
+  "A1"	REAL
+);
+CREATE TABLE IF NOT EXISTS "file_calibration_group" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "group_id" INTEGER NOT NULL,
+    "det" INTEGER NOT NULL,
+    "file_id" INTEGER NOT NULL,
+    FOREIGN KEY("group_id") REFERENCES "calibration_group"("id"),
+    FOREIGN KEY("file_id") REFERENCES "datafile"("id"),
+    FOREIGN KEY("det") REFERENCES "detector"("id"),
+    UNIQUE("file_id", "det")
 );
 CREATE TABLE IF NOT EXISTS "shield_configuration" (
 	"id"	INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -79,7 +85,8 @@ CREATE TABLE IF NOT EXISTS "datafile" (
 	"id"	INTEGER PRIMARY KEY AUTOINCREMENT,
 	"name"	TEXT,
 	"directory_id"	INTEGER NOT NULL,
-	"creation_time"	INTEGER,
+	"start_time" INTEGER,
+    "live_time" REAL,
 	"run_number"	INTEGER,
 	FOREIGN KEY("directory_id") REFERENCES "directory"("id"),
 	UNIQUE("name", "directory_id")
