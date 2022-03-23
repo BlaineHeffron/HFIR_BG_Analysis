@@ -126,7 +126,12 @@ bins = get_bins(2100, 2300, 200)
 rundata = {"rxon":"MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","rxoff":"MIF_BOX_AT_REACTOR_RXOFF"}
 plot_name = "rxon_vs_off"
 compare_to = "rxoff"
+bins = get_bins(2000, 3000, 1000)
 
+rundata = {"MIF": "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","HB4":"HB4_DOWN_OVERNIGHT_1.txt"}
+plot_name = "HB4_vs_MIF"
+compare_to = "MIF"
+bins = get_bins(4500, 5000, 500)
 
 def main():
     db = HFIRBG_DB()
