@@ -1,7 +1,10 @@
 import os
+import sys
+from os.path import dirname, realpath
+sys.path.insert(1, dirname(dirname(realpath(__file__))))
 
-from database.SqliteManager import get_db_dir
-from utilities.util import get_json, read_csv_list_of_tuples, write_json
+from src.database.SqliteManager import get_db_dir
+from src.utilities.util import get_json, read_csv_list_of_tuples, write_json
 
 
 def main():

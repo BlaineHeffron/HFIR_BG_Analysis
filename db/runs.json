@@ -1,522 +1,1851 @@
 {
-  "comments": "this file has been updated June 22 to contain all runs that are not track scans or positions scans (which can be read in either from file name for track scans or from tables on elog for other scans) through 6/18/21",
-  "runs": [
-    {
-      "file_list": "1-15",
-      "description": "Background runs before cycle 490",
-      "name": "PreCycle490",
-      "detector_configuration": 1,
-      "detector_coordinates": 1
-    },
-    {
-      "file_list": [16],
-      "description": "Cycle 490A ramp up to 10%",
-      "name": "Cycle490A_0to10pwr",
-      "detector_configuration": 1,
-      "detector_coordinates": 1
-    },
-    {
-      "file_list": [17],
-      "description": "Cycle 490A 10% power",
-      "name": "Cycle490A_10pwr",
-      "detector_configuration": 1,
-      "detector_coordinates": 1
-    },
-    {
-      "file_list": [18],
-      "description": "Cycle 490A 10% shutting down",
-      "name": "Cycle490A_10to0pwr",
-      "detector_configuration": 1,
-      "detector_coordinates": 1
-    },
-    {
-      "file_list": [19],
-      "description": "Cycle 490A ramping to 10% power a second time",
-      "name": "Cycle490A_0to10pwr2",
-      "detector_configuration": 1,
-      "detector_coordinates": 1
-    },
-    {
-      "file_list": [20],
-      "description": "Cycle 490A 10% ramp to 30% power",
-      "name": "Cycle490A_10to30pwr",
-      "detector_configuration": 1,
-      "detector_coordinates": 1
-    },
-    {
-      "file_list": [21],
-      "description": "Cycle 490A 30% ramp to 50% power",
-      "name": "Cycle490A_30to50pwr",
-      "detector_configuration": 1,
-      "detector_coordinates": 1
-    },{
-      "file_list": [22],
-      "description": "Cycle 490A 50% ramp to 70% power",
-      "name": "Cycle490A_50to70pwr",
-      "detector_configuration": 1,
-      "detector_coordinates": 1
-    },{
-      "file_list": [23],
-      "description": "Cycle 490A 70% ramp to 90% power",
-      "name": "Cycle490A_70to90pwr",
-      "detector_configuration": 1,
-      "detector_coordinates": 1
-    },{
-      "file_list": [24],
-      "description": "Cycle 490A 90% ramp to 100% power",
-      "name": "Cycle490A_90to100pwr",
-      "detector_configuration": 1,
-      "detector_coordinates": 1
-    },{
-      "file_list": [28,29],
-      "description": "Cycle 490A 100% power original position",
-      "name": "Cycle490A_original",
-      "detector_configuration": 1,
-      "detector_coordinates": 1
-    },{
-      "file_list": [30],
-      "description": "Cycle 490A early shutdown",
-      "name": "Cycle490A_100to0",
-      "detector_configuration": 1,
-      "detector_coordinates": 1
-    }, {
-      "file_list": "31-42",
-      "description": "Between Cycle 490A and 490B",
-      "name": "PreCycle490B",
-      "detector_configuration": 1,
-      "detector_coordinates": 1
-    },{
-      "file_list": [44],
-      "description": "Cycle 490B 10% to 100% power, first hour is ramp up, remainder is 100% power",
-      "name": "Cycle490BRampTo100",
-      "detector_configuration": 1,
-      "detector_coordinates": 1
-    },{
-      "file_list": [45],
-      "description": "Cycle 490B 100% power for first hour and 40 minutes, remainder is reactor shutting down",
-      "name": "Cycle490B100to0",
-      "detector_configuration": 1,
-      "detector_coordinates": 1
-    },{
-      "file_list": [54,55],
-      "description": "Cycle 490C 10 MeV range original position",
-      "name": "Cycle490C_original_10MeVrange",
-      "detector_configuration": 2,
-      "detector_coordinates": 1
-    },{
-      "file_list": ["EAST_FACING_45_DEGREE_DOWN_ANGLE.txt"],
-      "description": "Cycle 490C 10 MeV range 90 degree clockwise rotation from original position",
-      "name": "Cycle490C_original_10MeVrange",
-      "detector_configuration": 2,
-      "detector_coordinates": 2
-    },{
-      "file_list": [57],
-      "description": "Cycle 490C 3.6 MeV range nominal position north facing",
-      "name": "Cycle490C_nominal_north_3.6MeVrange",
-      "detector_configuration": 1,
-      "detector_coordinates": 3
-    },{
-      "file_list": ["CORNER_MEASUREMENT_NO_SHIELD_WALL.txt"],
-      "description": "Cycle 490C measured at NE wall corner pointing towards reactor (partially in view of steel wall)",
-      "name": "Cycle490C_NECorner_partial_steel",
-      "detector_configuration": 1,
-      "detector_coordinates": 7
-    },{
-      "file_list": ["CORNER_MEASUREMENT_NO_SHIELD_WALL_LOW_GAIN.txt"],
-      "description": "Cycle 490C measured at NE wall corner pointing towards reactor clear of steel wall with low gain",
-      "name": "Cycle490C_NECorner_partial_steel",
-      "detector_configuration": 3,
-      "detector_coordinates": 8
-    },{
-      "file_list": ["CORNER_TPS_OVERNIGHT.txt"],
-      "description": "Cycle 490C overnight run measured under the MIF pointing roughly towards the reactor, optimized for angle",
-      "name": "Cycle490C_MIF_partial_optimization_overnight",
-      "detector_configuration": 3,
-      "detector_coordinates": 13
-    },{
-      "file_list": ["MIF_BOX_AT_REACTOR_OPTIMIZED_DAY_COUNT.txt"],
-      "description": "Cycle 490C day count measured under the MIF pointing towards the reactor, optimized for cart and detector angle",
-      "name": "Cycle490C_MIF_reactor_optimized_9.6MeVrange",
-      "detector_configuration": 3,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["NOMINAL_NORTH.txt"],
-      "description": "Cycle 490C nominal north position 9.6 MeV range",
-      "name": "Cycle490C_nominal_north_9.6MeVrange",
-      "detector_configuration": 3,
-      "detector_coordinates": 3
-    },{
-      "file_list": ["NOMINAL_EAST.txt"],
-      "description": "Cycle 490C nominal east position 9.6 MeV range",
-      "name": "Cycle490C_nominal_east_9.6MeVrange",
-      "detector_configuration": 3,
-      "detector_coordinates": 4
-    },{
-      "file_list": ["NOMINAL_SOUTH.txt"],
-      "description": "Cycle 490C nominal south position 9.6 MeV range",
-      "name": "Cycle490C_nominal_south_9.6MeVrange",
-      "detector_configuration": 3,
-      "detector_coordinates": 5
-    },{
-      "file_list": ["NOMINAL_WEST.txt"],
-      "description": "Cycle 490C nominal west position 9.6 MeV range",
-      "name": "Cycle490C_nominal_west_9.6MeVrange",
-      "detector_configuration": 3,
-      "detector_coordinates": 6
-    },{
-      "file_list": ["ORIGINAL_QUICK_LOWGAIN.txt"],
-      "description": "Cycle 490C original position 9.6 MeV range quick run",
-      "name": "Cycle490C_original_9.6MeVrange_short_run",
-      "detector_configuration": 3,
-      "detector_coordinates": 1
-    },{
-      "file_list": ["ORIGINAL_QUICK_LOWGAIN_90_ROT.txt"],
-      "description": "Cycle 490C original position rotated 90 degrees clockwise 9.6 MeV range quick run",
-      "name": "Cycle490C_original_rot90_9.6MeVrange_short_run",
-      "detector_configuration": 3,
-      "detector_coordinates": 2
-    },{
-      "file_list": ["MIF_BOX_REACTOR_OPTIMIZED_OVERNIGHT_LOWEST_GAIN.txt"],
-      "description": "Cycle 490C at optimal rate position under MIF with lowest possible gain settings",
-      "name": "Cycle490C_MIF_reactor_optimized_14.6MeVrange",
-      "detector_configuration": 4,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt"],
-      "description": "Cycle 490C at optimal rate position under MIF with optimized gain for seeing the last gamma peak (11.4MeV)",
-      "name": "Cycle490C_MIF_reactor_optimized_11.5MeVrange",
-      "detector_configuration": 5,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["MIF_OFF_REACTOR_AXIS_OVERNIGHT"],
-      "description": "Cycle 490C under MIF cart rotated counterclockwise about 40 degrees to point outside of direct line of sight of reactor",
-      "name": "Cycle490C_MIF_off_axis",
-      "detector_configuration": 5,
-      "detector_coordinates": 26
-    }, {
-      "file_list": ["MIF_OFF_REACTOR_AXIS_2"],
-      "description": "Cycle 490C under MIF cart rotated counterclockwise ~15 degrees from the direct reactor line of sight",
-      "name": "Cycle490C_MIF_off_axis_2",
-      "detector_configuration": 5,
-      "detector_coordinates": 27
-    }, {
-      "file_list": ["MIF_OFF_REACTOR_AXIS_3"],
-      "description": "Cycle 490C under MIF cart rotated counterclockwise ~60 degrees from the direct reactor line of sight",
-      "name": "Cycle490C_MIF_off_axis_3",
-      "detector_configuration": 5,
-      "detector_coordinates": 28
-    },{
-      "file_list": ["MIF_OFF_REACTOR_AXIS_4"],
-      "description": "Cycle 490C under MIF cart rotated counterclockwise ~90 degrees from the direct reactor line of sight",
-      "name": "Cycle490C_MIF_off_axis_4",
-      "detector_configuration": 5,
-      "detector_coordinates": 29
-    },{
-      "file_list": "171-362",
-      "description": "Cycle 490C under MIF cart facing reactor shutdown measurement in 15 minute intervals",
-      "name": "Cycle490C_shutdown",
-      "detector_configuration": 5,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["MIF_BOX_AT_REACTOR_RXOFF"],
-      "description": "Post Cycle 490C under MIF cart facing reactor, day long count",
-      "name": "PostCycle490C_MIF",
-      "detector_configuration": 5,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["NOMINAL_NORTH_RXOFF_2DAY"],
-      "description": "Post Cycle 490C at nominal position north facing, 2 day long count",
-      "name": "PostCycle490C_nominal",
-      "detector_configuration": 5,
-      "detector_coordinates": 3
-    },{
-      "file_list": "363-395",
-      "description": "Post Cycle 490C at MIF facing reactor, 8 hour counts through rxoff period",
-      "name": "PostCycle490C_MIF_8hour_sequence",
-      "detector_configuration": 5,
-      "detector_coordinates": 23
-    },{
-      "file_list": "555-637",
-      "description": "Pre Cycle 491 at MIF facing reactor,  15 minute counts through during rxr testing for startup the following day",
-      "name": "PreCycle491_MIF_15min_sequence",
-      "detector_configuration": 5,
-      "detector_coordinates": 23
-    },{
-      "file_list": [638],
-      "description": "Cycle 491 ramp up to 10% power",
-      "name": "Cycle491_0to10pwr",
-      "detector_configuration": 5,
-      "detector_coordinates": 23
-    },{
-      "file_list": [639,640],
-      "description": "Cycle 491 at 10% power",
-      "name": "Cycle491_10pwr",
-      "detector_configuration": 5,
-      "detector_coordinates": 23
-    },{
-      "file_list": [641],
-      "description": "Cycle 491 10% ramp to 30% power",
-      "name": "Cycle491_10to30pwr",
-      "detector_configuration": 5,
-      "detector_coordinates": 23
-    },{
-      "file_list": [642],
-      "description": "Cycle 491 30% ramp to 50% power",
-      "name": "Cycle491_30to50pwr",
-      "detector_configuration": 5,
-      "detector_coordinates": 23
-    },{
-      "file_list": [643],
-      "description": "Cycle 491 50% ramp to 70% power",
-      "name": "Cycle491_50to70pwr",
-      "detector_configuration": 5,
-      "detector_coordinates": 23
-    },{
-      "file_list": [644],
-      "description": "Cycle 491 70% ramp to 90% power",
-      "name": "Cycle491_70to90pwr",
-      "detector_configuration": 5,
-      "detector_coordinates": 23
-    },{
-      "file_list": [645],
-      "description": "Cycle 491 90% ramp to 100% power",
-      "name": "Cycle491_90to100pwr",
-      "detector_configuration": 5,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["747-938"],
-      "description": "Cycle 491 first two days, 15 minute runs",
-      "name": "Cycle491_start",
-      "detector_configuration": 5,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["747-938"],
-      "description": "Cycle 491 first two days, 15 minute runs",
-      "name": "Cycle491_start",
-      "detector_configuration": 5,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["MIF_HIGH_GAIN_512KEV"],
-      "description": "Cycle 491 MIF position high gain test 1",
-      "name": "Cycle491_high_gain_test1",
-      "detector_configuration": 6,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["MIF_MAXGAIN_64KEV_TEST"],
-      "description": "Cycle 491 MIF position max gain test",
-      "name": "Cycle491_max_gain_test",
-      "detector_configuration": 7,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["MIF_512KEV_DAYRUN"],
-      "description": "Cycle 491 MIF position high gain test 2",
-      "name": "Cycle491_high_gain_test2",
-      "detector_configuration": 8,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["MIF_MAXGAIN_DAYCOUNT"],
-      "description": "Cycle 491 MIF position max gain overnight",
-      "name": "Cycle491_max_gain_overnight",
-      "detector_configuration": 7,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["MIF_MAXGAIN_DAYCOUNT"],
-      "description": "Cycle 491 MIF position max gain overnight",
-      "name": "Cycle491_max_gain_overnight",
-      "detector_configuration": 7,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["MIF_AM_SOURCE_MAXGAIN"],
-      "description": "Cycle 491 MIF position Americium source max gain",
-      "name": "Cycle491_max_gain_Am",
-      "detector_configuration": 7,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["MIF_AM_SOURCE_521KEV"],
-      "description": "Cycle 491 MIF position Americium source high gain",
-      "name": "Cycle491_high_gain_Am",
-      "detector_configuration": 8,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["MIF_NO_SOURCE_521KEV"],
-      "description": "Cycle 491 MIF position no source high gain",
-      "name": "Cycle491_high_gain_no_source",
-      "detector_configuration": 8,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["1515-1655"],
-      "description": "Cycle 491 MIF position 2 day 15 minute runs high gain stability test",
-      "name": "Cycle491_high_gain_weekend_runs",
-      "detector_configuration": 8,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["1707-1733"],
-      "description": "Cycle 491 MIF position 15 minute runs LTC mode off test, memory group 1",
-      "name": "Cycle491_high_gain_LTC_OFF_mem1_tests",
-      "detector_configuration": 9,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["1734-1825"],
-      "description": "Cycle 491 MIF position 15 minute runs LTC mode off test, memory group 2",
-      "name": "Cycle491_high_gain_LTC_OFF_mem2_tests",
-      "detector_configuration": 10,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["MIF_STRONG_AM_SOURCE_520KEV"],
-      "description": "Cycle 491 MIF position strong am source test high gain",
-      "name": "Cycle491_high_gain_strong_am",
-      "detector_configuration": 9,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["MIF_STRONG_AM_SOURCE_MAXGAIN"],
-      "description": "Cycle 491 MIF position strong am source test max gain",
-      "name": "Cycle491_max_gain_strong_am",
-      "detector_configuration": 11,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["MIF_STRONG_AM_SOURCE_MAXGAIN_0LLD"],
-      "description": "Cycle 491 MIF position strong am source test max gain, 0 LLD",
-      "name": "Cycle491_max_gain_strong_am_0lld",
-      "detector_configuration": 12,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["MIF_STRONG_AM_SOURCE_MAXGAIN_50LLD"],
-      "description": "Cycle 491 MIF position strong am source test max gain, 50 LLD",
-      "name": "Cycle491_max_gain_strong_am_50lld",
-      "detector_configuration": 13,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["MIF_STRONG_AM_SOURCE_520KEV_LTC_ON"],
-      "description": "Cycle 491 MIF position strong am source test high gain, LTC on",
-      "name": "Cycle491_high_gain_strong_am_ltc_on",
-      "detector_configuration": 14,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["MIF_STRONG_AM_SOURCE_MAXGAIN_LTC_ON"],
-      "description": "Cycle 491 MIF position strong am source test max gain, LTC on",
-      "name": "Cycle491_max_gain_strong_am_ltc_on",
-      "detector_configuration": 15,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["2026-2087"],
-      "description": "Cycle 491 nominal position max gain hour runs",
-      "name": "Cycle491_nominal_max_gain_hour_runs",
-      "detector_configuration": 15,
-      "detector_coordinates": 3
-    },{
-      "file_list": ["MIF_DOWN_FACING"],
-      "description": "Cycle 491 MIF downward facing",
-      "name": "Cycle491_MIF_DOWN",
-      "detector_configuration": 5,
-      "detector_coordinates": 30
-    },{
-      "file_list": ["HB4_DOWN_OVERNIGHT"],
-      "description": "Cycle 491 HB4 hot spot downward facing",
-      "name": "HB4_overnight",
-      "detector_configuration": 5,
-      "detector_coordinates": 31
-    },{
-      "file_list": ["CYCLE461_DOWN_FACING_OVERNIGHT"],
-      "description": "Cycle 491 shield wall center spot downward facing",
-      "name": "Shield_center_down_overnight",
-      "detector_configuration": 5,
-      "detector_coordinates": 32
-    },{
-      "file_list": ["MIF_AM_CAL"],
-      "description": "Cycle 491 MIF max gain Am calibration run",
-      "name": "Cycle491_MIF_Am_cal",
-      "detector_configuration": 7,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["2091-2282"],
-      "description": "Cycle 491 shutdown 15 minute runs max gain",
-      "name": "Cycle491_shutdown_maxgain",
-      "detector_configuration": 7,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["2475-2504"],
-      "description": "Post Cycle 491 rxr off 1 hour runs max gain",
-      "name": "PostCycle491_maxgain",
-      "detector_configuration": 7,
-      "detector_coordinates": 23
-    },{
-      "file_list": ["2667-2799"],
-      "description": "Cycle 492 HB4 down looking 30 minute runs",
-      "name": "Cycle492_HB4_30minute_runs",
-      "detector_configuration": 5,
-      "detector_coordinates": 33
-    },{
-      "file_list": ["PROSPECT_DOWN_OVERNIGHT"],
-      "description": "Cycle 492 PROSPECT down looking overnight",
-      "name": "Cycle492_HB4_30minute_runs",
-      "detector_configuration": 5,
-      "detector_coordinates": 34
-    },{
-      "file_list": ["PROSPECT_DOWN_BRICK1"],
-      "description": "Cycle 492 PROSPECT down looking 1 brick layer, 4 bricks",
-      "name": "Cycle492_PROSPECT_brick1",
-      "detector_configuration": 5,
-      "detector_coordinates": 35
-    },{
-      "file_list": ["PROSPECT_DOWN_BRICK2"],
-      "description": "Cycle 492 PROSPECT down looking 2 brick layer, 4 bricks",
-      "name": "Cycle492_PROSPECT_brick2",
-      "detector_configuration": 5,
-      "detector_coordinates": 35
-    },{
-      "file_list": ["2859-2927"],
-      "description": "Cycle 492 MIF looking down 15 minute runs overnight",
-      "name": "Cycle492_MIF_down",
-      "detector_configuration": 5,
-      "detector_coordinates": 36
-    },{
-      "file_list": ["NE_FACING_EAST"],
-      "description": "Cycle 492 NE corner of PROSPECT facing East",
-      "name": "Cycle492_NE_East",
-      "detector_configuration": 5,
-      "detector_coordinates": 37
-    },{
-      "file_list": ["EAST_FACE_1"],
-      "description": "Cycle 492 middle of East face of PROSPECT facing East towards HB4 hot spot",
-      "name": "Cycle492_East_facing_East",
-      "detector_configuration": 5,
-      "detector_coordinates": 38
-    },{
-      "file_list": ["HB4_HOT_SPOT"],
-      "description": "Cycle 492 HB4 hot spot facing down",
-      "name": "Cycle492_HB4_hot_spot",
-      "detector_configuration": 5,
-      "detector_coordinates": 31
-    },{
-      "file_list": ["HB4_HOT_SPOT_Pb"],
-      "description": "Cycle 492 HB4 hot spot facing down with 1 layer of lead blankets",
-      "name": "Cycle492_HB4_hot_spot_lead1",
-      "detector_configuration": 5,
-      "detector_coordinates": 31
-    },{
-      "file_list": ["HB4_HOT_SPOT_Pb2"],
-      "description": "Cycle 492 HB4 hot spot facing down with 3 lead blankets overlapped in cross shape",
-      "name": "Cycle492_HB4_hot_spot_lead2",
-      "detector_configuration": 5,
-      "detector_coordinates": 31
-    },{
-      "file_list": ["HB4_HOT_SPOT_BLOCKS"],
-      "description": "Cycle 492 HB4 hot spot facing down with 8 lead bricks in 2x4 configuration underneath",
-      "name": "Cycle492_HB4_hot_spot_bricks1",
-      "detector_configuration": 5,
-      "detector_coordinates": 31
-    },{
-      "file_list": ["HB4_HOT_SPOT_BLOCKS2"],
-      "description": "Cycle 492 HB4 hot spot facing down with 2 layers of 8 lead bricks in 2x4 configuration underneath",
-      "name": "Cycle492_HB4_hot_spot_bricks2",
-      "detector_configuration": 5,
-      "detector_coordinates": 31
-    },{
-      "file_list": ["HB4_HOT_SPOT_B&S"],
-      "description": "Cycle 492 HB4 hot spot facing down with 2 layers of 8 lead bricks in 2x4 configuration  and 3 lead blankets underneath",
-      "name": "Cycle492_HB4_hot_spot_sheets_and_bricks",
-      "detector_configuration": 5,
-      "detector_coordinates": 31
-    }
-  ]
+    "comments": "this file has been updated March 24, 2022 to contain all runs that are not track or positions scans (which can be read in either from file name for track scans or from tables on elog for other scans) through the final data taking period 2/15/22",
+    "runs": [
+        {
+            "file_list": ["TESLA_20CM_AMERSHAM_AM-241"],
+            "description": "David Glasgow source run (Am-241) with bare detector in his office",
+            "name": "PreDeploymentAmSourceRun",
+            "detector_configuration": 26,
+            "detector_coordinates": [
+                0,
+                0,
+                0,
+                0,
+                0
+            ]
+        },{
+            "file_list": ["LAB_SPECTRUM_OF_TH-232_SOURCE"],
+            "description": "David Glasgow source run (Th-232) with bare detector in his office",
+            "name": "PreDeploymentThSourceRun",
+            "detector_configuration": 26,
+            "detector_coordinates": [
+                0,
+                0,
+                0,
+                0,
+                0
+            ]
+        },
+        {
+            "file_list": "1-15",
+            "description": "Background runs before cycle 490",
+            "name": "PreCycle490",
+            "detector_configuration": 1,
+            "detector_coordinates": [
+                46.5,
+                164.5,
+                29.0,
+                164.5,
+                54.0
+            ]
+        },
+        {
+            "file_list": [
+                16
+            ],
+            "description": "Cycle 490A ramp up to 10%",
+            "name": "Cycle490A_0to10pwr",
+            "detector_configuration": 1,
+            "detector_coordinates": [
+                46.5,
+                164.5,
+                29.0,
+                164.5,
+                54.0
+            ]
+        },
+        {
+            "file_list": [
+                17
+            ],
+            "description": "Cycle 490A 10% power",
+            "name": "Cycle490A_10pwr",
+            "detector_configuration": 1,
+            "detector_coordinates": [
+                46.5,
+                164.5,
+                29.0,
+                164.5,
+                54.0
+            ]
+        },
+        {
+            "file_list": [
+                18
+            ],
+            "description": "Cycle 490A 10% shutting down",
+            "name": "Cycle490A_10to0pwr",
+            "detector_configuration": 1,
+            "detector_coordinates": [
+                46.5,
+                164.5,
+                29.0,
+                164.5,
+                54.0
+            ]
+        },
+        {
+            "file_list": [
+                19
+            ],
+            "description": "Cycle 490A ramping to 10% power a second time",
+            "name": "Cycle490A_0to10pwr2",
+            "detector_configuration": 1,
+            "detector_coordinates": [
+                46.5,
+                164.5,
+                29.0,
+                164.5,
+                54.0
+            ]
+        },
+        {
+            "file_list": [
+                20
+            ],
+            "description": "Cycle 490A 10% ramp to 30% power",
+            "name": "Cycle490A_10to30pwr",
+            "detector_configuration": 1,
+            "detector_coordinates": [
+                46.5,
+                164.5,
+                29.0,
+                164.5,
+                54.0
+            ]
+        },
+        {
+            "file_list": [
+                21
+            ],
+            "description": "Cycle 490A 30% ramp to 50% power",
+            "name": "Cycle490A_30to50pwr",
+            "detector_configuration": 1,
+            "detector_coordinates": [
+                46.5,
+                164.5,
+                29.0,
+                164.5,
+                54.0
+            ]
+        },
+        {
+            "file_list": [
+                22
+            ],
+            "description": "Cycle 490A 50% ramp to 70% power",
+            "name": "Cycle490A_50to70pwr",
+            "detector_configuration": 1,
+            "detector_coordinates": [
+                46.5,
+                164.5,
+                29.0,
+                164.5,
+                54.0
+            ]
+        },
+        {
+            "file_list": [
+                23
+            ],
+            "description": "Cycle 490A 70% ramp to 90% power",
+            "name": "Cycle490A_70to90pwr",
+            "detector_configuration": 1,
+            "detector_coordinates": [
+                46.5,
+                164.5,
+                29.0,
+                164.5,
+                54.0
+            ]
+        },
+        {
+            "file_list": [
+                24
+            ],
+            "description": "Cycle 490A 90% ramp to 100% power",
+            "name": "Cycle490A_90to100pwr",
+            "detector_configuration": 1,
+            "detector_coordinates": [
+                46.5,
+                164.5,
+                29.0,
+                164.5,
+                54.0
+            ]
+        },
+        {
+            "file_list": [
+                28,
+                29
+            ],
+            "description": "Cycle 490A 100% power original position",
+            "name": "Cycle490A_original",
+            "detector_configuration": 1,
+            "detector_coordinates": [
+                46.5,
+                164.5,
+                29.0,
+                164.5,
+                54.0
+            ]
+        },
+        {
+            "file_list": [
+                30
+            ],
+            "description": "Cycle 490A early shutdown",
+            "name": "Cycle490A_100to0",
+            "detector_configuration": 1,
+            "detector_coordinates": [
+                46.5,
+                164.5,
+                29.0,
+                164.5,
+                54.0
+            ]
+        },
+        {
+            "file_list": "31-42",
+            "description": "Between Cycle 490A and 490B",
+            "name": "PreCycle490B",
+            "detector_configuration": 1,
+            "detector_coordinates": [
+                46.5,
+                164.5,
+                29.0,
+                164.5,
+                54.0
+            ]
+        },
+        {
+            "file_list": [
+                44
+            ],
+            "description": "Cycle 490B 10% to 100% power, first hour is ramp up, remainder is 100% power",
+            "name": "Cycle490BRampTo100",
+            "detector_configuration": 1,
+            "detector_coordinates": [
+                46.5,
+                164.5,
+                29.0,
+                164.5,
+                54.0
+            ]
+        },
+        {
+            "file_list": [
+                45
+            ],
+            "description": "Cycle 490B 100% power for first hour and 40 minutes, remainder is reactor shutting down",
+            "name": "Cycle490B100to0",
+            "detector_configuration": 1,
+            "detector_coordinates": [
+                46.5,
+                164.5,
+                29.0,
+                164.5,
+                54.0
+            ]
+        },
+        {
+            "file_list": [
+                54,
+                55
+            ],
+            "description": "Cycle 490C 10 MeV range original position",
+            "name": "Cycle490C_original_10MeVrange",
+            "detector_configuration": 2,
+            "detector_coordinates": [
+                46.5,
+                164.5,
+                29.0,
+                164.5,
+                54.0
+            ]
+        },
+        {
+            "file_list": [
+                "EAST_FACING_45_DEGREE_DOWN_ANGLE"
+            ],
+            "description": "Cycle 490C 10 MeV range 90 degree clockwise rotation from original position",
+            "name": "Cycle490C_90deg_clockwise_10MeVrange",
+            "detector_configuration": 2,
+            "detector_coordinates": [
+                22.5,
+                167.5,
+                22.5,
+                167.5,
+                54.0
+            ]
+        },
+        {
+            "file_list": [
+                57
+            ],
+            "description": "Cycle 490C 3.6 MeV range nominal position north facing",
+            "name": "Cycle490C_nominal_north_3.6MeVrange",
+            "detector_configuration": 1,
+            "detector_coordinates": [
+                41.5,
+                164.5,
+                59.0,
+                164.5,
+                57.5
+            ]
+        },
+        {
+            "file_list": [
+                "CORNER_MEASUREMENT_NO_SHIELD_WALL"
+            ],
+            "description": "Cycle 490C measured at NE wall corner pointing towards reactor (partially in view of steel wall)",
+            "name": "Cycle490C_NECorner_partial_steel",
+            "detector_configuration": 1,
+            "detector_coordinates": [
+                17.0,
+                4.0,
+                32.5,
+                -5.0,
+                57.5
+            ]
+        },
+        {
+            "file_list": [
+                "CORNER_MEASUREMENT_NO_SHIELD_WALL_LOW_GAIN"
+            ],
+            "description": "Cycle 490C measured at NE wall corner pointing towards reactor clear of steel wall with low gain",
+            "name": "Cycle490C_NECorner_no_steel_low_gain",
+            "detector_configuration": 3,
+            "detector_coordinates": [
+                4.5,
+                -3.25,
+                15.5,
+                -16.0,
+                57.5
+            ]
+        },
+        {
+            "file_list": [
+                "CORNER_TPS_OVERNIGHT"
+            ],
+            "description": "Cycle 490C overnight run measured under the MIF pointing roughly towards the reactor, optimized for angle",
+            "name": "Cycle490C_MIF_partial_optimization_overnight",
+            "detector_configuration": 3,
+            "detector_coordinates": [
+                23.0,
+                94.5,
+                40.0,
+                92.0,
+                51.0
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_BOX_AT_REACTOR_OPTIMIZED_DAY_COUNT"
+            ],
+            "description": "Cycle 490C day count measured under the MIF pointing towards the reactor, optimized for cart and detector angle",
+            "name": "Cycle490C_MIF_reactor_optimized_9.6MeVrange",
+            "detector_configuration": 3,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                "NOMINAL_NORTH"
+            ],
+            "description": "Cycle 490C nominal north position 9.6 MeV range",
+            "name": "Cycle490C_nominal_north_9.6MeVrange",
+            "detector_configuration": 3,
+            "detector_coordinates": [
+                41.5,
+                164.5,
+                59.0,
+                164.5,
+                57.5
+            ]
+        },
+        {
+            "file_list": [
+                "NOMINAL_EAST"
+            ],
+            "description": "Cycle 490C nominal east position 9.6 MeV range",
+            "name": "Cycle490C_nominal_east_9.6MeVrange",
+            "detector_configuration": 3,
+            "detector_coordinates": [
+                32.0,
+                182.5,
+                32.0,
+                165.0,
+                57.5
+            ]
+        },
+        {
+            "file_list": [
+                "NOMINAL_SOUTH"
+            ],
+            "description": "Cycle 490C nominal south position 9.6 MeV range",
+            "name": "Cycle490C_nominal_south_9.6MeVrange",
+            "detector_configuration": 3,
+            "detector_coordinates": [
+                52.5,
+                196.5,
+                35.0,
+                196.5,
+                57.5
+            ]
+        },
+        {
+            "file_list": [
+                "NOMINAL_WEST"
+            ],
+            "description": "Cycle 490C nominal west position 9.6 MeV range",
+            "name": "Cycle490C_nominal_west_9.6MeVrange",
+            "detector_configuration": 3,
+            "detector_coordinates": [
+                64.0,
+                177.0,
+                64.0,
+                194.5,
+                57.5
+            ]
+        },
+        {
+            "file_list": [
+                "ORIGINAL_QUICK_LOWGAIN"
+            ],
+            "description": "Cycle 490C original position 9.6 MeV range quick run",
+            "name": "Cycle490C_original_9.6MeVrange_short_run",
+            "detector_configuration": 3,
+            "detector_coordinates": [
+                46.5,
+                164.5,
+                29.0,
+                164.5,
+                54.0
+            ]
+        },
+        {
+            "file_list": [
+                "ORIGINAL_QUICK_LOWGAIN_90_ROT"
+            ],
+            "description": "Cycle 490C original position rotated 90 degrees clockwise 9.6 MeV range quick run",
+            "name": "Cycle490C_original_rot90_9.6MeVrange_short_run",
+            "detector_configuration": 3,
+            "detector_coordinates": [
+                22.5,
+                167.5,
+                22.5,
+                167.5,
+                54.0
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_BOX_REACTOR_OPTIMIZED_OVERNIGHT_LOWEST_GAIN"
+            ],
+            "description": "Cycle 490C at optimal rate position under MIF with lowest possible gain settings",
+            "name": "Cycle490C_MIF_reactor_optimized_14.6MeVrange",
+            "detector_configuration": 4,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN"
+            ],
+            "description": "Cycle 490C at optimal rate position under MIF with optimized gain for seeing the last gamma peak (11.4MeV)",
+            "name": "Cycle490C_MIF_reactor_optimized_11.5MeVrange",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_OFF_REACTOR_AXIS_OVERNIGHT"
+            ],
+            "description": "Cycle 490C under MIF cart rotated counterclockwise about 40 degrees to point outside of direct line of sight of reactor",
+            "name": "Cycle490C_MIF_off_axis",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                44.5,
+                95.5,
+                60.0,
+                103.0,
+                45.0
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_OFF_REACTOR_AXIS_2"
+            ],
+            "description": "Cycle 490C under MIF cart rotated counterclockwise ~15 degrees from the direct reactor line of sight",
+            "name": "Cycle490C_MIF_off_axis_2",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                30.5,
+                93.0,
+                48.0,
+                93.5,
+                45.0
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_OFF_REACTOR_AXIS_3"
+            ],
+            "description": "Cycle 490C under MIF cart rotated counterclockwise ~60 degrees from the direct reactor line of sight",
+            "name": "Cycle490C_MIF_off_axis_3",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                47.0,
+                97.0,
+                62.0,
+                102.5,
+                45.0
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_OFF_REACTOR_AXIS_4"
+            ],
+            "description": "Cycle 490C under MIF cart rotated counterclockwise ~90 degrees from the direct reactor line of sight",
+            "name": "Cycle490C_MIF_off_axis_4",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                51.0,
+                85.0,
+                64.0,
+                98.0,
+                45.0
+            ]
+        },
+        {
+            "file_list": "171-362",
+            "description": "Cycle 490C under MIF cart facing reactor shutdown measurement in 15 minute intervals",
+            "name": "Cycle490C_shutdown",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_BOX_AT_REACTOR_RXOFF"
+            ],
+            "description": "Post Cycle 490C under MIF cart facing reactor, day long count",
+            "name": "PostCycle490C_MIF",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                "NOMINAL_NORTH_RXOFF_2DAY"
+            ],
+            "description": "Post Cycle 490C at nominal position north facing, 2 day long count",
+            "name": "PostCycle490C_nominal",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                41.5,
+                164.5,
+                59.0,
+                164.5,
+                57.5
+            ]
+        },
+        {
+            "file_list": "363-395",
+            "description": "Post Cycle 490C at MIF facing reactor, 8 hour counts through rxoff period",
+            "name": "PostCycle490C_MIF_8hour_sequence",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": "555-637",
+            "description": "Pre Cycle 491 at MIF facing reactor,  15 minute counts through during rxr testing for startup the following day",
+            "name": "PreCycle491_MIF_15min_sequence",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                638
+            ],
+            "description": "Cycle 491 ramp up to 10% power",
+            "name": "Cycle491_0to10pwr",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                639,
+                640
+            ],
+            "description": "Cycle 491 at 10% power",
+            "name": "Cycle491_10pwr",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                641
+            ],
+            "description": "Cycle 491 10% ramp to 30% power",
+            "name": "Cycle491_10to30pwr",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                642
+            ],
+            "description": "Cycle 491 30% ramp to 50% power",
+            "name": "Cycle491_30to50pwr",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                643
+            ],
+            "description": "Cycle 491 50% ramp to 70% power",
+            "name": "Cycle491_50to70pwr",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                644
+            ],
+            "description": "Cycle 491 70% ramp to 90% power",
+            "name": "Cycle491_70to90pwr",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                645
+            ],
+            "description": "Cycle 491 90% ramp to 100% power",
+            "name": "Cycle491_90to100pwr",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": "747-938",
+            "description": "Cycle 491 first two days, 15 minute runs",
+            "name": "Cycle491_start",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_HIGHGAIN_512KEV"
+            ],
+            "description": "Cycle 491 MIF position high gain test 1",
+            "name": "Cycle491_high_gain_test1",
+            "detector_configuration": 6,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_MAXGAIN_64KEV_TEST"
+            ],
+            "description": "Cycle 491 MIF position max gain test",
+            "name": "Cycle491_max_gain_test",
+            "detector_configuration": 7,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_512KEV_DAYRUN"
+            ],
+            "description": "Cycle 491 MIF position high gain test 2",
+            "name": "Cycle491_high_gain_test2",
+            "detector_configuration": 8,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_MAXGAIN_DAYCOUNT"
+            ],
+            "description": "Cycle 491 MIF position max gain overnight",
+            "name": "Cycle491_max_gain_overnight",
+            "detector_configuration": 7,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_AM_SOURCE_MAXGAIN"
+            ],
+            "description": "Cycle 491 MIF position Americium source max gain",
+            "name": "Cycle491_max_gain_Am",
+            "detector_configuration": 7,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_AM_SOURCE_521KEV"
+            ],
+            "description": "Cycle 491 MIF position Americium source high gain",
+            "name": "Cycle491_high_gain_Am",
+            "detector_configuration": 8,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_NO_SOURCE_521KEV"
+            ],
+            "description": "Cycle 491 MIF position no source high gain",
+            "name": "Cycle491_high_gain_no_source",
+            "detector_configuration": 8,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": "1515-1655",
+            "description": "Cycle 491 MIF position 2 day 15 minute runs high gain stability test",
+            "name": "Cycle491_high_gain_weekend_runs",
+            "detector_configuration": 8,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": "1707-1733",
+            "description": "Cycle 491 MIF position 15 minute runs LTC mode off test, memory group 1",
+            "name": "Cycle491_high_gain_LTC_OFF_mem1_tests",
+            "detector_configuration": 9,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": "1734-1825",
+            "description": "Cycle 491 MIF position 15 minute runs LTC mode off test, memory group 2",
+            "name": "Cycle491_high_gain_LTC_OFF_mem2_tests",
+            "detector_configuration": 10,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_STRONG_AM_SOURCE_520KEV"
+            ],
+            "description": "Cycle 491 MIF position strong am source test high gain",
+            "name": "Cycle491_high_gain_strong_am",
+            "detector_configuration": 9,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_STRONG_AM_SOURCE_MAXGAIN"
+            ],
+            "description": "Cycle 491 MIF position strong am source test max gain",
+            "name": "Cycle491_max_gain_strong_am",
+            "detector_configuration": 11,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_STRONG_AM_SOURCE_MAXGAIN_0LLD"
+            ],
+            "description": "Cycle 491 MIF position strong am source test max gain, 0 LLD",
+            "name": "Cycle491_max_gain_strong_am_0lld",
+            "detector_configuration": 12,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_STRONG_AM_SOURCE_MAXGAIN_50LLD"
+            ],
+            "description": "Cycle 491 MIF position strong am source test max gain, 50 LLD",
+            "name": "Cycle491_max_gain_strong_am_50lld",
+            "detector_configuration": 13,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_STRONG_AM_SOURCE_520KEV_LTC_ON"
+            ],
+            "description": "Cycle 491 MIF position strong am source test high gain, LTC on",
+            "name": "Cycle491_high_gain_strong_am_ltc_on",
+            "detector_configuration": 14,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_STRONG_AM_SOURCE_MAXGAIN_LTC_ON"
+            ],
+            "description": "Cycle 491 MIF position strong am source test max gain, LTC on",
+            "name": "Cycle491_max_gain_strong_am_ltc_on",
+            "detector_configuration": 15,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },{
+            "file_list": ["NOMINAL_STRONG_AM_SOURCE_MAXGAIN"],
+            "description": "Cycle 491 nominal position max gain calibration run with am source",
+            "name": "Cycle491_nominal_max_gain_Am_cal",
+            "detector_configuration": 15,
+            "detector_coordinates": [
+                41.5,
+                164.5,
+                59.0,
+                164.5,
+                57.5
+            ]
+        },
+        {
+            "file_list": "2026-2087",
+            "description": "Cycle 491 nominal position max gain hour runs",
+            "name": "Cycle491_nominal_max_gain_hour_runs",
+            "detector_configuration": 15,
+            "detector_coordinates": [
+                41.5,
+                164.5,
+                59.0,
+                164.5,
+                57.5
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_DOWN_FACING"
+            ],
+            "description": "Cycle 491 MIF downward facing",
+            "name": "Cycle491_MIF_DOWN",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                29.5,
+                89.5,
+                47.0,
+                89.0,
+                0.0
+            ]
+        },
+        {
+            "file_list": [
+                "HB4_DOWN_OVERNIGHT_1"
+            ],
+            "description": "Cycle 491 HB4 hot spot downward facing",
+            "name": "HB4_overnight",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                95.0,
+                316.5,
+                95.0,
+                299.0,
+                0.0
+            ]
+        },
+        {
+            "file_list": [
+                "CYCLE461_DOWN_FACING_OVERNIGHT"
+            ],
+            "description": "Cycle 491 shield wall center spot downward facing",
+            "name": "Shield_center_down_overnight",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                30.5,
+                216.5,
+                30.5,
+                199.5,
+                0.0
+            ]
+        },
+        {
+            "file_list": [
+                "MIF_AM_CAL"
+            ],
+            "description": "Cycle 491 MIF max gain Am calibration run",
+            "name": "Cycle491_MIF_Am_cal",
+            "detector_configuration": 7,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": "2091-2282",
+            "description": "Cycle 491 shutdown 15 minute runs max gain",
+            "name": "Cycle491_shutdown_maxgain",
+            "detector_configuration": 7,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": "2475-2504",
+            "description": "Post Cycle 491 rxr off 1 hour runs max gain",
+            "name": "PostCycle491_maxgain",
+            "detector_configuration": 7,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },{
+            "file_list": ["CO60_HB4"],
+            "description": "Cycle 492 co60 calibration run before position scans",
+            "name": "Cycle492_HB4_Co60_calibration",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                21.0,
+                94.5,
+                38.0,
+                90.5,
+                46.5
+            ]
+        },
+        {
+            "file_list": "2667-2799",
+            "description": "Cycle 492 HB4 down looking 30 minute runs",
+            "name": "Cycle492_HB4_30minute_runs",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                51.0,
+                275.5,
+                51.0,
+                258.0,
+                0.0
+            ]
+        },
+        {
+            "file_list": [
+                "PROSPECT_DOWN_OVERNIGHT"
+            ],
+            "description": "Cycle 492 PROSPECT down looking overnight",
+            "name": "Cycle492_PROSPECT_down",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                27.0,
+                178.0,
+                27.0,
+                160.5,
+                0.0
+            ]
+        },
+        {
+            "file_list": [
+                "PROSPECT_DOWN_BRICK1"
+            ],
+            "description": "Cycle 492 PROSPECT down looking 1 brick layer, 4 bricks",
+            "name": "Cycle492_PROSPECT_brick1",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                29.5,
+                183.5,
+                47.0,
+                183.5,
+                0.0
+            ]
+        },
+        {
+            "file_list": [
+                "PROSPECT_DOWN_BRICK2"
+            ],
+            "description": "Cycle 492 PROSPECT down looking 2 brick layer, 4 bricks",
+            "name": "Cycle492_PROSPECT_brick2",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                29.5,
+                183.5,
+                47.0,
+                183.5,
+                0.0
+            ]
+        },{
+            "file_list": [
+                "HB3_BEAM_PORT"
+            ],
+            "description": "Cycle 492 HB3 BEAM PORT looking down",
+            "name": "Cycle492_HB3_BEAM_PORT",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                27,
+                33,
+                44.5,
+                33,
+                0.0
+            ]
+        },
+        {
+            "file_list": "2859-2927",
+            "description": "Cycle 492 MIF looking down 15 minute runs overnight",
+            "name": "Cycle492_MIF_down",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                21.0,
+                108.5,
+                21.0,
+                91.0,
+                0.0
+            ]
+        },
+        {
+            "file_list": [
+                "NE_FACING_EAST"
+            ],
+            "description": "Cycle 492 NE corner of PROSPECT facing East",
+            "name": "Cycle492_NE_East",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                32.0,
+                221.5,
+                32.0,
+                304.0,
+                90.0
+            ]
+        },{
+            "file_list": [
+                "SE_TEST_1"
+            ],
+            "description": "Cycle 492 SE corner of PROSPECT test run 1 for rates while facing hot spot",
+            "name": "Cycle492_SE_test_1",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                112,
+                218.5,
+                112,
+                201,
+                62.0
+            ]
+        },{
+            "file_list": [
+                "SE_TEST_2"
+            ],
+            "description": "Cycle 492 SE corner of PROSPECT test run 2 for rates while facing hot spot",
+            "name": "Cycle492_SE_test_2",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                112,
+                221.5,
+                112,
+                204,
+                62.0
+            ]
+        },
+        {
+            "file_list": [
+                "EAST_FACE_1"
+            ],
+            "description": "Cycle 492 middle of East face of PROSPECT facing East towards HB4 hot spot",
+            "name": "Cycle492_East_facing_East",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                77.0,
+                216.0,
+                77.0,
+                198.5,
+                63.5
+            ]
+        },
+        {
+            "file_list": [
+                "HB4_HOT_SPOT"
+            ],
+            "description": "Cycle 492 HB4 hot spot facing down",
+            "name": "Cycle492_HB4_hot_spot",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                95.0,
+                316.5,
+                95.0,
+                299.0,
+                0.0
+            ]
+        },
+        {
+            "file_list": [
+                "HB4_HOT_SPOT_Pb"
+            ],
+            "description": "Cycle 492 HB4 hot spot facing down with 1 layer of lead blankets",
+            "name": "Cycle492_HB4_hot_spot_lead1",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                95.0,
+                316.5,
+                95.0,
+                299.0,
+                0.0
+            ]
+        },
+        {
+            "file_list": [
+                "HB4_HOT_SPOT_Pb2"
+            ],
+            "description": "Cycle 492 HB4 hot spot facing down with 3 lead blankets overlapped in cross shape",
+            "name": "Cycle492_HB4_hot_spot_lead2",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                95.0,
+                316.5,
+                95.0,
+                299.0,
+                0.0
+            ]
+        },
+        {
+            "file_list": [
+                "HB4_HOT_SPOT_Pb_BLOCKS"
+            ],
+            "description": "Cycle 492 HB4 hot spot facing down with 8 lead bricks in 2x4 configuration underneath",
+            "name": "Cycle492_HB4_hot_spot_bricks1",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                95.0,
+                316.5,
+                95.0,
+                299.0,
+                0.0
+            ]
+        },
+        {
+            "file_list": [
+                "HB4_HOT_SPOT_Pb_BLOCKS2"
+            ],
+            "description": "Cycle 492 HB4 hot spot facing down with 2 layers of 8 lead bricks in 2x4 configuration underneath",
+            "name": "Cycle492_HB4_hot_spot_bricks2",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                95.0,
+                316.5,
+                95.0,
+                299.0,
+                0.0
+            ]
+        },
+        {
+            "file_list": [
+                "HB4_HOT_SPOT_Pb_B&S"
+            ],
+            "description": "Cycle 492 HB4 hot spot facing down with 2 layers of 8 lead bricks in 2x4 configuration  and 3 lead blankets underneath, overnight reactor on",
+            "name": "Cycle492_HB4_hot_spot_sheets_and_bricks",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                95.0,
+                316.5,
+                95.0,
+                299.0,
+                0.0
+            ]
+        },
+        {
+            "file_list": [
+                "HB4_HOT_SPOT_Pb_B&S_RXOFF"
+            ],
+            "description": "pre Cycle 493 HB4 hot spot facing down with 2 layers of 8 lead bricks in 2x4 configuration  and 3 lead blankets underneath, overnight reactor off",
+            "name": "PreCycle493_HB4_hot_spot_sheets_and_bricks",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                95.0,
+                316.5,
+                95.0,
+                299.0,
+                0.0
+            ]
+        },{
+            "file_list": [
+                "HB4_HOT_SPOT_RXOFF"
+            ],
+            "description": "pre Cycle 493 HB4 hot spot facing down with 2 layers of 8 lead bricks in 2x4 configuration  and 3 lead blankets underneath, second reactor off run in this configuration",
+            "name": "PreCycle493_HB4_hot_spot_sheets_and_bricks_2",
+            "detector_configuration": 5,
+            "detector_coordinates": [
+                95.0,
+                316.5,
+                95.0,
+                299.0,
+                0.0
+            ]
+        },{
+            "file_list": ["RUSSIAN_DOLL_SHIELD_TEST"],
+            "description": "Cycle 493 Russian Doll low gain first test run",
+            "name": "Cycle493_RD_test_low_gain",
+            "detector_configuration": 16,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "3051-3054",
+            "description": "Cycle 493 Russian Doll low gain",
+            "name": "Cycle493_RD_low_gain",
+            "detector_configuration": 16,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": [
+                "x8_C060_07122021"
+            ],
+            "description": "Cycle 493 Medium gain russian doll Co-60 calibration",
+            "name": "Cycle493_RD_medium_gain_cal",
+            "detector_configuration": 17,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "3435-3441",
+            "description": "Cycle 493 Medium gain russian doll",
+            "name": "Cycle493_RD_medium_gain",
+            "detector_configuration": 17,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": [
+                "x304_AM217_07142021"
+            ],
+            "description": "Cycle 493 High gain russian doll Am-241 calibration",
+            "name": "Cycle493_RD_high_gain_cal",
+            "detector_configuration": 18,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "3819-3828",
+            "description": "Cycle 493 High gain russian doll",
+            "name": "Cycle493_RD_high_gain",
+            "detector_configuration": 18,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": [
+                3829
+            ],
+            "description": "Cycle 493 shut down High gain russian doll",
+            "name": "Cycle493Shutdown_RD_high_gain",
+            "detector_configuration": 18,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "3830-3835",
+            "description": "PreCycle 494 High gain russian doll",
+            "name": "PreCycle494_RD_high_gain",
+            "detector_configuration": 18,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "4011-4017",
+            "description": "PreCycle 494 Low gain russian doll",
+            "name": "Cycle494_RD_low_gain",
+            "detector_configuration": 16,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "4203-4204",
+            "description": "PreCycle 494 Medium gain russian doll",
+            "name": "PreCycle493_RD_medium_gain",
+            "detector_configuration": 17,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": [
+                4205
+            ],
+            "description": "Cycle 494 Startup Medium gain russian doll",
+            "name": "Cycle494Startup_RD_medium_gain",
+            "detector_configuration": 17,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "4206-4216",
+            "description": "Cycle 494 Medium gain russian doll",
+            "name": "Cycle494_RD_medium_gain",
+            "detector_configuration": 17,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": [
+                "x8_CO60_082021"
+            ],
+            "description": "Cycle 494 Medium gain russian doll co-60 calibration",
+            "name": "Cycle494_RD_medium_gain_calibration",
+            "detector_configuration": 17,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "4395-4408",
+            "description": "Cycle 494 Low gain russian doll + floor lead",
+            "name": "Cycle494_RD_low_gain_lead",
+            "detector_configuration": 19,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": [
+                4409
+            ],
+            "description": "Cycle 494 shutdown Low gain russian doll + floor lead",
+            "name": "Cycle494Shutdown_RD_low_gain_lead",
+            "detector_configuration": 19,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "4410-4426",
+            "description": "PreCycle 495 Low gain russian doll + floor lead",
+            "name": "PreCycle495_RD_low_gain_lead",
+            "detector_configuration": 19,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": [
+                4427
+            ],
+            "description": "Cycle 495 startup Low gain russian doll + floor lead",
+            "name": "Cycle495Startup_RD_low_gain_lead",
+            "detector_configuration": 19,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "4428-4430",
+            "description": "Cycle 495 Low gain russian doll + floor lead",
+            "name": "Cycle495_RD_low_gain_lead",
+            "detector_configuration": 19,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": [
+                "x256_Am_092321"
+            ],
+            "description": "Cycle 495 modified High gain russian doll + floor lead",
+            "name": "Cycle495_RD_mod_high_gain_cal_lead",
+            "detector_configuration": 20,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "4587-4590",
+            "description": "Cycle 495 modified High gain russian doll + floor lead",
+            "name": "Cycle495_RD_mod_high_gain_lead",
+            "detector_configuration": 20,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "4779-4781",
+            "description": "Cycle 495 modified High gain russian doll + floor lead + 8 water bricks",
+            "name": "Cycle495_RD_mod_high_gain_lead_8bricks",
+            "detector_configuration": 21,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "4971-4977",
+            "description": "Cycle 495 modified High gain russian doll + floor lead + 60.5 water bricks",
+            "name": "Cycle495_RD_mod_high_gain_lead_60bricks",
+            "detector_configuration": 22,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": [
+                "x2_Co60_100621"
+            ],
+            "description": "Cycle 495 Low gain calibration run in russian doll + floor lead + 60.5 water bricks",
+            "name": "Cycle495_RD_low_gain_cal_lead_60bricks",
+            "detector_configuration": 23,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "5163-5172",
+            "description": "Cycle 495 Low gain russian doll + floor lead + 60.5 water bricks",
+            "name": "Cycle495_RD_low_gain_lead_60bricks",
+            "detector_configuration": 23,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": [
+                5173
+            ],
+            "description": "Cycle 495 Shutdown Low gain russian doll + floor lead + 60.5 water bricks",
+            "name": "Cycle495Shutdown_RD_low_gain_lead_60bricks",
+            "detector_configuration": 23,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "5174-5184",
+            "description": "PreCycle 496 Low gain russian doll + floor lead + 60.5 water bricks",
+            "name": "PreCycle496_RD_low_gain_lead_60bricks",
+            "detector_configuration": 23,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": [
+                "x256_Am_102821"
+            ],
+            "description": "PreCycle 496 modified high gain russian doll + floor lead + 60.5 water bricks, am-241 calibration",
+            "name": "PreCycle496_RD_mod_high_gain_cal_lead_60bricks",
+            "detector_configuration": 22,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "5355-5403",
+            "description": "PreCycle 496 modified high gain russian doll + floor lead + 60.5 water bricks",
+            "name": "PreCycle496_RD_mod_high_gain_lead_60bricks",
+            "detector_configuration": 22,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "5547-5565",
+            "description": "PreCycle 496 modified high gain russian doll + floor lead + 60.5 water bricks tightly packed",
+            "name": "PreCycle496_RD_mod_high_gain_lead_60brickstight",
+            "detector_configuration": 24,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "5566-5567",
+            "description": "Cycle 496 startup testing modified high gain russian doll + floor lead + 60.5 water bricks tightly packed, first file is startup test, second file is off",
+            "name": "Cycle496StartupTest_RD_mod_high_gain_lead_60brickstight",
+            "detector_configuration": 24,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": [
+                5568
+            ],
+            "description": "Cycle 496 startup modified high gain russian doll + floor lead + 60.5 water bricks tightly packed",
+            "name": "Cycle496Startup_RD_mod_high_gain_lead_60brickstight",
+            "detector_configuration": 24,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "5569-5573",
+            "description": "Cycle 496 modified high gain russian doll + floor lead + 60.5 water bricks tightly packed",
+            "name": "Cycle496_RD_mod_high_gain_lead_60brickstight",
+            "detector_configuration": 24,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "5574-5578",
+            "description": "Cycle 496 modified high gain russian doll + floor lead + 60.5 water bricks tightly packed + 7th layer of water bricks, including unplanned outage",
+            "name": "Cycle496_RD_mod_high_gain_lead_68brickstight",
+            "detector_configuration": 25,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "5579-5582",
+            "description": "Cycle 496 unplanned outage with modified high gain russian doll + floor lead + 60.5 water bricks tightly packed + 7th layer of water bricks, including unplanned outage",
+            "name": "Cycle496Outage_RD_mod_high_gain_lead_68brickstight",
+            "detector_configuration": 25,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "5583-5597",
+            "description": "Cycle 496b modified high gain russian doll + floor lead + 60.5 water bricks tightly packed + 7th layer of water bricks, including unplanned outage",
+            "name": "Cycle496b_RD_mod_high_gain_lead_68brickstight",
+            "detector_configuration": 25,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": [
+                5598
+            ],
+            "description": "Cycle 496 shutdown with modified high gain russian doll + floor lead + 60.5 water bricks tightly packed + 7th layer of water bricks",
+            "name": "Cycle496Shutdown_RD_mod_high_gain_lead_68brickstight",
+            "detector_configuration": 25,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        },
+        {
+            "file_list": "5599-5608",
+            "description": "PreCycle 497 with modified high gain russian doll + floor lead + 60.5 water bricks tightly packed + 7th layer of water bricks",
+            "name": "PreCycle497Shutdown_RD_mod_high_gain_lead_68brickstight",
+            "detector_configuration": 25,
+            "detector_coordinates": [
+                33.5,
+                200.0,
+                33.5,
+                200.0,
+                180.0
+            ]
+        }
+    ]
 }

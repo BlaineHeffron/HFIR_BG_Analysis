@@ -1,5 +1,5 @@
-R|L|theta|live time [s]|total counts|CPS [hz]|file
-30.5, 172|47.5, 172|0|841.65|28910|34.35|NOMINAL_DOWN
+R|L|theta|live time [s]|total counts|CPS [hz]|file|configuration ID
+30.5, 172|47.5, 172|0|841.65|28910|34.35|NOMINAL_DOWN|5
 24.5, 293|24.5, 276|0|1111.9|166967|150.16|HB4_DOWN_1
 34.5, 293|34.5, 276|0|216.25|42542|196.73|HB4_DOWN_2
 42.5, 293|42.5, 276|0|198.66|56866|286.25|HB4_DOWN_3

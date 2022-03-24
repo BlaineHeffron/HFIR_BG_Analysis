@@ -1,5 +1,5 @@
-R (x, z) [in]|L (x, z) [in]|angle [deg]|counts|live time [s]|rate [cps]|filename
-21, 94.5|38, 90.5|51|367629|401.28|916.14|CORNER_ROT1_51
+R (x, z) [in]|L (x, z) [in]|angle [deg]|counts|live time [s]|rate [cps]|filename|configuration ID
+21, 94.5|38, 90.5|51|367629|401.28|916.14|CORNER_ROT1_51|3
 18, 94.5|34, 88.5|51|330276|365.83|902.81|CORNER_ROT2_51
 19.5, 94.5|36, 89.5|51|216369|237.26|911.95|CORNER_ROT3_51
 22.5, 94|40, 89.5|51|234686|259.88|903.06|CORNER_ROT4_51

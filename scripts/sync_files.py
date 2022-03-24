@@ -6,8 +6,8 @@ from src.database.SqliteManager import HFIRBG_DB
 
 def main():
     db = HFIRBG_DB()
-    #db.sync_files()
-    #db.sync_db()
+    db.sync_files()
+    db.sync_db()
     db.set_calibration_groups()
     db.close()
 

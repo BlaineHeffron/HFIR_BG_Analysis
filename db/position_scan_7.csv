@@ -1,5 +1,5 @@
-R|L|theta|live time [s]|total counts|cps [hz]|file
-29.5, 117|47, 117|0|235.77|50780|216.51|PROSPECT_DOWN_19
+R|L|theta|live time [s]|total counts|cps [hz]|file|configuration ID
+29.5, 117|47, 117|0|235.77|50780|216.51|PROSPECT_DOWN_19|5
 29.5, 134.5|47, 134.5|0|134.43|7972|59.43|PROSPECT_DOWN_20
 29.5, 143|47, 143|0|191.66|9040|57.55|PROSPECT_DOWN_21
 29.5, 154|47, 154|0|261.69|13767|52.59|PROSPECT_DOWN_22

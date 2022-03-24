@@ -15,7 +15,7 @@ import numpy as np
 from scipy import stats
 
 from src.analysis.Spectrum import SpectrumData, SpectrumFitter
-from src.utilities.PlotUtils import MultiLinePlot, MultiScatterPlot
+from src.utilities.PlotUtils import MultiLinePlot, MultiScatterPlot, scatter_plot
 from src.utilities.FitUtils import linfit, sqrtfit
 from copy import copy
 from ROOT import TFile, TVectorF
@@ -135,9 +135,9 @@ def retrieve_data(myf, db=None):
     if db is not None:
         row = db.retrieve_calibration(fname)
         if row:
-            print(
-                "found calibration for file {0} in database, using values A0 = {1}, A1 = {2} instead of A0 = {3}, A1 = {4}".format(
-                    fname, row[0], row[1], A0, A1))
+            #print(
+            #    "found calibration for file {0} in database, using values A0 = {1}, A1 = {2} instead of A0 = {3}, A1 = {4}".format(
+            #        fname, row[0], row[1], A0, A1))
             A0 = row[0]
             A1 = row[1]
 
@@ -462,6 +462,37 @@ def plot_spectra(fs, name, rebin=1, emin=None, emax=None):
     plt.savefig("{}.png".format(name))
     plt.close()
 
+
+def plot_time_series(data, outdir, emin=30, emax=None):
+    if emin is None and emax is None:
+        energystring="full"
+    elif emin is None and emax is not None:
+        energystring="below{0}keV".format(emax)
+    elif emax is None and emin is not None:
+        energystring="above{0}keV".format(emin)
+    else:
+        energystring="{0}-{1}keV".format(emin,emax)
+    xlabel = "date"
+    for key in data.keys():
+        if not isinstance(data[key], list):
+            print("{} is not a list of data, skipping".format(key))
+            continue
+        plot_name = join(outdir, "{0}_{1}.png".format(key, energystring))
+        ylabel = "rate [Hz/keV]"
+        rates = []
+        drates = []
+        times = []
+        e1, e2 = data[key][0].get_e_limits(emin, emax)
+        line_label = ["{0:.0f} - {1:.0f} keV".format(e1,e2)]
+        for spec in data[key]:
+            r, dr = spec.integrate(emin, emax, norm=True)
+            rates.append(r)
+            drates.append(dr)
+            times.append(spec.start_timestamp())
+        MultiScatterPlot(times, [rates], [drates], line_label, xlabel, ylabel, xdates=True)
+
+        plt.savefig(plot_name)
+        plt.close()
 
 def get_calibration(file):
     # assumes file has a line like this:

@@ -654,7 +654,7 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
             if ymin < 0: ymin *= 1.05
             else: ymin *= .95
     if(xmin is None):
-        xmin = min(xaxis)*.95
+        xmin = min(xaxis)
     if(xlog):
         ax1.set_xscale('log')
     else:
@@ -671,7 +671,7 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
     else:
         ax1.set_ylim(ymin,ymax)
     if(xmax == -1):
-        ax1.set_xlim(xmin,max(xaxis)*1.05)
+        ax1.set_xlim(xmin,max(xaxis))
     else:
         ax1.set_xlim(xmin,xmax)
     #for i, y in enumerate(yvals):
@@ -725,7 +725,7 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
     #plt.close()
     return fig
 
-def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, xmin=None, xmax=None, invert_y=False, invert_x=False):
+def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, xmin=None, xmax=None, invert_y=False, invert_x=False, xdates=False):
     rcParams.update({'font.size': 18})
     if xmin is not None and xmax is not None and ymin is not None and ymax is not None:
         ratio = abs((ymax - ymin) / (xmax - xmin))*4./5
@@ -735,6 +735,8 @@ def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, x
     ax1 = fig.add_subplot(111)
     ax1.set_xlabel(xlabel)
     ax1.set_ylabel(ylabel)
+    if(xdates):
+        x = mdate.epoch2num(x)
     if ymin is None:
         ymin = min(y)
         if ymin < 0:
@@ -763,6 +765,12 @@ def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, x
             ax1.set_xlim(xmax,xmin)
         else:
             ax1.set_xlim(xmin, xmax)
+    if(xdates):
+        #date_fmt = '%y-%m-%d %H:%M:%S'
+        date_fmt = '%y-%m-%d'
+        date_formatter = mdate.DateFormatter(date_fmt,tz=timezone('US/Eastern'))
+        ax1.xaxis.set_major_formatter(date_formatter)
+        fig.autofmt_xdate()
     h = ax1.scatter(x,y,c=c, cmap='viridis')
     ax1.set_title(title)
     ax1.xaxis.set_minor_locator(AutoMinorLocator())

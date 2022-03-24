@@ -1,2 +1,8 @@
 1,collimator30,7 rings of lead with 30 degree opening angle cone endcap
-2,layer,layers of shielding; outer layer lithiated poly; inner layer borated poly; lead
+2,RD,russian doll layers of shielding; outer layer lithiated poly; inner layer borated poly; lead
+3,RDplusLead,russian doll layers of shielding; outer layer lithiated poly; inner layer borated poly; lead; 3x4 layer of lead underneath stand
+4,RDplusLeadplus8,russian doll layers of shielding; outer layer lithiated poly; inner layer borated poly; lead; 3x4 layer of lead underneath stand plus 8 waterbricks
+5,RDplusLeadplus60,russian doll layers of shielding; outer layer lithiated poly; inner layer borated poly; lead; 3x4 layer of lead underneath stand plus 60.5 waterbricks
+6,RDplusLeadplus60tight,russian doll layers of shielding; outer layer lithiated poly; inner layer borated poly; lead; 3x4 layer of lead underneath stand plus 60.5 waterbricks with 5 taken closely packed in to detector stand
+7,RDplusLeadplus68,russian doll layers of shielding; outer layer lithiated poly; inner layer borated poly; lead; 3x4 layer of lead underneath stand plus 68.5 waterbricks with 5 closely packed and an additional 8 added to top layer
+8,NoShield,no shield when D. Glasgow made some tests before we deployed the detector

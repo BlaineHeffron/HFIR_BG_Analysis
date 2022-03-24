@@ -3,6 +3,7 @@ from copy import copy
 import numba as nb
 import numpy as np
 from ROOT import TH1F
+from datetime import datetime
 from math import sqrt, floor
 from os.path import join
 from itertools import combinations
@@ -52,6 +53,10 @@ class SpectrumData:
         self.data += s.data
         self.live += s.live
 
+    def start_timestamp(self):
+        dt = datetime.strptime(self.start.strip(), "%Y-%m-%d, %H:%M:%S")
+        return dt.timestamp()
+
     def calculate_bin_midpoints(self):
         if self.bin_edges is None:
             raise RuntimeError("bin edges not set")
@@ -99,6 +104,25 @@ class SpectrumData:
             self.hist[1:-1] = self.data.astype(np.float32)
             return
         numba_rebin(self.data, self.hist, self.A0, self.A1, self.bin_edges)
+
+    def bound_to_index(self, bounds):
+        inds = [0,0]
+        xs = self.get_data_x()
+        if bounds[0] < xs[0]:
+            inds[0] = 0
+        else:
+            for i,x in enumerate(xs):
+                if bounds[0] <= x:
+                    inds[0] = i - ((x - bounds[0]) / (xs[i] - xs[i-1]))
+                    break
+        if bounds[1] > xs[-1]:
+            inds[1] = len(xs)
+        else:
+            for i,x in enumerate(xs):
+                if bounds[1] <= x:
+                    inds[1] = i - ((x - bounds[1]) / (xs[i] - xs[i-1]))
+                    break
+        return inds
 
     def hist_subtract(self, s):
         if self.bin_edges is None:
@@ -148,6 +172,36 @@ class SpectrumData:
         for i, d in enumerate(self.data):
             hist.SetBinContent(i + 1, d)
         return hist
+
+    def get_e_limits(self, emin, emax):
+       xs = self.get_data_x()
+       if emin is None:
+           emin = xs[0]
+       if emax is None:
+           emax = xs[-1]
+       if emax > xs[-1]:
+           emax = xs[-1]
+       if emin < xs[0]:
+           emin = xs[0]
+       return emin, emax
+
+    def integrate(self, emin, emax, norm=False):
+        emin, emax = self.get_e_limits(emin, emax)
+        bounds = self.bound_to_index([emin, emax])
+        if not norm:
+            tot = integrate_lininterp_range(self.data, bounds[0], bounds[1] )
+            return tot, sqrt(tot)
+        else:
+            tot = integrate_lininterp_range(self.data, bounds[0], bounds[1] )
+            if tot < 0:
+                print(emin)
+                print(emax)
+                print(self.data)
+                print(bounds[0])
+                print(bounds[1])
+                print(np.amin(self.data))
+            e = sqrt(tot)
+            return tot / self.live / (emax-emin), e / self.live / (emax-emin)
 
 
 def rebin_data(a, n):
@@ -344,14 +398,14 @@ class MultiPeakFit:
             inds[0] = 0
         else:
             for i,x in enumerate(self.xs):
-                if bounds[0] < x:
+                if bounds[0] <= x:
                     inds[0] = i - ((x - bounds[0]) / (self.xs[i] - self.xs[i-1]))
                     break
         if bounds[1] > self.xs[-1]:
             inds[1] = len(self.xs)
         else:
             for i,x in enumerate(self.xs):
-                if bounds[1] < x:
+                if bounds[1] <= x:
                     inds[1] = i - ((x - bounds[1]) / (self.xs[i] - self.xs[i-1]))
                     break
         return inds
@@ -447,14 +501,14 @@ class PeakFit:
             inds[0] = 0
         else:
             for i,x in enumerate(self.xs):
-                if bounds[0] < x:
+                if bounds[0] <= x:
                     inds[0] = i - ((x - bounds[0]) / (self.xs[i] - self.xs[i-1]))
                     break
         if bounds[1] > self.xs[-1]:
             inds[1] = len(self.xs)
         else:
             for i,x in enumerate(self.xs):
-                if bounds[1] < x:
+                if bounds[1] <= x:
                     inds[1] = i - ((x - bounds[1]) / (self.xs[i] - self.xs[i-1]))
                     break
         return inds

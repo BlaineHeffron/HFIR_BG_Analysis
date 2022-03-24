@@ -83,13 +83,22 @@ class SQLiteBase:
         instxt, qtxt = column_placeholder_string(columns)
         self.cur.execute("INSERT OR IGNORE INTO {0} {1} VALUES {2}".format(table, instxt, qtxt), values)
         if retrieve_key:
-            if self.cur.lastrowid == 0:
+            if self.cur.rowcount and self.cur.lastrowid:
+                return self.cur.lastrowid
+            else:
                 unique_columns = self.retrieve_unique_columns(table)
                 if unique_columns:
-                    unique_values = [values[i] for i in range(len(columns)) if columns[i] in unique_columns]
+                    unique_values = []
+                    my_columns = []
+                    for col in unique_columns:
+                        for i, val in enumerate(values):
+                            if columns[i] == col:
+                                unique_values.append(val)
+                                my_columns.append(col)
+                                break
                     theid = self.fetchone(
                         "SELECT id FROM {0} WHERE {1}".format(table,
-                                                              generate_equals_where(unique_columns, unique_values)))
+                                                              generate_equals_where(my_columns, unique_values)))
                 else:
                     theid = self.fetchone(
                         "SELECT id FROM {0} WHERE {1}".format(table, generate_equals_where(columns, values)))
@@ -99,8 +108,6 @@ class SQLiteBase:
                     raise ValueError("insert to table {0} ignored and unable to "
                                      "retrieve id with WHERE clause {1}".format(table,
                                                                                 generate_equals_where(columns, values)))
-            else:
-                return self.cur.lastrowid
 
     def fetchone(self, sql):
         self.execute(sql)
@@ -131,7 +138,6 @@ class SQLiteBase:
         :return: null
         """
         self.cur.executemany(sql, data)
-        self.commit()
 
     def batch_insert(self, table, columns, data):
         """
@@ -163,15 +169,21 @@ class SQLiteBase:
         else:
             raise ValueError("No table named {0} found".format(table))
         cols = []
-        for row in ts.split(","):
+        for row in ts.split('\n'):
             if row.startswith("UNIQUE("):
                 matches = re.finditer(PARENTHREGEX, row)
                 for match in matches:
-                    cols.append(match[1])
+                    if '","' in match[1]:
+                        cols += match[1].split('","')
+                    else:
+                        cols.append(match[1])
             elif "UNIQUE" in row:
                 matches = re.finditer(PARENTHREGEX, row)
                 for match in matches:
-                    cols.append(match[1])
+                    if '","' in match[1]:
+                        cols += match[1].split('","')
+                    else:
+                        cols.append(match[1])
         return cols
 
     def retrieve_foreign_keys(self):
@@ -221,7 +233,6 @@ class SQLiteBase:
         self.__db_connection.close()
 
 
-
 class HFIRBG_DB(SQLiteBase):
     def __init__(self, path=None):
         if path is None:
@@ -257,6 +268,8 @@ class HFIRBG_DB(SQLiteBase):
                 start_time, live_time = start_date(os.path.join(dir, fname))
                 run_number = file_number(fname)
                 skip = False
+                if fname.endswith(".txt"):
+                    fname = fname[0:-4]
                 for curf in cur_files:
                     if fname == curf[1] and dirid == curf[2]:
                         skip = True
@@ -322,6 +335,8 @@ class HFIRBG_DB(SQLiteBase):
         fids = []
         for name in names:
             if isinstance(name, str):
+                if name.endswith(".txt"):
+                    name = name[0:-4]
                 fid = self.fetchone("SELECT id FROM datafile WHERE name = '{}'".format(name))
             else:
                 fid = self.fetchone("SELECT id FROM datafile WHERE run_number = {}".format(name))
@@ -332,6 +347,33 @@ class HFIRBG_DB(SQLiteBase):
     def insert_file_list(self, run_id, fids):
         data = [(run_id, fid) for fid in fids]
         self.batch_insert("run_file_list", ["run_id", "file_id"], data)
+
+    def insert_position_scan(self, f):
+        fname = os.path.basename(f)[0:-4]
+        data = read_csv_list_of_tuples(f, '|')
+        config_id = int(data[1][-1])
+        run_columns = ["description", "name", "detector_configuration", "detector_coordinates"]
+        for row in data[1:]:
+            R = row[0].split(',')
+            L = row[1].split(',')
+            angle = float(row[2])
+            Rx = float(R[0].strip())
+            Rz = float(R[1].strip())
+            Lx = float(L[0].strip())
+            Lz = float(L[1].strip())
+            data = [Rx, Rz, Lx, Lz, angle]
+            coord_id = self.insert_or_ignore("detector_coordinates", ["Rx", "Rz", "Lx", "Lz", "angle"], data, True)
+            file_id = self.retrieve_file_ids([row[6]])
+            if not file_id:
+                print("Could not find file {0} in position scan {1}".format(row[6], fname))
+                continue
+            description = "{0} run at orientation {1}, {2}, {3} - file {4}".format(fname, row[0], row[1], angle, row[6])
+            name = "{0}_{1}".format(fname, row[6])
+            run_id = self.insert_or_ignore("runs", run_columns, [description, name, config_id, coord_id],
+                                           retrieve_key=True)
+            if not run_id:
+                raise RuntimeError("Couldnt insert run {0} in position scan".format(name))
+            self.insert_file_list(run_id, file_id)
 
     def sync_db(self):
         dbdir = get_db_dir()
@@ -346,18 +388,23 @@ class HFIRBG_DB(SQLiteBase):
                     columns = columns[0:len(data[0])]
                 try:
                     self.batch_insert(fname, columns, data)
+                    self.commit()
                 except Exception as e:
                     raise RuntimeError(e)
             elif fname.startswith("position_scan"):
-                print("position scan insert not yet implemented (implement me!)")
+                self.insert_position_scan(f)
             else:
-                raise RuntimeWarning("Warning: the file {} is not being included because it doesnt match a table in "
-                                     "your database!".format(fname))
-
+                print("Warning: the file {} is not being included because it doesnt match a table in "
+                      "your database!".format(fname))
+        self.insert_track_scans()
+        run_names = set()
         columns = self.retrieve_columns("runs")[1:]
         runsfile = get_json(os.path.join(dbdir, "runs.json"))
         coord_cols = self.retrieve_columns("detector_coordinates")[1:-1]
         for run in runsfile["runs"]:
+            if run["name"] in run_names:
+                print("WARNING: run name {} already added".format(run["name"]))
+            run_names.add(run["name"])
             if isinstance(run["detector_coordinates"], list):
                 coord_id = self.insert_or_ignore("detector_coordinates", coord_cols, run["detector_coordinates"],
                                                  retrieve_key=True)
@@ -365,8 +412,12 @@ class HFIRBG_DB(SQLiteBase):
             run_id = self.insert_or_ignore("runs", columns, [run[key] for key in columns], retrieve_key=True)
             flist = run["file_list"]
             if isinstance(flist, str):
-                if "-" in flist:
+                if "-" in flist and is_number(flist.split("-")[0]):
+                    myrange = flist.split("-")
+                    n = int(myrange[1]) - int(myrange[0]) + 1
                     fids = self.retrieve_run_range(flist)
+                    if not fids or len(fids) != n:
+                        print("warning, couldnt find all files in range {0} - {1}".format(myrange[0], myrange[1]))
                     if fids is not None:
                         self.insert_file_list(run_id, fids)
                 else:
@@ -378,34 +429,63 @@ class HFIRBG_DB(SQLiteBase):
                                        "is a list of file names and or run numbers")
 
                 fids = self.retrieve_file_ids(flist)
+                if not fids or len(fids) != len(flist):
+                    print("warning, couldnt find all files in list {}".format(flist))
                 if fids is not None:
                     self.insert_file_list(run_id, fids)
+            self.commit()
 
-    def insert_calgroup_with_name(self, name, A0, A1):
-        self.cur.execute(
-            "INSERT OR IGNORE INTO calibration_group (name, A0, A1) VALUES ('{0}', {1}, {2})".format(name, A0, A1))
-        self.commit()
-        if self.cur.lastrowid == 0:
-            raise RuntimeError("There was an error inserting the calibration group for run id {}, exiting".format(name))
+    def insert_calgroup_with_name(self, name, A0, A1, replace=False):
+        cal = self.fetchone("SELECT id, A0, A1 from calibration_group WHERE name = '{0}'".format(name))
+        if cal:
+            if A0 == cal[1] and A1 == cal[2]:
+                return cal[0]
+            else:
+                if not replace:
+                    print(
+                        "Tried to insert a calibration group {4} but A0 and A1 do not match. database A0 = {0}, A1 = {1}, attempted A0 = {2}, A1 = {3}".format(
+                            cal[1], cal[2], A0, A1, name))
+                else:
+                    print(
+                        "updating calibration group {0} with new values A0 = {1}, A1 = {2} (previous values A0 = {3}, A1 = {4}".format(
+                            name, A0, A1, cal[1], cal[2]))
+                    self.update_calibration(cal[0], A0, A1)
+                return cal[0]
         else:
-            return self.cur.lastrowid
+            cal_id = self.insert_or_ignore("calibration_group", ["name", "A0", "A1"], [name, A0, A1], True)
+            return cal_id
 
-    def insert_calgroup_with_run_id(self, run_id, A0, A1):
+    def update_calibration(self, id, A0, A1):
+        self.execute("UPDATE calibration_group SET A0 = {0}, A1 = {1} WHERE id = {2}".format(A0, A1, id))
+
+    def insert_calgroup_with_run_id(self, run_id, A0, A1, replace=False):
         rname = self.fetchone("SELECT name FROM runs WHERE id = '{}'".format(run_id))
         if rname:
             rname = rname[0]
         else:
             raise RuntimeError("Unable to retrieve run name from run id {}, exiting".format(run_id))
-        self.cur.execute(
-            "INSERT OR IGNORE INTO calibration_group (name, A0, A1) VALUES ('{0}', {1}, {2})".format(rname, A0, A1))
-        self.commit()
-        if self.cur.lastrowid == 0:
-            raise RuntimeError(
-                "There was an error inserting the calibration group for run id {}, exiting".format(run_id))
+        cal = self.fetchone("SELECT id, A0, A1 from calibration_group WHERE name = '{0}'".format(rname))
+        if cal:
+            if A0 == cal[1] and A1 == cal[2]:
+                return cal[0]
+            else:
+                if not replace:
+                    print(
+                        "Tried to insert a calibration group based on run {4} but A0 and A1 do not match. database A0 = {0}, A1 = {1}, attempted A0 = {2}, A1 = {3}".format(
+                            cal[1], cal[2], A0, A1, rname))
+                else:
+                    print(
+                        "updating calibration group for run {0} with new values A0 = {1}, A1 = {2} (previous values A0 = {3}, A1 = {4}".format(
+                            rname, A0, A1, cal[1], cal[2]))
+                    self.update_calibration(cal[0], A0, A1)
+                return cal[0]
         else:
-            return self.cur.lastrowid
+            cal_id = self.insert_or_ignore("calibration_group", ["name", "A0", "A1"], [rname, A0, A1], True)
+            return cal_id
 
     def insert_calibration(self, A0, A1, fname, replace=True):
+        if fname.endswith(".txt"):
+            fname = fname[0:-4]
         myid = self.fetchone("SELECT id FROM datafile WHERE name = '{}'".format(fname))
         if myid:
             myid = myid[0]
@@ -416,29 +496,33 @@ class HFIRBG_DB(SQLiteBase):
             "SELECT group_id FROM file_calibration_group WHERE file_id = {} AND det = 1".format(myid))
         if groupid:
             groupid = groupid[0]
+            if replace:
+                self.update_calibration(groupid, A0, A1)
+            self.commit()
+            return groupid
         else:
             # first check if file belongs to a known run
             run_id = self.retrieve_run_from_file_id(myid)
             if run_id:
-                #print("no calibration group found for file {}, creating one based on its run name".format(fname))
-                groupid = self.insert_calgroup_with_run_id(run_id, A0, A1)
+                # print("no calibration group found for file {}, creating one based on its run name".format(fname))
+                groupid = self.insert_calgroup_with_run_id(run_id, A0, A1, replace)
             else:
-                #print("no run found for filename {}. Creating a new calibration group with the filename.".format(fname))
-                groupid = self.insert_calgroup_with_name(fname, A0, A1)
-            self.insert_or_ignore("file_calibration_group",["group_id","det","file_id"], [groupid, 1, myid])
+                print("no run found for filename {}. Creating a new calibration group with the filename.".format(fname))
+                groupid = self.insert_calgroup_with_name(fname, A0, A1, replace)
+            self.insert_or_ignore("file_calibration_group", ["group_id", "det", "file_id"], [groupid, 1, myid])
             self.commit()
-        if replace:
-            vals = "{0},(select name from calibration_group where id = {0}),{1},{2}".format(groupid, A0, A1)
-            self.cur.execute("INSERT OR REPLACE INTO calibration_group (id,name,A0,A1) VALUES ({0})".format(vals))
-            self.commit()
-        return self.cur.lastrowid
+            return groupid
 
     def retrieve_calibration(self, fname):
+        if fname.endswith(".txt"):
+            fname = fname[0:-4]
         return self.fetchone(
             "SELECT A0, A1 FROM calibration_group where id = (select group_id from file_calibration_group where file_id = (select id from datafile where name = '{}'))".format(
                 fname))
 
     def get_file_path_from_name(self, fname):
+        if fname.endswith(".txt"):
+            fname = fname[0:-4]
         data = self.fetchone(
             "SELECT f.directory_id, d.path from datafile f join directory d on f.directory_id = d.id where f.name = '{}'".format(
                 fname))
@@ -455,7 +539,7 @@ class HFIRBG_DB(SQLiteBase):
         fs = []
         if data:
             for row in data:
-                fs.append(os.path.join(row[1], row[2]))
+                fs.append(os.path.join(row[1], row[2] + ".txt"))
         return fs
 
     def retrieve_file_ids_from_detector_config(self, detector_config_id):
@@ -497,3 +581,29 @@ class HFIRBG_DB(SQLiteBase):
             return self.get_file_paths_from_ids(fids)
         else:
             return None
+
+    def insert_track_scans(self):
+        files = self.fetchall("SELECT id, name FROM datafile WHERE name LIKE '%TRACK_POS%'")
+        if not files:
+            return
+        run_columns = ["description", "name", "detector_configuration", "detector_coordinates"]
+        config_id = 5  # optimal gain for 11.4 MeV
+        for row in files:
+            name = row[1]
+            data = name[9:].split("_")
+            Rx = 41.5
+            Rz = float(data[0]) + 60
+            Lz = float(data[0]) + 60
+            Lx = 58.
+            angle = float(data[1])
+            track = 1
+            coord_data = [Rx, Rz, Lx, Lz, angle, track]
+            coord_id = self.insert_or_ignore("detector_coordinates", ["Rx", "Rz", "Lx", "Lz", "angle", "track"],
+                                             coord_data, True)
+            file_id = row[0]
+            description = "track run at position {0}, angle {1} - file {2}".format(data[0], data[1], name)
+            run_id = self.insert_or_ignore("runs", run_columns, [description, name, config_id, coord_id],
+                                           retrieve_key=True)
+            if not run_id:
+                raise RuntimeError("Couldnt insert run {0} in position scan".format(name))
+            self.insert_file_list(run_id, [file_id])

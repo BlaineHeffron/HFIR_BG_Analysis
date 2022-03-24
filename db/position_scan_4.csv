@@ -1,5 +1,5 @@
-R|L|theta|live time [s]|counts|cps [hz]|file
-23.5, 323|23.5, 306|0|265.19|66121|249.3|HB4_DOWN_21
+R|L|theta|live time [s]|angle|live time|counts|cps [hz]|file|configuration ID
+23.5, 323|23.5, 306|0|265.19|66121|249.3|HB4_DOWN_21|5
 33.5, 323|33.5, 306|0|217.07|74935|345.21|HB4_DOWN_22
 46, 323|46, 306|0|210.07|93493|445.06|HB4_DOWN_23
 59.5, 323|59.5, 306|0|216.77|118729|547.27|HB4_DOWN_24
