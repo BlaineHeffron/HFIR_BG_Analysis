@@ -662,6 +662,10 @@ def write_root(spec, name, fpath, title=''):
     myFile.WriteObject(lt, "LiveTime")
     myFile.Close()
 
+def scale_to_bin_width(hist):
+    for i in range(hist.GetNbinsX()):
+        bin_width = hist.GetXaxis().GetBinWidth(i+1)
+        hist.SetBinContent(i+1, hist.GetBinContent(i+1)/bin_width)
 
 def get_spec_from_root(fname, spec_path, live_path, isParam=False, xScale=1, rebin=1):
     myFile = TFile.Open(fname, "READ")

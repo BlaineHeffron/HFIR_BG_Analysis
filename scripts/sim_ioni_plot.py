@@ -1,6 +1,5 @@
 import h5py
 from argparse import ArgumentParser
-import cppyy
 from ROOT import TH2F, TCanvas
 import os
 
