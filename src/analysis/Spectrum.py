@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 from src.utilities.FitUtils import linfit_to_calibration, linfit
 from src.utilities.PlotUtils import ScatterLinePlot
-from src.utilities.NumbaFunctions import average_median, integrate_lininterp_range, find_peaks
+from src.utilities.NumbaFunctions import average_median, integrate_lininterp_range
 
 
 class SpectrumData:
@@ -635,7 +635,7 @@ class SpectrumFitter:
             if not peak_groups[-1]:
                 del peak_groups[-1]
         self.peak_groups = peak_groups
-        print(self.peak_groups)
+        #print(self.peak_groups)
 
     def smallest_separation(self, peaks):
         diffs = []
@@ -770,6 +770,14 @@ class SpectrumFitter:
             upper_bounds.append(np.inf)
             upper_bounds.append(np.inf)
             upper_bounds.append(np.inf)
+            fit_ready = True
+            for i in range(len(lower_bounds)):
+                if lower_bounds[i] >= upper_bounds[i]:
+                    print("problem setting bounds, giving up on peak set {}".format(peaks))
+                    fit_ready = False
+                    break
+            if not fit_ready:
+                return
             parameters, covariance = curve_fit(ge_multi_peak_function, xs, ys, p0=guesses,  # sigma=sigma,
                                                bounds=(lower_bounds, upper_bounds), sigma=sigma,
                                                #absolute_sigma=True,  maxfev=100000,
@@ -822,6 +830,14 @@ class SpectrumFitter:
         ys = spec.data[start_ind:stop_ind]
         sigma = np.sqrt(ys)
         sigma[sigma == 0] = 1
+        fit_ready = True
+        for i in range(len(lower_bounds)):
+            if lower_bounds[i] >= upper_bounds[i]:
+                print("problem setting bounds, giving up on peak {}".format(peak_x))
+                fit_ready = False
+                break
+        if not fit_ready:
+            return
         parameters, covariance = curve_fit(ge_peak_function, xs, ys, p0=guesses, #sigma=sigma,
                                            bounds=(lower_bounds, upper_bounds), sigma=sigma,
                                            absolute_sigma=True, jac=ge_peak_function_jac, maxfev=100000)
@@ -854,7 +870,7 @@ class SpectrumFitter:
                     if retried == 0:
                         plt.show(block=False)
                         plt.gcf().canvas.draw_idle()
-                        plt.gcf().canvas.start_event_loop(0.3)
+                        plt.gcf().canvas.start_event_loop(2.0)
                         plt.close()
                     answer = str(input("Accept fit? [y/n] (hit enter for default = y)") or "y")
                     if answer.lower() in ["y", "yes"]:
@@ -880,7 +896,7 @@ class SpectrumFitter:
     def get_index_from_energy(self, e):
         return (e - self.A0) / self.A1
 
-    def retrieve_calibration(self, user_prompt=False, tolerate_fails=False, write_to_dir=None, plot_fit=False):
+    def retrieve_calibration(self, user_prompt=False, tolerate_fails=False, write_to_dir=None, plot_fit=False, max_sig_err=1.0):
         accept = self.plot_fits(user_prompt, write_to_dir)
         use_fits = True
         if tolerate_fails:
@@ -908,6 +924,9 @@ class SpectrumFitter:
                 sigmas.append(fit.sigma)
                 values.append(peak_x)
             else:
+                if not accept[i]:
+                    i += 1
+                    continue
                 peak_x = peak_x.split(',')
                 for p, centroid, sigma in zip(peak_x, fit.centroids, fit.sigmas):
                     centroids.append(centroid)
@@ -917,6 +936,9 @@ class SpectrumFitter:
         sigmas = np.array(sigmas)
         values = np.array(values)
         centroids = np.array(centroids)
+        if len(values) < 3:
+            print("not enough points for fit, not able to retrieve calibration")
+            return None, None
         if plot_fit:
             if self.name:
                 fit_name = "{0}_calibration_fit".format(self.name)
@@ -924,10 +946,16 @@ class SpectrumFitter:
                 fit_name = "spectrum_calibration_fit"
             if write_to_dir is not None:
                 fit_name = join(write_to_dir, fit_name)
-            p, e, _ = linfit(values,centroids,sigmas, plot=fit_name)
+            p, e, _, sig_err = linfit(values,centroids,sigmas, plot=fit_name)
+            if sig_err > max_sig_err:
+                print("linear fit failed, not able to retrieve calibration")
+                return None, None
             coeff, errs = linfit_to_calibration(p, e)
         else:
-            p, e, _ = linfit(values,centroids,sigmas)
+            p, e, _, sig_err = linfit(values,centroids,sigmas)
+            if sig_err > max_sig_err:
+                print("linear fit failed, not able to retrieve calibration")
+                return None, None
             coeff, errs = linfit_to_calibration(p, e)
         print("old coefficients were A0 = {0} A1 = {1}".format(self.A0, self.A1))
         print("new coefficients are A0 = {0} ~ {1} A1 = {2} ~ {3}".format(coeff[0], errs[0], coeff[1], errs[1]))

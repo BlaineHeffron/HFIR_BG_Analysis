@@ -15,7 +15,7 @@ import numpy as np
 from scipy import stats
 
 from src.analysis.Spectrum import SpectrumData, SpectrumFitter
-from src.utilities.PlotUtils import MultiLinePlot, MultiScatterPlot, scatter_plot
+from src.utilities.PlotUtils import MultiLinePlot, MultiScatterPlot
 from src.utilities.FitUtils import linfit, sqrtfit
 from copy import copy
 from ROOT import TFile, TVectorF
@@ -45,11 +45,6 @@ def subtract_spectra(s1, s2):
     subtracted = copy(s1)
     subtracted.hist_subtract(s2)
     return subtracted
-
-
-def retrieve_spectra_and_files(n, datadir):
-    fs = retrieve_files(datadir)
-    return retrieve_spectra(n, fs), fs
 
 
 def spectrum_name_check(name, flist, db):
@@ -197,16 +192,32 @@ def populate_data(data_dict, data_dir, db):
     return out
 
 
-def populate_data_config(config, db):
+def populate_data_config(config, db, comb_runs=False):
     """
     given config, a dictionary that specifies the files to retrive using database, populates
     a new dictionary with  keys as filenames and values as spectrumdata objects
     """
     fs = db.get_files_from_config(config)
-    out = {}
-    for f in fs:
-        out[f] = retrieve_spectra(f, f, db)
-    return out
+    if comb_runs:
+        run_dict = {}
+        for f in fs:
+            name = os.path.basename(f)
+            rname = db.retrieve_run_name_from_file_name(name)
+            if rname:
+                if rname in run_dict.keys():
+                    run_dict[rname].add(retrieve_data(f,db))
+                else:
+                    run_dict[rname] = set([retrieve_data(f,db)])
+        combine_runs(run_dict)
+        return run_dict
+    else:
+        out = {}
+        for f in fs:
+            name = os.path.basename(f)
+            if name.endswith(".txt"):
+                name = name[0:-4]
+            out[name] = retrieve_data(f, db)
+        return out
 
 
 def populate_data_root(data_dict, spec_path, live_path, isParam=False, xScale=1, rebin=1):
@@ -238,6 +249,14 @@ def combine_runs(data_dict):
                 for i in range(1, len(data_dict[key])):
                     s.add(data_dict[key][i])
             data_dict[key] = s
+        elif isinstance(data_dict[key], set):
+            mylist = list(data_dict[key])
+            s = mylist[0]
+            if len(mylist) > 1:
+                for i in range(1, len(mylist)):
+                    s.add(mylist[i])
+            data_dict[key] = s
+
 
 
 def rebin_spectra(data_dict, bin_edges):
@@ -645,6 +664,8 @@ def write_root_with_db(spec, name, db, title=''):
     fpath = db.get_file_path_from_name(spec.fname)
     if fpath.endswith(".txt"):
         fpath = fpath[0:-4] + ".root"
+    else:
+        fpath = fpath + ".root"
     myFile = TFile.Open(fpath, "RECREATE")
     myFile.WriteObject(hist, "GeDataHist")
     lt = TVectorF(1)
@@ -784,7 +805,42 @@ def calibrate_spectra(data, expected_peaks, db, plot_dir=None, user_verify=False
             if not os.path.exists(plot_dir):
                 os.mkdir(plot_dir)
         cal, _ = spec_fitter.retrieve_calibration(user_verify, tolerate_fails, plot_dir, plot_fit)
-        db.insert_calibration(cal[0], cal[1], spec.fname)
+        if cal:
+            db.insert_calibration(cal[0], cal[1], spec.fname)
+
+
+def calibrate_nearby_runs(data, expected_peaks, db, plot_dir=None, user_verify=False, tolerate_fails=False, plot_fit=False, dt=604800):
+    files_to_calibrate = set()
+    nearby_groups = set()
+    for name, spec in data.items():
+        if spec.fname.endswith(".txt"):
+            files_to_calibrate.add(spec.fname[0:-4])
+        else:
+            files_to_calibrate.add(spec.fname)
+    for name, spec in data.items():
+        spec_fitter = SpectrumFitter(expected_peaks, name=name)
+        spec_fitter.fit_peaks(spec)
+        if plot_dir is not None:
+            plot_dir = join(plot_dir, name)
+            if not os.path.exists(plot_dir):
+                os.mkdir(plot_dir)
+        cal, _ = spec_fitter.retrieve_calibration(user_verify, tolerate_fails, plot_dir, plot_fit)
+        if cal:
+            db.insert_calibration(cal[0], cal[1], spec.fname)
+            #retrieve nearby runs, update those calibrations
+            nearby_calgroups = db.retrieve_compatible_calibration_groups(spec.fname, dt)
+            for group_id in nearby_calgroups:
+                #ignore groups that are already being calibrated in files_to_calibrate
+                file_names = db.retrieve_file_names_from_calibration_group_id(group_id)
+                cal_this = True
+                for fname in file_names:
+                    if fname in files_to_calibrate:
+                        cal_this = False
+                        break
+                if cal_this:
+                    db.update_calibration(group_id, cal[0], cal[1], True)
+                    nearby_groups.add(group_id)
+    return nearby_groups
 
 
 def get_sigmas(peak_data, sigmas, dsigmas):
@@ -882,12 +938,12 @@ def fit_peak_sigmas(data, expected_peaks, plot_dir=None, user_verify=False,
             coeff, cov, chisqr = sqrtfit(ens, sigs, dsigs, join(plot_dir, plot_name), "Energy [keV]",
                                          "Peak Sigma [keV]")
         else:
-            coeff, cov, chisqr = linfit(ens, sigs, dsigs, join(plot_dir, plot_name), "Energy [keV]", "Peak Sigma [keV]")
+            coeff, cov, chisqr, _ = linfit(ens, sigs, dsigs, join(plot_dir, plot_name), "Energy [keV]", "Peak Sigma [keV]")
     else:
         if use_sqrt_fit:
             coeff, cov, chisqr = sqrtfit(ens, sigs, dsigs)
         else:
-            coeff, cov, chisqr = linfit(ens, sigs, dsigs)
+            coeff, cov, chisqr, _ = linfit(ens, sigs, dsigs)
     errs = np.sqrt(np.diag(cov))
     if use_sqrt_fit:
         B = 1 / (coeff[1] ** 2)
@@ -1064,13 +1120,13 @@ def compare_peaks(data, simdata, expected_peaks, plot_dir=None, user_verify=Fals
         f.close()
         MultiScatterPlot(ens, ratios01, ratios01_e, ["real", "sim through", "sim all"], "full energy [keV]",
                          "full to 1st escape area ratio", ylog=False)
-        plt.savefig(join(plot_dir, namebase + "_peak_ratios_01.png"))
+        plt.savefig(join(plot_dir, nm + "_peak_ratios_01.png"))
         MultiScatterPlot(ens, ratios02, ratios02_e, ["real", "sim through", "sim all"], "full energy [keV]",
                          "full to 2nd escape area ratio", ylog=False)
-        plt.savefig(join(plot_dir, namebase + "_peak_ratios_02.png"))
+        plt.savefig(join(plot_dir, nm + "_peak_ratios_02.png"))
         MultiScatterPlot(ens, ratios12, ratios12_e, ["real", "sim through", "sim all"], "full energy [keV]",
                          "1st to 2nd escape area ratio", ylog=False)
-        plt.savefig(join(plot_dir, namebase + "_peak_ratios_12.png"))
+        plt.savefig(join(plot_dir, nm + "_peak_ratios_12.png"))
 
 
 if __name__ == "__main__":

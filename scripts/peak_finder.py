@@ -7,7 +7,7 @@ from src.utilities.util import get_data_dir, populate_data, fit_spectra
 
 rundata = {"Reactor Spectrum": "MIF_BOX_REACTOR_OPTIMIZED_OVERNIGHT_LOWEST_GAIN.txt"}
 #energy_guesses = [964.082,1112.08,1408.013,778.9006]
-energy_guesses = [1085.841, 1089.741]
+energy_guesses = [996, 1004]
 verify = True
 
 

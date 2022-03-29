@@ -19,8 +19,9 @@ def linfit(x, y, sigma, plot=None, xlabel="channel #", ylabel="Peak Energy [keV]
         plt.close()
     fity = lin_func(x, *coeff)
     chis = chisqr(y, fity)
-    print("average sigma error of linear fit is {}".format(ave_sig_error(y, sigma, fity)))
-    return coeff, cov, chis
+    sig_err = ave_sig_error(y, sigma, fity)
+    print("average sigma error of linear fit is {}".format(sig_err))
+    return coeff, cov, chis, sig_err
 
 
 def lin_func(x, A, B):

@@ -222,7 +222,7 @@ class SQLiteBase:
             else:
                 where += "{0} = '{1}' AND ".format(key, dict[key])
         where = where[0:-5]
-        return self.fetchall("SELECT * FROM {0} WHERE {1}".format(table, where))
+        return self.fetchall("SELECT * FROM {0} {1}".format(table, where))
 
     def set_row_mode_dict(self):
         self.__db_connection.row_factory = sqlite3.Row
@@ -319,6 +319,19 @@ class HFIRBG_DB(SQLiteBase):
         :return: run id
         """
         run_id = self.fetchone("SELECT run_id FROM run_file_list WHERE file_id = {0}".format(file_id))
+        if run_id:
+            return run_id[0]
+        else:
+            return None
+
+    def retrieve_run_name_from_file_name(self, file_name):
+        """
+        :param file_name: file name (string)
+        :return: run name
+        """
+        if file_name.endswith(".txt"):
+            file_name = file_name[0:-4]
+        run_id = self.fetchone("SELECT r.name, rfl.run_id FROM run_file_list rfl JOIN runs r on r.id = rfl.run_id  WHERE rfl.file_id = (SELECT id from datafile where name = '{0}')".format(file_name))
         if run_id:
             return run_id[0]
         else:
@@ -432,6 +445,12 @@ class HFIRBG_DB(SQLiteBase):
                     fids = self.retrieve_run_range(flist)
                     if not fids or len(fids) != n:
                         print("warning, couldnt find all files in range {0} - {1}".format(myrange[0], myrange[1]))
+                        if fids:
+                            thenums = set()
+                            expected = set([i for i in range(int(myrange[0]), int(myrange[1]) + 1)])
+                            for fid in fids:
+                                thenums.add(self.retrieve_run_number_from_file_id(fid))
+                            print("run numbers not found: {}".format(expected - thenums))
                     if fids is not None:
                         self.insert_file_list(run_id, fids)
                 else:
@@ -469,7 +488,18 @@ class HFIRBG_DB(SQLiteBase):
             cal_id = self.insert_or_ignore("calibration_group", ["name", "A0", "A1"], [name, A0, A1], True)
             return cal_id
 
-    def update_calibration(self, id, A0, A1):
+    def update_calibration(self, id, A0, A1, verbose=False):
+        if verbose:
+            print("updating calibration id {}".format(id))
+        data = self.fetchone("SELECT A0, A1, name from calibration_group where id = {}".format(id))
+        cur_A0 = data[0]
+        cur_A1 = data[1]
+        if verbose:
+            print("updating calibration group {0} with A0 = {1}, A1 = {2}".format(data[2], A0, A1))
+        if abs(A1 - cur_A1)/cur_A1 > 0.01:
+            print("warning: A1 is changing by more than 1% for calibration group {}".format(data[2]))
+            print("current A0, A1 = {0}, {1}".format(cur_A0, cur_A1))
+            print("new A0, A1 = {0}, {1}".format(A0, A1))
         self.execute("UPDATE calibration_group SET A0 = {0}, A1 = {1} WHERE id = {2}".format(A0, A1, id))
 
     def insert_calgroup_with_run_id(self, run_id, A0, A1, replace=False):
@@ -565,6 +595,13 @@ class HFIRBG_DB(SQLiteBase):
                 files += fids
         return files
 
+    def retrieve_run_number_from_file_id(self, id):
+        name = self.fetchone("SELECT run_number from datafile where id = {}".format(id))
+        if name:
+            return name[0]
+        else:
+            return None
+
     def get_files_from_config(self, config):
         config_dict = {}
         if "acquisition_settings" in config.keys():
@@ -582,7 +619,7 @@ class HFIRBG_DB(SQLiteBase):
                 file_ids += self.retrieve_file_ids_from_detector_config(row[0])
         where = "WHERE "
         if file_ids:
-            where += generate_in_clause(file_ids) + " AND "
+            where += "id " + generate_in_clause(file_ids) + " AND "
         if "min_time" in config.keys():
             where += "live_time >= {} AND ".format(config["min_time"])
         if where == "WHERE ":
@@ -622,6 +659,29 @@ class HFIRBG_DB(SQLiteBase):
                 raise RuntimeError("Couldnt insert run {0} in position scan".format(name))
             self.insert_file_list(run_id, [file_id])
 
+    def retrieve_file_ids_from_calibration_group_id(self, id):
+        qry = "SELECT d.id from datafile d join file_calibration_group f on f.file_id = d.id where f.group_id = {}".format(id)
+        result = self.fetchall(qry)
+        file_ids = []
+        if result:
+            for row in result:
+                file_ids.append(row[0])
+        return file_ids
+
+    def retrieve_file_names_from_calibration_group_id(self, id):
+        qry = "SELECT d.name from datafile d join file_calibration_group f on f.file_id = d.id where f.group_id = {}".format(id)
+        result = self.fetchall(qry)
+        file_ids = []
+        if result:
+            for row in result:
+                file_ids.append(row[0])
+        return file_ids
+
+    def retrieve_file_paths_from_calibration_group_id(self, id):
+        file_ids = self.retrieve_file_ids_from_calibration_group_id(id)
+        return self.get_file_paths_from_ids(file_ids)
+
+
     def retrieve_file_metadata(self, fname):
         fid = self.retrieve_file_ids([fname])
         if fid:
@@ -630,7 +690,7 @@ class HFIRBG_DB(SQLiteBase):
         SELECT 
         a.coarse_gain, a.PUR_guard, a.offset, a.fine_gain, a.LLD, a.LTC_mode, a.memory_group, 
         c.A0, c.A1, 
-        d.start_time, d.live_time, 
+        d.start_time, d.live_time, d.name as filename,
         det.type as detector_type, det.description as detector_description, 
         coo.Rx, coo.Rz, coo.Lx, coo.Lz, coo.angle, coo.track, 
         ds.bias, 
@@ -652,3 +712,43 @@ class HFIRBG_DB(SQLiteBase):
         qry = qry.format(fid)
         data_dict = self.fetchone(qry, True)
         return data_dict
+
+    def retrieve_compatible_calibration_groups(self, filename, dt=604800):
+        """
+        returns ids of calibration groups within +/- dt in seconds with same detector configuration
+        """
+        if isinstance(filename, str):
+            if filename.endswith(".txt"):
+                filename = filename[0:-4]
+            data = self.fetchone("SELECT id, start_time FROM datafile WHERE name = '{}'".format(filename))
+        else:
+            data = self.fetchone("SELECT id, start_time FROM datafile WHERE run_number = {}".format(filename))
+        if data:
+            file_id = data[0]
+            start_time = data[1]
+        else:
+            return None
+        cal_ids = set()
+        start_max = start_time + dt
+        start_min = start_time - dt
+        qry = """
+        SELECT fcg.group_id, d.id, d.start_time, r.detector_configuration from datafile d 
+            join run_file_list rfl on d.id = rfl.file_id 
+            join runs r on rfl.run_id = r.id
+            join detector_configuration dc on dc.id = r.detector_configuration 
+            join detector det on dc.detector = det.id
+            join file_calibration_group fcg on d.id = fcg.file_id and det.id = fcg.det
+            WHERE r.detector_configuration = 
+            (SELECT r.detector_configuration from datafile d
+            join run_file_list rfl on d.id = rfl.file_id 
+            join runs r on rfl.run_id = r.id 
+            WHERE d.id = {0})
+            AND d.start_time < {1} AND d.start_time > {2}
+        """
+        qry = qry.format(file_id, start_max, start_min)
+        rows = self.fetchall(qry)
+        if rows:
+            for row in rows:
+                cal_ids.add(row[0])
+        return cal_ids
+
