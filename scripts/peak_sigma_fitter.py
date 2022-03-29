@@ -11,7 +11,7 @@ import os
 #1274.5 is Na-22 decay to Ne-22
 #1408.006 is Eu-152 decay
 rundata = {"Reactor Spectrum": "MIF_BOX_REACTOR_OPTIMIZED_OVERNIGHT_LOWEST_GAIN.txt"}
-energies = ["11386.5", "9718.79", "8998.63", "7724.034", "7693.398", "7645.58", "7631.18", "6809.61", "1274.5", "1293.64", "1408.006", "1460.8", "1332.5", "1173.2", "964.082","1112.08", "778.9006"]
+energies = ["11386.5", "9718.79", "8998.63", "7724.034", "7693.398", "7645.58", "7631.18", "6809.61", "1274.5", "1293.64", "1408.006", "1460.8", "1332.5", "1173.2", "964.082","1112.08", "1085.841", "778.9006"]
 #"511.0"]
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "peak_sigma_fits")
 verify = False
@@ -30,7 +30,7 @@ def main():
     data = populate_data(rundata, datadir, db)
     if not exists(outdir):
         os.mkdir(outdir)
-    fit_peak_sigmas(data, all_energies, outdir, verify, True, True, use_sqrt_fit=use_sqrt_fit)
+    fit_peak_sigmas(data, all_energies, outdir, verify, True, use_sqrt_fit=use_sqrt_fit)
 
 
 if __name__ == "__main__":

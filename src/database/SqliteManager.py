@@ -64,6 +64,7 @@ class SQLiteBase:
         self.path = os.path.expanduser(path)
         self.__db_connection = sqlite3.connect(self.path)
         self.cur = self.__db_connection.cursor()
+        self.orig_row_factory = self.__db_connection.row_factory
 
     def close(self):
         self.__db_connection.close()
@@ -109,9 +110,14 @@ class SQLiteBase:
                                      "retrieve id with WHERE clause {1}".format(table,
                                                                                 generate_equals_where(columns, values)))
 
-    def fetchone(self, sql):
+    def fetchone(self, sql, return_dict=False):
+        if return_dict:
+            self.set_row_mode_dict()
         self.execute(sql)
         result = self.cur.fetchone()
+        if return_dict:
+            result = dict(result)
+            self.reset_row_mode()
         return result
 
     def fetchall(self, sql):
@@ -217,6 +223,14 @@ class SQLiteBase:
                 where += "{0} = '{1}' AND ".format(key, dict[key])
         where = where[0:-5]
         return self.fetchall("SELECT * FROM {0} WHERE {1}".format(table, where))
+
+    def set_row_mode_dict(self):
+        self.__db_connection.row_factory = sqlite3.Row
+        self.cur = self.__db_connection.cursor()
+
+    def reset_row_mode(self):
+        self.__db_connection.row_factory = self.orig_row_factory
+        self.cur = self.__db_connection.cursor()
 
     def __del__(self):
         self.__db_connection.close()
@@ -607,3 +621,34 @@ class HFIRBG_DB(SQLiteBase):
             if not run_id:
                 raise RuntimeError("Couldnt insert run {0} in position scan".format(name))
             self.insert_file_list(run_id, [file_id])
+
+    def retrieve_file_metadata(self, fname):
+        fid = self.retrieve_file_ids([fname])
+        if fid:
+            fid = fid[0]
+        qry = """
+        SELECT 
+        a.coarse_gain, a.PUR_guard, a.offset, a.fine_gain, a.LLD, a.LTC_mode, a.memory_group, 
+        c.A0, c.A1, 
+        d.start_time, d.live_time, 
+        det.type as detector_type, det.description as detector_description, 
+        coo.Rx, coo.Rz, coo.Lx, coo.Lz, coo.angle, coo.track, 
+        ds.bias, 
+        s.name as shield_name, s.description as shield_description,
+        r.description as run_description, r.name as run_name
+        from datafile d 
+        join run_file_list rfl on d.id = rfl.file_id 
+        join runs r on rfl.run_id = r.id
+        join detector_configuration dc on dc.id = r.detector_configuration 
+        join detector_coordinates coo on coo.id = r.detector_coordinates
+        join shield_configuration s on dc.shield = s.id
+        join detector_settings ds on dc.detector_settings = ds.id
+        join acquisition_settings a on dc.acquisition_settings = a.id
+        join detector det on dc.detector = det.id
+        join file_calibration_group fcg on d.id = fcg.file_id and det.id = fcg.det
+        join calibration_group c on fcg.group_id = c.id
+        where d.id = {}
+        """
+        qry = qry.format(fid)
+        data_dict = self.fetchone(qry, True)
+        return data_dict

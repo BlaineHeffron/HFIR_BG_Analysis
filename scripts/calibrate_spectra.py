@@ -9,8 +9,8 @@ import os
 config = None
 # config = {"min_time": 30000, "acquisition_settings": {"coarse_gain": 2, "fine_gain": 1.02}}
 rundata = {"Reactor Spectrum": "MIF_BOX_REACTOR_OPTIMIZED_OVERNIGHT_LOWEST_GAIN.txt"}
-expected_peaks = [11386.5, 8884.81, 9102.1, 9297.8, 8998.63, 7724.034, 1460.8, 1332.5, 1274.5, 1173.2, 511.0, 964.082,
-                  1112.08, 1408.013, 778.9006]
+expected_peaks = [11386.5, 8884.81, 9102.1, 9297.8, 8998.63, 7724.034, 6809.61, 1460.8, 1332.5, 1274.5, 1173.2, 511.0, 964.082,
+                  1112.08, 1408.013, 778.9006, 1293.64, 1274.5]
 
 
 def main():
