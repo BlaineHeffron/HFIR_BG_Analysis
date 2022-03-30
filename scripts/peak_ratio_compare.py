@@ -8,9 +8,9 @@ from os.path import join, exists
 import os
 
 rundata = {"Reactor Spectrum": "MIF_BOX_REACTOR_OPTIMIZED_OVERNIGHT_LOWEST_GAIN.txt"}
-rootdir = join(os.environ["HFIRBG_SIM"], "analysis/collimated/third_scale")
+rootdir = join(os.environ["HFIRBG_SIM"], "analysis/collimated/sqrt_scale")
 energies = ["11386.5","9718.79","8998.63","7724.034","7693.398","7645.58","7631.18", "6809.61"]
-outdir = join(os.environ["HFIRBG_ANALYSIS"], "peak_ratio_compare/third_root")
+outdir = join(os.environ["HFIRBG_ANALYSIS"], "peak_ratio_compare/sqrt")
 verify = False
 
 

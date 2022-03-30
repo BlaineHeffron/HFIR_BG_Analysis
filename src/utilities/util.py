@@ -15,7 +15,7 @@ import numpy as np
 from scipy import stats
 
 from src.analysis.Spectrum import SpectrumData, SpectrumFitter
-from src.utilities.PlotUtils import MultiLinePlot, MultiScatterPlot
+from src.utilities.PlotUtils import MultiLinePlot, MultiScatterPlot, ScatterLinePlot, ScatterDifferencePlot
 from src.utilities.FitUtils import linfit, sqrtfit
 from copy import copy
 from ROOT import TFile, TVectorF
@@ -1118,15 +1118,28 @@ def compare_peaks(data, simdata, expected_peaks, plot_dir=None, user_verify=Fals
         write_rows_csv(f, header, rows, delimiter=",")
         f.flush()
         f.close()
+        ens = np.array(ens)
+        ratios01 = np.array(ratios01)
+        ratios01_e = np.array(ratios01_e)
+        ratios02 = np.array(ratios02)
+        ratios02_e = np.array(ratios02_e)
+        ratios12 = np.array(ratios12)
+        ratios12_e = np.array(ratios12_e)
         MultiScatterPlot(ens, ratios01, ratios01_e, ["real", "sim through", "sim all"], "full energy [keV]",
                          "full to 1st escape area ratio", ylog=False)
         plt.savefig(join(plot_dir, nm + "_peak_ratios_01.png"))
+        ScatterDifferencePlot(ens, ratios01[0], ratios01_e[0], ratios01[1:], ratios01_e[1:], ["sim through - real", "sim all - real"], "energy [keV]", "full to 1st escape area ratio difference" )
+        plt.savefig(join(plot_dir, nm + "_peak_ratios_01_diff.png"))
         MultiScatterPlot(ens, ratios02, ratios02_e, ["real", "sim through", "sim all"], "full energy [keV]",
                          "full to 2nd escape area ratio", ylog=False)
         plt.savefig(join(plot_dir, nm + "_peak_ratios_02.png"))
+        ScatterDifferencePlot(ens, ratios02[0], ratios02_e[0], ratios02[1:], ratios02_e[1:], ["sim through - real", "sim all - real"], "energy [keV]", "full to 2nd escape area ratio difference" )
+        plt.savefig(join(plot_dir, nm + "_peak_ratios_02_diff.png"))
         MultiScatterPlot(ens, ratios12, ratios12_e, ["real", "sim through", "sim all"], "full energy [keV]",
                          "1st to 2nd escape area ratio", ylog=False)
         plt.savefig(join(plot_dir, nm + "_peak_ratios_12.png"))
+        ScatterDifferencePlot(ens, ratios12[0], ratios12_e[0], ratios12[1:], ratios12_e[1:], ["sim through - real", "sim all - real"], "energy [keV]", "1st to 2nd escape area ratio difference" )
+        plt.savefig(join(plot_dir, nm + "_peak_ratios_12_diff.png"))
 
 
 if __name__ == "__main__":
