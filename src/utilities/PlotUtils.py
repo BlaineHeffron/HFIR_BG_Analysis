@@ -529,6 +529,90 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
     #plt.close()
     return fig
 
+def ScatterDifferencePlot(xaxis, ref, ref_err, yvals, errors, yval_labels, xlabel, ylabel,
+                    colors=None, styles=None,
+                    xmax=-1, ymax=-1, ymin=None, xmin=None, xdates=False,
+                    vertlines=None, xlog=False, title=None,  figsize=(12, 9),
+                    legend_loc='upper right'):
+    if colors is None:
+        colors = []
+    if styles is None:
+        styles = []
+    if(xdates):
+        xaxis = mdate.epoch2num(xaxis)
+        if(vertlines):
+            vertlines = mdate.epoch2num(vertlines)
+    rcParams.update({'font.size': 18})
+    fig = plt.figure(figsize=figsize)
+    ax1 = fig.add_subplot(111)
+    ax1.set_xlabel(xlabel)
+    ax1.set_ylabel(ylabel)
+    yvals -= ref
+    if(ymin is None):
+        ymin = np.amin(yvals)*1.1
+        errmin = np.amin(-1*ref_err)*1.1
+        if errmin < ymin:
+            ymin = errmin
+    if(xmin is None):
+        xmin = np.amin(xaxis)*.98
+    if(xlog):
+        ax1.set_xscale('log')
+    else:
+        ax1.set_xscale('linear')
+    if(ymax == -1):
+        if np.amax(yvals) > np.amax(ref_err):
+            ax1.set_ylim(ymin,np.amax(yvals)*1.05)
+        else:
+            ax1.set_ylim(ymin, np.amax(ref_err) * 1.05)
+    else:
+        ax1.set_ylim(ymin,ymax)
+    if(xmax == -1):
+        ax1.set_xlim(xmin,np.amax(xaxis) + np.amin(xaxis)*.02)
+    else:
+        ax1.set_xlim(xmin,xmax)
+    if not colors:
+        colors = tab_colors
+    if not styles:
+        styles = category_styles
+    for i in range(yvals.shape[0]):
+        ax1.errorbar(xaxis,yvals[i],yerr=errors[i], fmt='o')
+    ax1.fill_between(xaxis, ref_err, -ref_err, alpha=0.2)
+    if(vertlines is not None):
+        for v in vertlines:
+            ax1.axvline(v,color='k',linestyle='-')#,label=vlinelabel)
+    if(xdates):
+        #date_fmt = '%y-%m-%d %H:%M:%S'
+        date_fmt = '%y-%m-%d'
+        date_formatter = mdate.DateFormatter(date_fmt,tz=timezone('US/Eastern'))
+        ax1.xaxis.set_major_formatter(date_formatter)
+        fig.autofmt_xdate()
+    else:
+        pass
+        #start,end = ax1.get_xlim()
+        #diff = (end - start) / 8.
+        #ax1.xaxis.set_ticks(np.arange(start,end,diff))
+        #ax1.xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.1f'))
+        #plt.setp(ax1.get_xticklabels(), rotation=30,\
+        #horizontalalignment='right')
+    if title:
+        ax1.set_title(title)
+    box = ax1.get_position()
+    ax1.set_position([box.x0, box.y0, box.width, box.height])
+    ax1.legend([r"$1\sigma$ error band"] + yval_labels, loc=legend_loc)
+    rcParams.update({'font.size': 14})
+    ax1.xaxis.set_minor_locator(AutoMinorLocator())
+    ax1.yaxis.set_minor_locator(AutoMinorLocator())
+    ax1.tick_params(axis="x", direction="in", length=16, width=1)
+    ax1.tick_params(axis="y", direction="in", length=16, width=1)
+    ax1.tick_params(axis="x", which="minor", direction="in", length=8, width=1)
+    ax1.tick_params(axis="y", which="minor", direction="in", length=8, width=1)
+    #plt.gcf().subplots_adjust(left=0.16)
+    #plt.gcf().subplots_adjust(bottom=0.22)
+    #plt.gcf().subplots_adjust(right=0.05)
+    #plt.savefig(outname)
+    #plt.close()
+    return fig
+
 def ScatterLinePlot(xaxis, yvals, errors, linex, liney, lineerr, line_labels, xlabel, ylabel,
                      colors=None, styles=None,
                      xmax=-1, ymax=-1, ymin=None, xmin=None, ylog=True, xdates=False,
@@ -654,7 +738,7 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
             if ymin < 0: ymin *= 1.05
             else: ymin *= .95
     if(xmin is None):
-        xmin = min(xaxis)
+        xmin = min(xaxis)*.98
     if(xlog):
         ax1.set_xscale('log')
     else:
@@ -671,7 +755,7 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
     else:
         ax1.set_ylim(ymin,ymax)
     if(xmax == -1):
-        ax1.set_xlim(xmin,max(xaxis))
+        ax1.set_xlim(xmin,max(xaxis) + min(xaxis)*.02)
     else:
         ax1.set_xlim(xmin,xmax)
     #for i, y in enumerate(yvals):
