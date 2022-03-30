@@ -40,12 +40,12 @@ def main():
         data = populate_data(rundata, datadir, db)
     for name, spec in data.items():
         write_root_with_db(spec, name, db)
-        if update_nearby_runs:
-            for group_id in nearby_groups:
-                files = db.retrieve_file_paths_from_calibration_group_id(group_id)
-                for f in files:
-                    update_spec = retrieve_data(f, db)
-                    write_root_with_db(update_spec, update_spec.fname, db)
+    if update_nearby_runs:
+        for group_id in nearby_groups:
+            files = db.retrieve_file_paths_from_calibration_group_id(group_id)
+            for f in files:
+                update_spec = retrieve_data(f, db)
+                write_root_with_db(update_spec, update_spec.fname, db)
 
 
 if __name__ == "__main__":
