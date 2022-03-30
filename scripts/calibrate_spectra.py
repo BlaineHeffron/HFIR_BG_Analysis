@@ -1,7 +1,7 @@
 import sys
 from os.path import dirname, realpath
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
-from src.database.SqliteManager import HFIRBG_DB
+from src.database.HFIRBG_DB import HFIRBG_DB
 from src.utilities.util import get_data_dir, populate_data, populate_data_config, calibrate_spectra, write_root_with_db, \
     calibrate_nearby_runs, retrieve_data
 from os.path import join, exists

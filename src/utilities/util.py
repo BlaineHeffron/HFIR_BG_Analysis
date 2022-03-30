@@ -135,7 +135,12 @@ def retrieve_data(myf, db=None):
             #        fname, row[0], row[1], A0, A1))
             A0 = row[0]
             A1 = row[1]
-
+        row = db.retrieve_file_time(fname)
+        if row:
+            start = row[0]
+            live = row[1]
+            dt = datetime.fromtimestamp(start)
+            start = dt.strftime("%Y-%m-%d, %H:%M:%S")
     return SpectrumData(data, start, live, A0, A1, fname)
 
 

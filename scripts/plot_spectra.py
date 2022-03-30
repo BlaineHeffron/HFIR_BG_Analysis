@@ -3,7 +3,7 @@ from os.path import dirname, realpath
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
 
 from src.utilities.util import *
-from src.database.SqliteManager import HFIRBG_DB
+from src.database.HFIRBG_DB import HFIRBG_DB
 
 rundata = { "corner_no_shield": "CORNER_MEASUREMENT_NO_SHIELD_WALL_LOW_GAIN",
             "MIF_no_shield":"CORNER_TPS_OVERNIGHT" }

@@ -5,7 +5,7 @@ sys.path.insert(1, dirname(dirname(realpath(__file__))))
 
 from src.utilities.NumbaFunctions import integrate_lininterp_range
 from src.utilities.util import *
-from src.database.SqliteManager import HFIRBG_DB
+from src.database.HFIRBG_DB import HFIRBG_DB
 from src.utilities.util import plot_time_series
 
 start = 4203

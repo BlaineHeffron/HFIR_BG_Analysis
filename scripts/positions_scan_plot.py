@@ -1,9 +1,9 @@
 import sys
 from os.path import dirname, realpath
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
-from src.database.SqliteManager import HFIRBG_DB
+from src.database.HFIRBG_DB import HFIRBG_DB
 from src.utilities.PlotUtils import scatter_plot
-from src.utilities.util import retrieve_position_scans, get_bins, get_data_dir, retrieve_files, \
+from src.utilities.util import retrieve_position_scans, get_bins, get_data_dir, \
     retrieve_spectra, retrieve_file_extension
 import matplotlib.pyplot as plt
 
@@ -21,7 +21,7 @@ def get_x_y(r, l):
     return (rx + lx) / 2. , (ry + ly) / 2.
 
 
-def main():
+def file_scan_main():
     datadir = get_data_dir()
     db = HFIRBG_DB()
     fs = retrieve_file_extension(datadir, ".txt")
@@ -52,6 +52,10 @@ def main():
     fig = scatter_plot(x, y, rates_3_up, "z", "x", "rate [hz]", "Down Facing Scan, 3.0 to 11.5 MeV", xmin=40, ymin=0, xmax=420, ymax=160, invert_y=True)
     plt.savefig("{}.png".format(name + "_3_up.png"))
     plt.close(fig)
+
+def main():
+    db = HFIRBG_DB()
+
 
 
 

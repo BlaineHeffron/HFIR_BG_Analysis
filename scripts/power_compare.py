@@ -2,7 +2,7 @@ import sys
 from os.path import dirname, realpath
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
 
-from src.database.SqliteManager import HFIRBG_DB
+from src.database.HFIRBG_DB import HFIRBG_DB
 from src.utilities.util import *
 from math import floor
 from src.utilities.PlotUtils import MultiScatterPlot
