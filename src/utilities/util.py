@@ -139,9 +139,14 @@ def retrieve_data(myf, db=None):
         if row:
             start = row[0]
             live = row[1]
-            dt = datetime.fromtimestamp(start)
-            start = dt.strftime("%Y-%m-%d, %H:%M:%S")
+            start = dt_to_string(start)
+
     return SpectrumData(data, start, live, A0, A1, fname)
+
+
+def dt_to_string(t):
+    dt = datetime.fromtimestamp(t)
+    return dt.strftime("%Y-%m-%d, %H:%M:%S")
 
 
 def safe_divide(a, b):
@@ -210,9 +215,9 @@ def populate_data_config(config, db, comb_runs=False):
             rname = db.retrieve_run_name_from_file_name(name)
             if rname:
                 if rname in run_dict.keys():
-                    run_dict[rname].add(retrieve_data(f,db))
+                    run_dict[rname].add(retrieve_data(f, db))
                 else:
-                    run_dict[rname] = set([retrieve_data(f,db)])
+                    run_dict[rname] = set([retrieve_data(f, db)])
         combine_runs(run_dict)
         return run_dict
     else:
@@ -261,7 +266,6 @@ def combine_runs(data_dict):
                 for i in range(1, len(mylist)):
                     s.add(mylist[i])
             data_dict[key] = s
-
 
 
 def rebin_spectra(data_dict, bin_edges):
@@ -597,6 +601,7 @@ def retrieve_position_scans():
         l_pos = -1
         angle_pos = -1
         fname_pos = -1
+        live_pos = -1
         for i, colname in enumerate(data[0]):
             if colname == "R" or colname.startswith("R"):
                 r_pos = i
@@ -606,10 +611,12 @@ def retrieve_position_scans():
                 angle_pos = i
             elif colname.startswith("file"):
                 fname_pos = i
-        if r_pos == -1 or l_pos == -1 or angle_pos == -1 or fname_pos == -1:
+            elif colname.startswith("live "):
+                live_pos = i
+        if r_pos == -1 or l_pos == -1 or angle_pos == -1 or fname_pos == -1 or live_pos == -1:
             raise IOError("Error: cannot parse file {0}, cant find header info".format(f))
         for row in data[1:]:
-            position_metadata.append((row[r_pos], row[l_pos], row[angle_pos], row[fname_pos]))
+            position_metadata.append((row[r_pos], row[l_pos], row[angle_pos], row[live_pos], row[fname_pos]))
     return position_metadata
 
 
@@ -796,7 +803,7 @@ def fit_spectra(data, expected_peaks, plot_dir=None, user_verify=False, plot_fit
                 os.mkdir(plot_dir)
         if plot_fit or user_verify:
             spec_fitter.plot_fits(user_verify, plot_dir)
-        #_, _ = spec_fitter.retrieve_calibration(user_verify, tolerate_fails, plot_dir, plot_fit)
+        # _, _ = spec_fitter.retrieve_calibration(user_verify, tolerate_fails, plot_dir, plot_fit)
         fit_data.update(spec_fitter.fit_values)
     return fit_data
 
@@ -814,7 +821,8 @@ def calibrate_spectra(data, expected_peaks, db, plot_dir=None, user_verify=False
             db.insert_calibration(cal[0], cal[1], spec.fname)
 
 
-def calibrate_nearby_runs(data, expected_peaks, db, plot_dir=None, user_verify=False, tolerate_fails=False, plot_fit=False, dt=604800):
+def calibrate_nearby_runs(data, expected_peaks, db, plot_dir=None, user_verify=False, tolerate_fails=False,
+                          plot_fit=False, dt=604800):
     files_to_calibrate = set()
     nearby_groups = set()
     for name, spec in data.items():
@@ -832,10 +840,10 @@ def calibrate_nearby_runs(data, expected_peaks, db, plot_dir=None, user_verify=F
         cal, _ = spec_fitter.retrieve_calibration(user_verify, tolerate_fails, plot_dir, plot_fit)
         if cal:
             db.insert_calibration(cal[0], cal[1], spec.fname)
-            #retrieve nearby runs, update those calibrations
+            # retrieve nearby runs, update those calibrations
             nearby_calgroups = db.retrieve_compatible_calibration_groups(spec.fname, dt)
             for group_id in nearby_calgroups:
-                #ignore groups that are already being calibrated in files_to_calibrate
+                # ignore groups that are already being calibrated in files_to_calibrate
                 file_names = db.retrieve_file_names_from_calibration_group_id(group_id)
                 cal_this = True
                 for fname in file_names:
@@ -943,7 +951,8 @@ def fit_peak_sigmas(data, expected_peaks, plot_dir=None, user_verify=False,
             coeff, cov, chisqr = sqrtfit(ens, sigs, dsigs, join(plot_dir, plot_name), "Energy [keV]",
                                          "Peak Sigma [keV]")
         else:
-            coeff, cov, chisqr, _ = linfit(ens, sigs, dsigs, join(plot_dir, plot_name), "Energy [keV]", "Peak Sigma [keV]")
+            coeff, cov, chisqr, _ = linfit(ens, sigs, dsigs, join(plot_dir, plot_name), "Energy [keV]",
+                                           "Peak Sigma [keV]")
     else:
         if use_sqrt_fit:
             coeff, cov, chisqr = sqrtfit(ens, sigs, dsigs)
@@ -981,7 +990,7 @@ def compare_peaks(data, simdata, expected_peaks, plot_dir=None, user_verify=Fals
                 mysim = {sd: simdata[sd]}
                 if "false" in sd:
                     peak_data_sim_false.update(fit_spectra(mysim, [p, p - 511, p - 511 * 2], plot_dir, user_verify,
-                                                            plot_fit))
+                                                           plot_fit))
                 else:
                     peak_data_sim_true.update(
                         fit_spectra(mysim, [p, p - 511, p - 511 * 2], plot_dir, user_verify, plot_fit))
@@ -1133,17 +1142,23 @@ def compare_peaks(data, simdata, expected_peaks, plot_dir=None, user_verify=Fals
         MultiScatterPlot(ens, ratios01, ratios01_e, ["real", "sim through", "sim all"], "full energy [keV]",
                          "full to 1st escape area ratio", ylog=False)
         plt.savefig(join(plot_dir, nm + "_peak_ratios_01.png"))
-        ScatterDifferencePlot(ens, ratios01[0], ratios01_e[0], ratios01[1:], ratios01_e[1:], ["sim through - real", "sim all - real"], "energy [keV]", "full to 1st escape area ratio difference" )
+        ScatterDifferencePlot(ens, ratios01[0], ratios01_e[0], ratios01[1:], ratios01_e[1:],
+                              ["sim through - real", "sim all - real"], "energy [keV]",
+                              "full to 1st escape area ratio difference")
         plt.savefig(join(plot_dir, nm + "_peak_ratios_01_diff.png"))
         MultiScatterPlot(ens, ratios02, ratios02_e, ["real", "sim through", "sim all"], "full energy [keV]",
                          "full to 2nd escape area ratio", ylog=False)
         plt.savefig(join(plot_dir, nm + "_peak_ratios_02.png"))
-        ScatterDifferencePlot(ens, ratios02[0], ratios02_e[0], ratios02[1:], ratios02_e[1:], ["sim through - real", "sim all - real"], "energy [keV]", "full to 2nd escape area ratio difference" )
+        ScatterDifferencePlot(ens, ratios02[0], ratios02_e[0], ratios02[1:], ratios02_e[1:],
+                              ["sim through - real", "sim all - real"], "energy [keV]",
+                              "full to 2nd escape area ratio difference")
         plt.savefig(join(plot_dir, nm + "_peak_ratios_02_diff.png"))
         MultiScatterPlot(ens, ratios12, ratios12_e, ["real", "sim through", "sim all"], "full energy [keV]",
                          "1st to 2nd escape area ratio", ylog=False)
         plt.savefig(join(plot_dir, nm + "_peak_ratios_12.png"))
-        ScatterDifferencePlot(ens, ratios12[0], ratios12_e[0], ratios12[1:], ratios12_e[1:], ["sim through - real", "sim all - real"], "energy [keV]", "1st to 2nd escape area ratio difference" )
+        ScatterDifferencePlot(ens, ratios12[0], ratios12_e[0], ratios12[1:], ratios12_e[1:],
+                              ["sim through - real", "sim all - real"], "energy [keV]",
+                              "1st to 2nd escape area ratio difference")
         plt.savefig(join(plot_dir, nm + "_peak_ratios_12_diff.png"))
 
 

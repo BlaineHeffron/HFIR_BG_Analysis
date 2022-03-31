@@ -449,6 +449,25 @@ class HFIRBG_DB(SQLiteBase):
         file_ids = self.retrieve_file_ids_from_calibration_group_id(id)
         return self.get_file_paths_from_ids(file_ids)
 
+    def retrieve_file_paths_in_date_range(self, start=None, stop=None):
+        """
+        expects start and stop to be  timestamps
+        """
+        where = ""
+        if start or stop:
+            where = " WHERE "
+            if start and stop:
+                where += "start_time > {0} AND start_time < {1}".format(start, stop)
+            elif start:
+                where += "start_time > {0}".format(start)
+            else:
+                where += "start_time < {0}".format(stop)
+        data = self.fetchall("SELECT id FROM datafile {}".format(where))
+        if data:
+            file_ids = [d[0] for d in data]
+            return self.get_file_paths_from_ids(file_ids)
+        return None
+
     def retrieve_file_metadata(self, fname):
         fid = self.retrieve_file_ids([fname])
         if fid:
@@ -526,6 +545,7 @@ class HFIRBG_DB(SQLiteBase):
         qry = """
         select d.start_time, d.live_time, d.name as filename,
         coo.Rx, coo.Rz, coo.Lx, coo.Lz, coo.angle, coo.track, 
+        c.A0, c.A1, 
         dir.path,
         s.name as shield_name, s.description as shield_description,
         r.description as run_description, r.name as run_name
@@ -536,9 +556,18 @@ class HFIRBG_DB(SQLiteBase):
         join detector_coordinates coo on coo.id = r.detector_coordinates
         join directory dir on dir.id = d.directory_id
         join shield_configuration s on dc.shield = s.id
+        join detector det on dc.detector = det.id
+        join file_calibration_group fcg on d.id = fcg.file_id and det.id = fcg.det
+        join calibration_group c on fcg.group_id = c.id
         WHERE shield_name = 'collimator30'
         """
         self.set_row_mode_dict()
         data = self.fetchall(qry)
         self.reset_row_mode()
         return data
+
+    def update_datafile_time(self, fname, st, lt):
+        """
+        update datafile live time and start time based on file name
+        """
+        self.execute("UPDATE datafile SET start_time = {0}, live_time = {1} WHERE name = '{2}'".format(st, lt, fname))
