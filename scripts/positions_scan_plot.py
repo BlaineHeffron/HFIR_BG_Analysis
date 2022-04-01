@@ -6,7 +6,7 @@ sys.path.insert(1, dirname(dirname(realpath(__file__))))
 import os
 from os.path import join
 from src.database.HFIRBG_DB import HFIRBG_DB
-from src.utilities.PlotUtils import scatter_plot
+from src.utilities.PlotUtils import scatter_plot, HFIR_scatter_plot
 from src.utilities.util import retrieve_position_scans, get_bins, get_data_dir, \
     retrieve_spectra, retrieve_file_extension
 from src.database.CartScanFiles import CartScanFiles, parse_orientation_key
@@ -80,7 +80,7 @@ def plot_top_down_rates(scan_spec, energy_ranges, labels):
             if len(rates[i]) < 3:
                 continue
             #fig = scatter_plot(x, y, rates[i], "z", "x", "rate [hz/keV]", "det angle = {0}, cart angle = {1}, {2}".format(angle, phi, labels[i]), xmin=40, ymin=0, xmax=420, ymax=160, invert_y=True)
-            fig = scatter_plot(x, y, rates[i], "z [in]", "x [in]", "rate [hz/keV]", "det angle = {0}, cart angle = {1}, {2}".format(angle, phi, labels[i]), invert_y=True)
+            fig = HFIR_scatter_plot(x, y, rates[i], "z [in]", "x [in]", "rate [hz/keV]", "det angle = {0}, cart angle = {1}, {2}".format(angle, phi, labels[i]), invert_y=True)
             plot_name = "det_{0}_cart_{1}_{2}_to_{3}.png".format(angle, phi, energy_ranges[i][0], energy_ranges[i][1])
             plt.savefig(join(outdir, plot_name))
             plt.close(fig)

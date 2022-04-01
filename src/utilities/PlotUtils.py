@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-from matplotlib.patches import PathPatch
+from matplotlib.patches import PathPatch, Rectangle
 from matplotlib.path import Path
 from matplotlib.ticker import AutoMinorLocator, FormatStrFormatter
 from matplotlib import rcParams
@@ -855,6 +855,76 @@ def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, x
         date_formatter = mdate.DateFormatter(date_fmt,tz=timezone('US/Eastern'))
         ax1.xaxis.set_major_formatter(date_formatter)
         fig.autofmt_xdate()
+    h = ax1.scatter(x,y,c=c, cmap='viridis')
+    ax1.set_title(title)
+    ax1.xaxis.set_minor_locator(AutoMinorLocator())
+    ax1.yaxis.set_minor_locator(AutoMinorLocator())
+    ax1.tick_params(axis="x", direction="in", length=16, width=1)
+    ax1.tick_params(axis="y", direction="in", length=16, width=1)
+    ax1.tick_params(axis="x", which="minor", direction="in", length=8, width=1)
+    ax1.tick_params(axis="y", which="minor", direction="in", length=8, width=1)
+    cb = plt.colorbar(h)
+    cb.set_label(zlabel, rotation=270, labelpad=20)
+    return fig
+
+
+def HFIR_scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, invert_y=False, invert_x=False, xdates=False):
+    xmin = 40
+    ymin = 0
+    xmax = 420
+    ymax = 160
+    rcParams.update({'font.size': 18})
+    ratio = abs((ymax - ymin) / (xmax - xmin))*4./5
+    fig = plt.figure(figsize=(12, 12*ratio))
+    ax1 = fig.add_subplot(111)
+    ax1.set_xlabel(xlabel)
+    ax1.set_ylabel(ylabel)
+    if(xdates):
+        x = mdate.epoch2num(x)
+    if ymin is None:
+        ymin = min(y)
+        if ymin < 0:
+            ymin *= 1.05
+        else:
+            ymin *= .95
+    if xmin is None:
+        xmin = min(x) * .95
+    if ymax is None:
+        if invert_y:
+            ax1.set_ylim(max(y)*1.05, ymin)
+        else:
+            ax1.set_ylim(ymin, max(y) * 1.05)
+    else:
+        if invert_y:
+            ax1.set_ylim(ymax,ymin)
+        else:
+            ax1.set_ylim(ymin, ymax)
+    if xmax is None:
+        if invert_x:
+            ax1.set_xlim(max(x)*1.05, xmin)
+        else:
+            ax1.set_xlim(xmin, max(x) * 1.05)
+    else:
+        if invert_x:
+            ax1.set_xlim(xmax,xmin)
+        else:
+            ax1.set_xlim(xmin, xmax)
+    # add box for prospect
+    ax1.add_patch(Rectangle((211.5, 128), 46.25, 83.4,
+                               edgecolor='light blue',
+                               fill=False,
+                               lw=4))
+    # lead shield wall
+    ax1.add_patch(Rectangle((155, 21.5), 286.5-155, 14,
+                            edgecolor='black',
+                            facecolor='black',
+                            fill=True,
+                            lw=4))
+    # russian doll
+    ax1.add_patch(Rectangle((188, 21.5+24), 24, 24,
+                            edgecolor='green',
+                            fill=True,
+                            lw=4))
     h = ax1.scatter(x,y,c=c, cmap='viridis')
     ax1.set_title(title)
     ax1.xaxis.set_minor_locator(AutoMinorLocator())
