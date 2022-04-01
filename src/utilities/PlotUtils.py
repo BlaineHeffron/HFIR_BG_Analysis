@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-from matplotlib.patches import PathPatch, Rectangle
+from matplotlib.patches import PathPatch, Rectangle, Circle
 from matplotlib.path import Path
 from matplotlib.ticker import AutoMinorLocator, FormatStrFormatter
 from matplotlib import rcParams
@@ -872,10 +872,10 @@ def HFIR_scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, invert_y=False, in
     xmin = 40
     ymin = 0
     xmax = 420
-    ymax = 160
+    ymax = 180
     rcParams.update({'font.size': 18})
     ratio = abs((ymax - ymin) / (xmax - xmin))*4./5
-    fig = plt.figure(figsize=(12, 12*ratio))
+    fig = plt.figure(figsize=(14, 14*ratio))
     ax1 = fig.add_subplot(111)
     ax1.set_xlabel(xlabel)
     ax1.set_ylabel(ylabel)
@@ -910,21 +910,21 @@ def HFIR_scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, invert_y=False, in
         else:
             ax1.set_xlim(xmin, xmax)
     # add box for prospect
-    ax1.add_patch(Rectangle((211.5, 128), 46.25, 83.4,
-                               edgecolor='light blue',
+    ax1.add_patch(Rectangle((165, 128), 46.25, -83.4,
+                               edgecolor='cornflowerblue',
                                fill=False,
-                               lw=4))
+                               lw=2))
     # lead shield wall
-    ax1.add_patch(Rectangle((155, 21.5), 286.5-155, 14,
+    ax1.add_patch(Rectangle((125, 21.5), 286.5-155, -14,
                             edgecolor='black',
                             facecolor='black',
                             fill=True,
-                            lw=4))
+                            lw=1))
     # russian doll
-    ax1.add_patch(Rectangle((188, 21.5+24), 24, 24,
+    ax1.add_patch(Circle((200, 21.5+12), 12,
                             edgecolor='green',
-                            fill=True,
-                            lw=4))
+                            fill=False,
+                            lw=2))
     h = ax1.scatter(x,y,c=c, cmap='viridis')
     ax1.set_title(title)
     ax1.xaxis.set_minor_locator(AutoMinorLocator())
@@ -935,6 +935,8 @@ def HFIR_scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, invert_y=False, in
     ax1.tick_params(axis="y", which="minor", direction="in", length=8, width=1)
     cb = plt.colorbar(h)
     cb.set_label(zlabel, rotation=270, labelpad=20)
+    #plt.subplots_adjust(bottom=-.1)
+    #plt.tight_layout()
     return fig
 
 def draw_error_band(ax, x, y, err, **kwargs):

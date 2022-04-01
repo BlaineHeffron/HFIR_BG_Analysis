@@ -409,8 +409,8 @@ class HFIRBG_DB(SQLiteBase):
             name = row[1]
             data = name[9:].split("_")
             Rx = 41.5
-            Rz = float(data[0]) + 60
-            Lz = float(data[0]) + 60
+            Rz = float(data[0]) + 24.75
+            Lz = float(data[0]) + 24.75
             Lx = 58.
             angle = float(data[1])
             track = 1
@@ -478,7 +478,7 @@ class HFIRBG_DB(SQLiteBase):
         c.A0, c.A1, 
         d.start_time, d.live_time, d.name as filename,
         det.type as detector_type, det.description as detector_description, 
-        coo.Rx, coo.Rz, coo.Lx, coo.Lz, coo.angle, coo.track, 
+        coo.Rx, coo.Rz, coo.Lx, coo.Lz, coo.angle, coo.track, coo.id as coordinate_id,
         ds.bias, 
         s.name as shield_name, s.description as shield_description,
         r.description as run_description, r.name as run_name
@@ -571,3 +571,16 @@ class HFIRBG_DB(SQLiteBase):
         update datafile live time and start time based on file name
         """
         self.execute("UPDATE datafile SET start_time = {0}, live_time = {1} WHERE name = '{2}'".format(st, lt, fname))
+
+    def update_file_position_with_offset(self, fname, z_offset):
+        """
+        update datafile z coordaintes with offset
+        """
+        data = self.retrieve_file_metadata(fname)
+        if data:
+            Rz = data["Rz"] + z_offset
+            Lz = data["Lz"] + z_offset
+            coo_id = data["coordinate_id"]
+            self.execute("UPDATE detector_coordinates SET Rz = {0}, Lz = {1} WHERE id = {2}".format(Rz, Lz, coo_id))
+        else:
+            print("couldnt find datafile with filename {}".format(fname))
