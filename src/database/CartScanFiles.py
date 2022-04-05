@@ -73,6 +73,8 @@ class CartScanFiles(HFIRBG_DB):
                 continue
             if row["track"] == 1:
                 continue
+            if 'lead' in row["run_description"]: # remove runs where we put lead down for testing
+                continue
             if min_E_range is not None:
                 max_E = row["A0"] + row["A1"] * 16384 + row["A1"] / 2.
                 if min_E_range > max_E:

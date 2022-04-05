@@ -1,8 +1,10 @@
 import sys
 from os.path import dirname, realpath
 
+
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
 from src.database.HFIRBG_DB import HFIRBG_DB
+from src.database.CartScanFiles import CartScanFiles
 import os
 from src.utilities.util import retrieve_position_scans
 
@@ -76,6 +78,14 @@ def fix_corrupted_files(db):
     db.update_datafile_time("PROSPECT_DOWN_OVERNIGHT", -1, 1) #this file has an incorrect live time, no way of knowing what it was
     db.commit()
 
+def fix_track_pos(db):
+    spectra = db.retrieve_track_spectra()
+    for key, val in spectra.items():
+        for data in val:
+            spec, coo = data
+            print("updating file {} z position".format(spec.fname))
+            db.update_file_position_with_offset(spec.fname, -35.25)
+    db.commit()
 
 def main():
     db = HFIRBG_DB()
@@ -84,6 +94,9 @@ def main():
     db.set_calibration_groups()
     fix_corrupted_files(db)
     db.close()
+    #db = CartScanFiles()
+    #fix_track_pos(db)
+
 
 
 if __name__ == "__main__":
