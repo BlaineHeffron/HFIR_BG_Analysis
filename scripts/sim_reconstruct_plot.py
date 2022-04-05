@@ -9,6 +9,18 @@ from src.utilities.util import scale_to_bin_width
 
 nIncrements = 10
 
+def chisqr(obs_hist, exp_hist):
+    chisqr = 0
+    for i in range(obs_hist.GetNbinsX()):
+        if exp_hist.GetBinContent(i+1) == 0:
+            if obs_hist.GetBinContent(i+1) == 0:
+                chisqr += 0
+            else:
+                chisqr += obs_hist.GetBinContent(i+1)
+        else:
+            chisqr += (obs_hist.GetBinContent(i+1) - exp_hist.GetBinContent(i+1))**2 / exp_hist.GetBinContent(i+1)
+    return chisqr
+
 def main():
     arg = ArgumentParser()
     ROOT_style()
@@ -25,8 +37,9 @@ def main():
     print(hist_measure)
     hist_measure.Scale(1./hist_live)
     scale_to_bin_width(hist_measure)
-    hist_copy = hist_measure.Clone()
-    hist_copy.Add(hist_recon,-1)
+    #hist_copy = hist_measure.Clone()
+    #hist_copy.Add(hist_recon,-1)
+    print("chisqr is {}".format(chisqr(hist_measure, hist_recon)))
     canvas = TCanvas("canvas")
     canvas.cd()
     canvas.SetLogy(True)

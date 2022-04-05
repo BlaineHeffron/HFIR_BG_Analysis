@@ -8,9 +8,11 @@ from os.path import join, exists
 import os
 
 rundata = {"Reactor Spectrum": "MIF_BOX_REACTOR_OPTIMIZED_OVERNIGHT_LOWEST_GAIN.txt"}
-rootdir = join(os.environ["HFIRBG_SIM"], "analysis/collimated/sqrt_scale")
+#rootdir = join(os.environ["HFIRBG_SIM"], "analysis/collimated/third_scale")
+rootdir = join(os.environ["HFIRBG_SIM"], "analysis/response/sqrt")
 energies = ["11386.5","9718.79","8998.63","7724.034","7693.398","7645.58","7631.18", "6809.61"]
-outdir = join(os.environ["HFIRBG_ANALYSIS"], "peak_ratio_compare/sqrt_front")
+#outdir = join(os.environ["HFIRBG_ANALYSIS"], "peak_ratio_compare/third_front")
+outdir = join(os.environ["HFIRBG_ANALYSIS"], "peak_ratio_compare/no_coll/sqrt")
 verify = False
 
 
@@ -23,8 +25,10 @@ def main():
         all_energies.append(float(e) - 2*511)
     db = HFIRBG_DB()
     data = populate_data(rundata, datadir,db)
-    root_data_dict_false = {"{0}_false".format(e): join(rootdir, "coll_false_{0}.root".format(e)) for e in energies}
-    root_data_dict_true = {"{0}_true".format(e): join(rootdir, "coll_true_front_{0}.root".format(e)) for e in energies}
+    #root_data_dict_false = {"{0}_false".format(e): join(rootdir, "coll_false_front_{0}.root".format(e)) for e in energies}
+    #root_data_dict_true = {"{0}_true".format(e): join(rootdir, "coll_true_front_{0}.root".format(e)) for e in energies}
+    root_data_dict_false = {"{0}_false".format(e): join(rootdir, "coll__none_{0}.root".format(e)) for e in energies}
+    root_data_dict_true = {"{0}_true".format(e): join(rootdir, "coll__none_{0}.root".format(e)) for e in energies}
     simdata = populate_data_root(root_data_dict_false, "GeEfficiencyPlugin/hGeEnergy", "accumulated/runtime", True, 1000., 10)
     simdata.update(populate_data_root(root_data_dict_true,  "GeEfficiencyPlugin/hGeEnergy", "accumulated/runtime", True, 1000., 10))
     if not exists(outdir):
