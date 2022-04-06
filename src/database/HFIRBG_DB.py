@@ -2,7 +2,7 @@ import os
 
 from src.database.SqliteManager import SQLiteBase, get_db_dir, generate_in_clause
 from src.utilities.util import get_data_dir, retrieve_file_extension, start_date, file_number, get_calibration, \
-    read_csv_list_of_tuples, get_json, is_number
+    read_csv_list_of_tuples, get_json, is_number, timestring_to_dt
 
 
 class HFIRBG_DB(SQLiteBase):
@@ -398,6 +398,10 @@ class HFIRBG_DB(SQLiteBase):
             where += "id " + generate_in_clause(file_ids) + " AND "
         if "min_time" in config.keys():
             where += "live_time >= {} AND ".format(config["min_time"])
+        if "max_date" in config.keys():
+            where += "start_time <= {} AND ".format(timestring_to_dt(config["max_date"]))
+        if "min_date" in config.keys():
+            where += "start_time >= {} AND ".format(timestring_to_dt(config["min_date"]))
         if where == "WHERE ":
             files = self.fetchall("SELECT id FROM datafile")
         else:

@@ -738,7 +738,7 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
             if ymin < 0: ymin *= 1.05
             else: ymin *= .95
     if(xmin is None):
-        xmin = min(xaxis)*.98
+        xmin = min(xaxis) - (max(xaxis) - min(xaxis))*.01
     if(xlog):
         ax1.set_xscale('log')
     else:
@@ -755,7 +755,7 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
     else:
         ax1.set_ylim(ymin,ymax)
     if(xmax == -1):
-        ax1.set_xlim(xmin,max(xaxis) + min(xaxis)*.02)
+        ax1.set_xlim(xmin,max(xaxis) + (max(xaxis) - min(xaxis))*.01)
     else:
         ax1.set_xlim(xmin,xmax)
     #for i, y in enumerate(yvals):

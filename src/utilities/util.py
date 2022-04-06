@@ -507,20 +507,31 @@ def plot_time_series(data, outdir, emin=30, emax=None):
             print("{} is not a list of data, skipping".format(key))
             continue
         plot_name = join(outdir, "{0}_{1}.png".format(key, energystring))
+        A0_name = join(outdir, "{0}_{1}_A0.png".format(key, energystring))
+        A1_name = join(outdir, "{0}_{1}_A1.png".format(key, energystring))
         ylabel = "rate [Hz/keV]"
         rates = []
         drates = []
         times = []
+        A0 = []
+        A1 = []
         e1, e2 = data[key][0].get_e_limits(emin, emax)
         line_label = ["{0:.0f} - {1:.0f} keV".format(e1, e2)]
         for spec in data[key]:
             r, dr = spec.integrate(emin, emax, norm=True)
             rates.append(r)
             drates.append(dr)
+            A0.append(spec.A0)
+            A1.append(spec.A1)
             times.append(spec.start_timestamp())
         MultiScatterPlot(times, [rates], [drates], line_label, xlabel, ylabel, xdates=True)
-
         plt.savefig(plot_name)
+        plt.close()
+        MultiScatterPlot(times, [A0], [[0]*len(A0)], line_label, xlabel, "A0", xdates=True)
+        plt.savefig(A0_name)
+        plt.close()
+        MultiScatterPlot(times, [A1], [[0]*len(A1)], line_label, xlabel, "A1", xdates=True)
+        plt.savefig(A1_name)
         plt.close()
 
 
@@ -559,6 +570,11 @@ def start_date(file):
     else:
         print("couldnt find datetime, using creation date of file")
         return creation_date(file), lt
+
+
+def timestring_to_dt(time):
+    dt = datetime.strptime(time, "%Y-%m-%d, %H:%M:%S")
+    return dt.timestamp()
 
 
 def creation_date(path_to_file):

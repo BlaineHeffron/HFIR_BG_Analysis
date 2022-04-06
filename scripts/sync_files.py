@@ -4,7 +4,6 @@ from os.path import dirname, realpath
 
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
 from src.database.HFIRBG_DB import HFIRBG_DB
-from src.database.CartScanFiles import CartScanFiles
 import os
 from src.utilities.util import retrieve_position_scans
 
