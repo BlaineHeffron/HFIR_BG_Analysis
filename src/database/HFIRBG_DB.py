@@ -352,9 +352,12 @@ class HFIRBG_DB(SQLiteBase):
                 fs.append(os.path.join(row[1], row[2] + ".txt"))
         return fs
 
-    def retrieve_file_ids_from_detector_config(self, detector_config_id):
+    def retrieve_file_ids_from_detector_config(self, detector_config_id, coord=None):
         files = []
-        rows = self.fetchall("SELECT id FROM runs WHERE detector_configuration = {}".format(detector_config_id))
+        if coord:
+            rows = self.fetchall("SELECT id FROM runs WHERE detector_configuration = {0} and detector_coordinates = {1}".format(detector_config_id, coord))
+        else:
+            rows = self.fetchall("SELECT id FROM runs WHERE detector_configuration = {}".format(detector_config_id))
         if rows:
             for row in rows:
                 fids = self.retrieve_run_flist(row[0])
@@ -376,13 +379,20 @@ class HFIRBG_DB(SQLiteBase):
                 config_dict["acquisition_settings"] = acq_id[0][0]
         if "shield" in config.keys():
             config_dict["shield"] = config["shield"]
+        coord_id = None
+        if "detector_coordinates" in config.keys():
+            coord_id = self.dictionary_select("detector_coordinates", config["detector_coordinates"])
+            if coord_id:
+                coord_id = coord_id[0][0]
         detector_config_ids = None
         if config_dict:
             detector_config_ids = self.dictionary_select("detector_configuration", config_dict)
         file_ids = []
         if detector_config_ids:
             for row in detector_config_ids:
-                file_ids += self.retrieve_file_ids_from_detector_config(row[0])
+                file_ids += self.retrieve_file_ids_from_detector_config(row[0], coord_id)
+        elif coord_id:
+            file_ids += self.retrieve_file_ids_from_detector_coord(coord_id)
         where = "WHERE "
         if file_ids:
             where += "id " + generate_in_clause(file_ids) + " AND "
@@ -584,3 +594,12 @@ class HFIRBG_DB(SQLiteBase):
             self.execute("UPDATE detector_coordinates SET Rz = {0}, Lz = {1} WHERE id = {2}".format(Rz, Lz, coo_id))
         else:
             print("couldnt find datafile with filename {}".format(fname))
+
+    def retrieve_file_ids_from_detector_coord(self, coord_id):
+        files = []
+        rows = self.fetchall("SELECT id FROM runs WHERE detector_coordinates = {0}".format(coord_id))
+        if rows:
+            for row in rows:
+                fids = self.retrieve_run_flist(row[0])
+                files += fids
+        return files

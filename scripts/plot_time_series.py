@@ -28,14 +28,25 @@ Emin = 30  # keV
 Emax = None
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "time_series")
 
+config = {"detector_coordinates": { "Rx": 21.0, "Rz": 94.5, "Lx": 38.0, "Lz": 90.5, "angle": 46.5, "track":0 },
+          "acquisition_settings": {"coarse_gain": 2, "fine_gain": 1.02}}
+name = "MIF_to_reactor"
 
 def main():
     if not os.path.exists(outdir):
         os.mkdir(outdir)
+
     datadir = get_data_dir()
     db = HFIRBG_DB()
-    data = populate_data(rundata, datadir, db)
-    plot_time_series(data, outdir, emin=Emin, emax=Emax)
+    if config:
+        data = populate_data_config(config, db, comb_runs=False)
+        mydata = {name:[]}
+        for key in data.keys():
+            mydata[name].append(data[key])
+        plot_time_series(mydata, outdir, emin=Emin, emax=Emax)
+    else:
+        data = populate_data(rundata, datadir, db)
+        plot_time_series(data, outdir, emin=Emin, emax=Emax)
 
 
 

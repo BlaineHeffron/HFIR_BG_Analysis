@@ -11,14 +11,17 @@ nIncrements = 10
 
 def chisqr(obs_hist, exp_hist):
     chisqr = 0
-    for i in range(obs_hist.GetNbinsX()):
+    for i in range(exp_hist.GetNbinsX()):
+        x = exp_hist.GetBinCenter(i+1)
+        bin_num = obs_hist.GetXaxis().FindBin(x)
         if exp_hist.GetBinContent(i+1) == 0:
-            if obs_hist.GetBinContent(i+1) == 0:
+            if obs_hist.GetBinContent(bin_num) == 0:
                 chisqr += 0
             else:
-                chisqr += obs_hist.GetBinContent(i+1)
+                chisqr += obs_hist.GetBinContent(bin_num)
         else:
-            chisqr += (obs_hist.GetBinContent(i+1) - exp_hist.GetBinContent(i+1))**2 / exp_hist.GetBinContent(i+1)
+            chisqr += (obs_hist.GetBinContent(bin_num) - exp_hist.GetBinContent(i+1))**2 / exp_hist.GetBinContent(i+1)
+        #print("observed is {0} expected is {1} diff is {2}".format(obs_hist.GetBinContent(bin_num), exp_hist.GetBinContent(i+1), obs_hist.GetBinContent(bin_num) - exp_hist.GetBinContent(i+1)))
     return chisqr
 
 def main():
@@ -33,8 +36,7 @@ def main():
     f2 = TFile(args.foriginal,"READ")
     hist_measure = f2.Get("GeDataHist")
     hist_live = f2.Get("LiveTime")[0]
-    print(hist_recon)
-    print(hist_measure)
+    #hist_measure = f.Get("Measured")
     hist_measure.Scale(1./hist_live)
     scale_to_bin_width(hist_measure)
     #hist_copy = hist_measure.Clone()
