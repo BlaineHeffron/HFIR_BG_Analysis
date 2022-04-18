@@ -8,9 +8,9 @@ from src.database.HFIRBG_DB import HFIRBG_DB
 rundata = { "corner_no_shield": "CORNER_MEASUREMENT_NO_SHIELD_WALL_LOW_GAIN",
             "MIF_no_shield":"CORNER_TPS_OVERNIGHT" }
 rundata = {"Reactor Spectrum":"MIF_BOX_REACTOR_OPTIMIZED_OVERNIGHT_LOWEST_GAIN.txt"}
-#rundata = {"rxon":"MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","rxoff":"MIF_BOX_AT_REACTOR_RXOFF"}
+rundata = {"rxon":"MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","rxoff":"MIF_BOX_AT_REACTOR_RXOFF"}
 #rundata = {"Reactor Spectrum":"MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt"}
-rundata = {"PROSPECT Spectrum":"PROSPECT_DOWN_OVERNIGHT.txt"}
+#rundata = {"PROSPECT Spectrum":"PROSPECT_DOWN_OVERNIGHT.txt"}
 bins = get_bins(0, 11500, 11500)
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "spectrum_plots")
 

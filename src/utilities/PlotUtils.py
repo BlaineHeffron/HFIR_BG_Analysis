@@ -513,8 +513,9 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
         if(title):
             ax1.set_title(title)
         ax1.set_position([box.x0,box.y0,box.width,box.height])
-        ax1.legend(line_labels,loc='center left', \
-                   bbox_to_anchor=(0.20,0.22),ncol=1)
+        ax1.legend(line_labels,loc='best')
+        #ax1.legend(line_labels,loc='center left', \
+        #           bbox_to_anchor=(0.20,0.22),ncol=1)
     ax1.xaxis.set_minor_locator(AutoMinorLocator())
     if not ylog:
         ax1.yaxis.set_minor_locator(AutoMinorLocator())

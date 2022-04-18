@@ -2,7 +2,8 @@ import sys
 from os.path import dirname, realpath
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
 from argparse import ArgumentParser
-from ROOT import TFile, TCanvas, TLegend
+from ROOT import TFile, TCanvas, TLegend, kRed, kBlue, kRed, gPad, TGaxis
+
 from src.utilities.ROOT_style import ROOT_style
 import os
 from src.utilities.util import scale_to_bin_width
@@ -33,12 +34,13 @@ def main():
     args = arg.parse_args()
     f = TFile(args.f,"READ")
     hist_recon = f.Get("FoldedBack")
-    f2 = TFile(args.foriginal,"READ")
-    hist_measure = f2.Get("GeDataHist")
-    hist_live = f2.Get("LiveTime")[0]
-    #hist_measure = f.Get("Measured")
-    hist_measure.Scale(1./hist_live)
-    scale_to_bin_width(hist_measure)
+    #f2 = TFile(args.foriginal,"READ")
+    #hist_measure = f2.Get("GeDataHist")
+    #hist_live = f2.Get("LiveTime")[0]
+    hist_measure = f.Get("Measured")
+    hist_en = f.Get("UnfoldedEnergy")
+    #hist_measure.Scale(1./hist_live)
+    #scale_to_bin_width(hist_measure)
     #hist_copy = hist_measure.Clone()
     #hist_copy.Add(hist_recon,-1)
     print("chisqr is {}".format(chisqr(hist_measure, hist_recon)))
@@ -54,15 +56,29 @@ def main():
         xhigh = xhigh2
     if xlow < xlow2:
         xlow = xlow2
-    hist_recon.Rebin(3)
-    hist_measure.Rebin(3)
+    #hist_recon.Rebin(3)
+    #hist_measure.Rebin(3)
+    #hist_en.Rebin(3)
     hist_recon.GetXaxis().SetRangeUser(xlow, xhigh)
     hist_measure.GetXaxis().SetRangeUser(xlow, xhigh)
+    hist_en.GetXaxis().SetRangeUser(xlow, xhigh)
+    #hist_measure.SetLineColor(kBlack)
     hist_measure.Draw("L")
+    hist_recon.SetLineColor(kBlue)
     hist_recon.Draw("L SAME")
+    hist_en.SetLineColor(kRed)
+    rightmax = 1.1*hist_en.GetMaximum()
+    scale = gPad.GetUymax()/rightmax
+    hist_en.Scale(scale)
+    hist_recon.Draw("SAME")
+    ax = TGaxis(gPad.GetUxmin(), gPad.GetUymin(), gPad.GetUxmax(), gPad.GetUymax(),0, rightmax, 510, "+L" )
+    ax.SetLineColor(kRed)
+    ax.SetLabelColor(kRed)
+    ax.Draw()
     legend = TLegend(0.7, 0.85, .9, 0.95)
     legend.AddEntry(hist_measure, "Measured", "f")
     legend.AddEntry(hist_recon, "reconstructed", "f")
+    legend.AddEntry(hist_en, "flux", "f")
     legend.Draw()
     canvas.Print(os.path.join(args.outpath, "unfoldplots.pdf"))
     width = (xhigh - xlow) / nIncrements

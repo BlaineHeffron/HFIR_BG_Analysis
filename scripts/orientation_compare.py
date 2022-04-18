@@ -133,7 +133,16 @@ plot_name = "HB4_vs_MIF"
 compare_to = "MIF"
 bins = get_bins(4500, 5000, 500)
 
+rundata = {"rxon":"MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","rxoff":"MIF_BOX_AT_REACTOR_RXOFF"}
+plot_name = "rxon_vs_off"
+compare_to = "rxoff"
+bins = get_bins(30, 11500, 11500)
+outdir = join(os.environ["HFIRBG_ANALYSIS"], "spectrum_plots")
+
 def main():
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+    pname = join(outdir, plot_name)
     db = HFIRBG_DB()
     datadir = get_data_dir()
     data = populate_data(rundata, datadir, db)
@@ -141,13 +150,13 @@ def main():
     rebin_spectra(data, bins)
     #data = background_subtract(data, "Rxoff", get_bins(100, 9400, 3100))
     write_spectra(data, datadir, db)
-    plot_multi_spectra(data, plot_name, rebin=10, emin=15)
-    plot_subtract_spectra(data, compare_to, plot_name + "_subtract", rebin=100, emin=15)
+    plot_multi_spectra(data, pname, rebin=10, emin=15)
+    plot_subtract_spectra(data, compare_to, pname + "_subtract", rebin=100, emin=15)
     emin = [800*i for i in range(15)]
     emax = [800*(i+1) for i in range(15)]
     #for i in range(len(emin)):
-    #    plot_multi_spectra(data, plot_name + "_{}".format(i), emin=emin[i], emax=emax[i])
-    #    plot_subtract_spectra(data, compare_to, plot_name + "_subtract_{}".format(i), emin=emin[i], emax=emax[i])
+    #    plot_multi_spectra(data, pname + "_{}".format(i), emin=emin[i], emax=emax[i])
+    #    plot_subtract_spectra(data, compare_to, pname + "_subtract_{}".format(i), emin=emin[i], emax=emax[i])
 
 
 if __name__ == "__main__":
