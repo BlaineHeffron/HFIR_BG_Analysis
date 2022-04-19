@@ -929,13 +929,14 @@ class SpectrumFitter:
                     continue
                 peak_x = peak_x.split(',')
                 for p, centroid, sigma in zip(peak_x, fit.centroids, fit.sigmas):
-                    centroids.append(centroid)
+                    centroids.append(self.get_index_from_energy(centroid))
                     sigmas.append(sigma)
                     values.append(float(p))
             i += 1
         sigmas = np.array(sigmas)
         values = np.array(values)
         centroids = np.array(centroids)
+        print("peaks at {0}, centroids at {1}".format(values, centroids))
         if len(values) < 3:
             print("not enough points for fit, not able to retrieve calibration")
             return None, None
