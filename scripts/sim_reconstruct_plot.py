@@ -21,7 +21,7 @@ def chisqr(obs_hist, exp_hist):
             else:
                 chisqr += obs_hist.GetBinContent(bin_num)
         else:
-            chisqr += (obs_hist.GetBinContent(bin_num) - exp_hist.GetBinContent(i+1))**2 / exp_hist.GetBinContent(i+1)
+            chisqr += (obs_hist.GetBinContent(bin_num) - exp_hist.GetBinContent(i+1))**2 / exp_hist.GetBinError(i+1)**2
         #print("observed is {0} expected is {1} diff is {2}".format(obs_hist.GetBinContent(bin_num), exp_hist.GetBinContent(i+1), obs_hist.GetBinContent(bin_num) - exp_hist.GetBinContent(i+1)))
     return chisqr
 
@@ -62,32 +62,30 @@ def main():
     hist_recon.GetXaxis().SetRangeUser(xlow, xhigh)
     hist_measure.GetXaxis().SetRangeUser(xlow, xhigh)
     hist_en.GetXaxis().SetRangeUser(xlow, xhigh)
+    hist_en.Rebin(2)
     #hist_measure.SetLineColor(kBlack)
     hist_measure.Draw("L")
     hist_recon.SetLineColor(kBlue)
     hist_recon.Draw("L SAME")
     hist_en.SetLineColor(kRed)
     rightmax = 1.1*hist_en.GetMaximum()
-    scale = gPad.GetUymax()/rightmax
-    hist_en.Scale(scale)
-    hist_recon.Draw("SAME")
-    ax = TGaxis(gPad.GetUxmin(), gPad.GetUymin(), gPad.GetUxmax(), gPad.GetUymax(),0, rightmax, 510, "+L" )
-    ax.SetLineColor(kRed)
-    ax.SetLabelColor(kRed)
-    ax.Draw()
     legend = TLegend(0.7, 0.85, .9, 0.95)
     legend.AddEntry(hist_measure, "Measured", "f")
     legend.AddEntry(hist_recon, "reconstructed", "f")
-    legend.AddEntry(hist_en, "flux", "f")
     legend.Draw()
+    canvas.Print(os.path.join(args.outpath, "unfoldplots.pdf"))
+    hist_en.Draw("HIST")
     canvas.Print(os.path.join(args.outpath, "unfoldplots.pdf"))
     width = (xhigh - xlow) / nIncrements
     for i in range(nIncrements):
         hist_recon.GetXaxis().SetRangeUser(xlow + i*width, xlow + (i+1)*width)
         hist_measure.GetXaxis().SetRangeUser(xlow + i*width, xlow + (i+1)*width)
+        hist_en.GetXaxis().SetRangeUser(xlow + i*width, xlow + (i+1)*width)
         hist_measure.Draw("HIST C")
         hist_recon.Draw("HIST SAME C")
         legend.Draw()
+        canvas.Print(os.path.join(args.outpath, "unfoldplots.pdf"))
+        hist_en.Draw("HIST C")
         canvas.Print(os.path.join(args.outpath, "unfoldplots.pdf"))
 
     #canvas.Print(os.path.join(args.outpath, "unfoldplots.pdf"))

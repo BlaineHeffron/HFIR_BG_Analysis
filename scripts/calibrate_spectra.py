@@ -10,11 +10,13 @@ import os
 config = None
 #config = {"min_time": 80000, "acquisition_settings": {"coarse_gain": 2, "fine_gain": 1.02}}
 #rundata = {"Reactor Spectrum": "MIF_BOX_REACTOR_OPTIMIZED_OVERNIGHT_LOWEST_GAIN.txt"}
-rundata = {"MIF": "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","HB4":"HB4_DOWN_OVERNIGHT_1.txt"}
+#rundata = {"MIF": "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","HB4":"HB4_DOWN_OVERNIGHT_1.txt"}
+rundata = {"rxoff":"MIF_BOX_AT_REACTOR_RXOFF"}
 #expected_peaks = [11386.5, 8884.81, 9102.1, 9297.8, 8998.63, 7724.034, 6809.61, 1460.8, 1332.5, 1274.5, 1173.2, 511.0,
 #                  964.082, 1112.08, 1408.013, 778.9006, 1293.64, 1274.5]
 
-expected_peaks = [7724.034, 7645.58, 7631.18, 1460.8, 1332.5, 1293.64, 1173.2, 511.0]
+#expected_peaks = [7724.034, 7645.58, 7631.18, 1460.8, 1332.5, 1293.64, 1173.2, 511.0]
+expected_peaks = [1460.8, 1332.5, 1274.43, 1173.2,964.082,1112.08,1408.013,778.9006]
 update_nearby_runs = True
 dt = 86400*7
 

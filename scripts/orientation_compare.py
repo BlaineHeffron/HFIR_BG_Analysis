@@ -133,8 +133,9 @@ plot_name = "HB4_vs_MIF"
 compare_to = "MIF"
 bins = get_bins(4500, 5000, 500)
 
-rundata = {"MIF": "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","HB4":"HB4_DOWN_OVERNIGHT_1.txt"}
-plot_name = "HB4_vs_MIF"
+#rundata = {"MIF": "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","HB4":"HB4_DOWN_OVERNIGHT_1.txt"}
+rundata = {"MIF": "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","HB4":"HB4_DOWN_OVERNIGHT_1.txt","SHIELD_CENTER":"CYCLE461_DOWN_FACING_OVERNIGHT.txt"}
+plot_name = "HB4_vs_MIF_vs_SHIELDCENTER"
 compare_to = "MIF"
 bins = get_bins(100, 11500, 11400)
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "spectrum_plots")
