@@ -15,13 +15,10 @@ def chisqr(obs_hist, exp_hist):
     for i in range(exp_hist.GetNbinsX()):
         x = exp_hist.GetBinCenter(i+1)
         bin_num = obs_hist.GetXaxis().FindBin(x)
-        if exp_hist.GetBinContent(i+1) == 0:
-            if obs_hist.GetBinContent(bin_num) == 0:
-                chisqr += 0
-            else:
-                chisqr += obs_hist.GetBinContent(bin_num)
+        if obs_hist.GetBinError(bin_num) == 0:
+            chisqr += exp_hist.GetBinContent(i+1)
         else:
-            chisqr += (obs_hist.GetBinContent(bin_num) - exp_hist.GetBinContent(i+1))**2 / exp_hist.GetBinError(i+1)**2
+            chisqr += (obs_hist.GetBinContent(bin_num) - exp_hist.GetBinContent(i+1))**2 / obs_hist.GetBinError(bin_num)**2
         #print("observed is {0} expected is {1} diff is {2}".format(obs_hist.GetBinContent(bin_num), exp_hist.GetBinContent(i+1), obs_hist.GetBinContent(bin_num) - exp_hist.GetBinContent(i+1)))
     return chisqr
 

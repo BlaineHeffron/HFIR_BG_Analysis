@@ -975,7 +975,9 @@ def fit_peak_sigmas(data, expected_peaks, plot_dir=None, user_verify=False,
         else:
             coeff, cov, chisqr, _ = linfit(ens, sigs, dsigs)
     errs = np.sqrt(np.diag(cov))
+    n_param = 2
     if use_sqrt_fit:
+        n_param = 3
         B = 1 / (coeff[1] ** 2)
         errB = abs(B * 0.5 * errs[1] / coeff[1])
         print(
@@ -985,12 +987,12 @@ def fit_peak_sigmas(data, expected_peaks, plot_dir=None, user_verify=False,
         print("fit values are sigma = A + B*(E), A = {0} ~ {1} keV, B = {2} ~ {3}".format(coeff[1], errs[1], coeff[0],
                                                                                           errs[0]))
     alpha = 0.05
-    p_value = 1 - stats.chi2.cdf(chisqr, len(ens) - 1)
+    p_value = 1 - stats.chi2.cdf(chisqr, len(ens) - n_param)
     conclusion = "Failed to reject the null hypothesis."
     if p_value <= alpha:
         conclusion = "Null Hypothesis is rejected."
 
-    print("chisquare of fit is {0} with p value {1} and {2} degrees of freedom".format(chisqr, p_value, len(ens) - 1))
+    print("chisquare of fit is {0} with p value {1} and {2} degrees of freedom".format(chisqr, p_value, len(ens) - n_param))
     print(conclusion)
 
 

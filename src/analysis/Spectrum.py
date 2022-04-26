@@ -781,7 +781,7 @@ class SpectrumFitter:
             parameters, covariance = curve_fit(ge_multi_peak_function, xs, ys, p0=guesses,  # sigma=sigma,
                                                bounds=(lower_bounds, upper_bounds), sigma=sigma,
                                                #absolute_sigma=True,  maxfev=100000,
-                                               absolute_sigma=True, jac=ge_multi_peak_function_jac, maxfev=100000)
+                                               absolute_sigma=False, jac=ge_multi_peak_function_jac, maxfev=100000)
             errs = np.sqrt(np.diag(covariance))
 
             peak_str = [str(peak) for peak in peaks]
@@ -840,7 +840,7 @@ class SpectrumFitter:
             return
         parameters, covariance = curve_fit(ge_peak_function, xs, ys, p0=guesses, #sigma=sigma,
                                            bounds=(lower_bounds, upper_bounds), sigma=sigma,
-                                           absolute_sigma=True, jac=ge_peak_function_jac, maxfev=100000)
+                                           absolute_sigma=False, jac=ge_peak_function_jac, maxfev=100000)
         errs = np.sqrt(np.diag(covariance))
         self.fit_values[peak_x] = PeakFit(parameters, errs, covariance, xs, ys)
 

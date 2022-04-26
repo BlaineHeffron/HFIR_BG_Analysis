@@ -15,8 +15,9 @@ from collections import OrderedDict
 #from util import safe_divide, write_x_y_csv
 
 #mpl.use('Agg')
-plt.rcParams['font.size'] = '12'
+plt.rcParams['font.size'] = '14'
 TITLE_SIZE = 16
+
 
 # initialize globals
 cmaps = OrderedDict()
@@ -55,13 +56,13 @@ cmaps['Miscellaneous'] = [
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = 'Ubuntu'
 plt.rcParams['font.monospace'] = 'Ubuntu Mono'
-plt.rcParams['font.size'] = 22
-plt.rcParams['axes.labelsize'] = 22
+plt.rcParams['font.size'] = 14
+plt.rcParams['axes.labelsize'] = 16
 #plt.rcParams['axes.labelweight'] = 'bold'
-plt.rcParams['xtick.labelsize'] = 20
-plt.rcParams['ytick.labelsize'] = 20
-plt.rcParams['legend.fontsize'] = 22
-plt.rcParams['figure.titlesize'] = 24
+plt.rcParams['xtick.labelsize'] = 14
+plt.rcParams['ytick.labelsize'] = 14
+plt.rcParams['legend.fontsize'] = 16
+plt.rcParams['figure.titlesize'] = 16
 
 def plot_z_acc_matrix(cm, nx, ny, title, zlabel="mean average error [mm]", cmap=plt.cm.viridis):
     fontsize = 12
@@ -617,7 +618,7 @@ def ScatterDifferencePlot(xaxis, ref, ref_err, yvals, errors, yval_labels, xlabe
 def ScatterLinePlot(xaxis, yvals, errors, linex, liney, lineerr, line_labels, xlabel, ylabel,
                      colors=None, styles=None,
                      xmax=-1, ymax=-1, ymin=None, xmin=None, ylog=True, xdates=False,
-                     vertlines=None, vlinelabel=None, xlog=False, title=None,  figsize=(12, 9),
+                     vertlines=None, vlinelabel=None, xlog=False, title=None,  figsize=(6, 4),
                     legend_loc='center left'):
     if colors is None:
         colors = []
@@ -627,7 +628,7 @@ def ScatterLinePlot(xaxis, yvals, errors, linex, liney, lineerr, line_labels, xl
         xaxis = mdate.epoch2num(xaxis)
         if(vertlines):
             vertlines = mdate.epoch2num(vertlines)
-    rcParams.update({'font.size': 18})
+
     fig = plt.figure(figsize=figsize)
     ax1 = fig.add_subplot(111)
     ax1.set_xlabel(xlabel)
@@ -688,7 +689,8 @@ def ScatterLinePlot(xaxis, yvals, errors, linex, liney, lineerr, line_labels, xl
         #plt.setp(ax1.get_xticklabels(), rotation=30,\
         #horizontalalignment='right')
     if(not title):
-        ax1.set_title(line_labels[0])
+        pass
+        #ax1.set_title(line_labels[0])
     else:
         ax1.set_title(title)
     box = ax1.get_position()
@@ -696,7 +698,6 @@ def ScatterLinePlot(xaxis, yvals, errors, linex, liney, lineerr, line_labels, xl
     #ax1.legend(line_labels, loc=legend_loc, \
     #           bbox_to_anchor=(0.75, 0.85), ncol=1)
     ax1.legend(line_labels, loc=legend_loc)
-    rcParams.update({'font.size': 14})
     ax1.xaxis.set_minor_locator(AutoMinorLocator())
     if not ylog:
         ax1.yaxis.set_minor_locator(AutoMinorLocator())
@@ -709,6 +710,7 @@ def ScatterLinePlot(xaxis, yvals, errors, linex, liney, lineerr, line_labels, xl
     #plt.gcf().subplots_adjust(right=0.05)
     #plt.savefig(outname)
     #plt.close()
+    plt.tight_layout()
     return fig
 
 def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
