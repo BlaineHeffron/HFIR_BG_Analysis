@@ -377,16 +377,24 @@ class MultiPeakFit:
         self.cov = cov
         self.xs = xs
         self.ys = ys
-        self.centroids = []
         self.sigmas = []
         self.sigma_errs = []
+        self.centroids = []
         self.centroid_errs = []
+        self.skews = []
+        self.skew_errs = []
+        self.Rs = []
+        self.R_errs = []
         ind = 0
         while ind + 8 <= len(self.parameters):
             self.centroids.append(self.parameters[ind + 2])
             self.sigmas.append(self.parameters[ind + 3])
             self.centroid_errs.append(self.errors[ind + 2])
             self.sigma_errs.append(self.errors[ind + 3])
+            self.skews.append(self.parameters[ind + 4])
+            self.skew_errs.append(self.errors[ind + 4])
+            self.Rs.append(self.parameters[ind + 1])
+            self.R_errs.append(self.errors[ind + 1])
             ind += 5
 
     def get_y(self):
@@ -472,13 +480,15 @@ class MultiPeakFit:
 
 class PeakFit:
     def __init__(self, parameters, errors, cov, xs, ys):
-        #self.c = parameters[0]
-        #self.R = parameters[1]
-        #self.step = parameters[2]
+        self.c = parameters[0]
+        self.R = parameters[1]
         self.centroid = parameters[2]
         self.sigma = parameters[3]
         self.sigma_err = errors[3]
         self.centroid_err = errors[2]
+        self.R_err = errors[1]
+        self.skew = parameters[4]
+        self.skew_err = errors[4]
         #self.beta = parameters[5]
         #self.dc = errors[0]
         #self.dR = errors[1]

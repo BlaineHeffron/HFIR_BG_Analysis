@@ -5,7 +5,7 @@ from math import sqrt
 from scipy.optimize import curve_fit
 
 
-def linfit(x, y, sigma, plot=None, xlabel="channel #", ylabel="Peak Energy [eV]"):
+def linfit(x, y, sigma, plot=None, xlabel="channel #", ylabel="Peak Energy [keV]"):
     # print("fitting x values {0} y values {1} with sigma {2}".format(x,y,sigma))
     coeff, cov = np.polyfit(x, y, 1, cov=True, w=(1 / sigma))
     xmin = min(x)*.9
@@ -14,7 +14,7 @@ def linfit(x, y, sigma, plot=None, xlabel="channel #", ylabel="Peak Energy [eV]"
         linex = np.linspace(xmin, xmax, 100)
         liney = np.array([coeff[0] * i + coeff[1] for i in linex])
         fit_y_errs = np.array([sqrt(cov[1, 1] + i ** 2 * cov[0, 0] + 2 * i * cov[0, 1]) for i in linex])
-        ScatterLinePlot(x, 1000*y, 1000*sigma, linex, 1000*liney, 1000*fit_y_errs,
+        ScatterLinePlot(x, y, sigma, linex, liney, fit_y_errs,
                         ["best fit", r'1 $\sigma$ error', "peak fits to data"], xlabel, ylabel,
                         ylog=False, legend_loc='best', xmin=xmin, xmax=xmax)
         plt.savefig(plot + ".png")

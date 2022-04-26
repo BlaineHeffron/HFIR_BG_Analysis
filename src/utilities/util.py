@@ -885,6 +885,23 @@ def get_sigmas(peak_data, sigmas, dsigmas):
             sigmas["{:.2f}".format(peak)] = data.sigma
             dsigmas["{:.2f}".format(peak)] = data.sigma_err
 
+def get_skews(peak_data, skews, dskews, Rs, dRs):
+    for peak, data in peak_data.items():
+        if isinstance(peak, str):
+            peak = peak.split(',')
+            for i, p in enumerate(peak):
+                p = float(p)
+                skews["{:.2f}".format(p)] = data.skews[i]
+                dskews["{:.2f}".format(p)] = data.skew_errs[i]
+                Rs["{:.2f}".format(p)] = data.Rs[i]
+                dRs["{:.2f}".format(p)] = data.R_errs[i]
+        else:
+            p = float(peak)
+            skews["{:.2f}".format(p)] = data.skew
+            dskews["{:.2f}".format(p)] = data.skew_err
+            Rs["{:.2f}".format(p)] = data.R
+            dRs["{:.2f}".format(p)] = data.R_err
+
 
 def get_areas(peak_data, areas, dareas):
     for peak, data in peak_data.items():
@@ -940,21 +957,35 @@ def fit_peak_sigmas(data, expected_peaks, plot_dir=None, user_verify=False,
     peak_data = fit_spectra(data, expected_peaks, plot_dir, user_verify, plot_fit)
     sigmas = {}
     dsigmas = {}
+    skews = {}
+    dskews = {}
+    Rs = {}
+    dRs = {}
     get_sigmas(peak_data, sigmas, dsigmas)
+    get_skews(peak_data, skews, dskews, Rs, dRs)
     ens = []
     sigs = []
     dsigs = []
+    sks = []
+    dsks = []
+    r = []
+    dr = []
     for e in sigmas.keys():
         ens.append(float(e))
         sigs.append(sigmas[e])
         dsigs.append(dsigmas[e])
+        sks.append(skews[e])
+        dsks.append(dskews[e])
+        r.append(Rs[e])
+        dr.append(dRs[e])
     ens = np.array(ens)
     sigs = np.array(sigs)
     dsigs = np.array(dsigs)
+    sks = np.array(sks)
+    dsks = np.array(dsks)
+    r = np.array(r)
+    dr = np.array(dr)
     name_app = "linear"
-    ens /= 1000.
-    sigs /= 1000.
-    dsigs /= 1000.
     if use_sqrt_fit:
         name_app = "sqrt"
     if plot_dir is not None:
@@ -969,12 +1000,20 @@ def fit_peak_sigmas(data, expected_peaks, plot_dir=None, user_verify=False,
         else:
             coeff, cov, chisqr, _ = linfit(ens, sigs, dsigs, join(plot_dir, plot_name), "Energy [keV]",
                                            "Peak Sigma [keV]")
+        plot_name = nm + "_E_skew_{0}_fit".format(name_app)
+        skew_coeff, skew_cov, skew_chisqr, _ = linfit(ens, sks, dsks, join(plot_dir, plot_name), "Energy [keV]", "skewness [keV]")
+        plot_name = nm + "_E_R_{0}_fit".format(name_app)
+        r_coeff, r_cov, r_chisqr, _ = linfit(ens, r, dr, join(plot_dir, plot_name), "Energy [keV]", "R")
     else:
         if use_sqrt_fit:
             coeff, cov, chisqr = sqrtfit(ens, sigs, dsigs)
         else:
             coeff, cov, chisqr, _ = linfit(ens, sigs, dsigs)
+        skew_coeff, skew_cov, skew_chisqr, _ = linfit(ens, sks, dsks)
+        r_coeff, r_cov, r_chisqr, _ = linfit(ens, r, dr)
     errs = np.sqrt(np.diag(cov))
+    skew_errs = np.sqrt(np.diag(skew_cov))
+    r_errs = np.sqrt(np.diag(r_cov))
     n_param = 2
     if use_sqrt_fit:
         n_param = 3
@@ -986,6 +1025,9 @@ def fit_peak_sigmas(data, expected_peaks, plot_dir=None, user_verify=False,
     else:
         print("fit values are sigma = A + B*(E), A = {0} ~ {1} keV, B = {2} ~ {3}".format(coeff[1], errs[1], coeff[0],
                                                                                           errs[0]))
+
+    print("fit values are skew = A + B*(E), A = {0} ~ {1} keV, B = {2} ~ {3}".format(skew_coeff[1], skew_errs[1], skew_coeff[0], skew_errs[0]))
+    print("fit values are R = A + B*(E), A = {0} ~ {1}, B = {2} ~ {3} 1/keV".format(r_coeff[1], r_errs[1], r_coeff[0], r_errs[0]))
     alpha = 0.05
     p_value = 1 - stats.chi2.cdf(chisqr, len(ens) - n_param)
     conclusion = "Failed to reject the null hypothesis."
