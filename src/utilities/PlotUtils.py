@@ -434,7 +434,7 @@ def GetMPLStyles():
 def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
                   colors=None, styles=None,
                   xmax=-1, ymax=-1, ymin=None, xmin=None, ylog=True, xdates=False,
-                  vertlines=None, vlinelabel=None, xlog=False, title=None, figsize=(12, 9)):
+                  vertlines=None, vlinelabel=None, xlog=False, title=None, figsize=(5, 4)):
     rcParams.update({'font.size': 22})
     if colors is None:
         colors = []
@@ -534,7 +534,7 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
 def ScatterDifferencePlot(xaxis, ref, ref_err, yvals, errors, yval_labels, xlabel, ylabel,
                     colors=None, styles=None,
                     xmax=-1, ymax=-1, ymin=None, xmin=None, xdates=False,
-                    vertlines=None, xlog=False, title=None,  figsize=(12, 9),
+                    vertlines=None, xlog=False, title=None,  figsize=(5, 4),
                     legend_loc='upper right'):
     if colors is None:
         colors = []
@@ -716,7 +716,7 @@ def ScatterLinePlot(xaxis, yvals, errors, linex, liney, lineerr, line_labels, xl
 def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
                   colors=None, styles=None,
                   xmax=-1, ymax=-1, ymin=None, xmin=None, ylog=True, xdates=False,
-                  vertlines=None, vlinelabel=None, xlog=False, title=None,  figsize=(12, 9)):
+                  vertlines=None, vlinelabel=None, xlog=False, title=None,  figsize=(5, 4)):
     if colors is None:
         colors = []
     if styles is None:

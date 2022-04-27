@@ -183,6 +183,17 @@ def get_data_dir():
         raise RuntimeError("Error: set environment variable HFIRBGDATA to the directory with your files")
     return os.path.expanduser(os.environ["HFIRBGDATA"])
 
+def populate_rd_data(data_dict, db):
+    out = {}
+    for key1 in data_dict.keys():
+        if key1 not in out.keys():
+            out[key1] = {}
+        for key2 in data_dict[key1].keys():
+            if key2 not in out[key1].keys():
+                out[key1][key2] = []
+            for f in data_dict[key1][key2]:
+                out[key1][key2].append(retrieve_data(f, db))
+    return out
 
 def populate_data(data_dict, data_dir, db):
     """
@@ -527,12 +538,12 @@ def plot_time_series(data, outdir, emin=30, emax=None):
         MultiScatterPlot(times, [rates], [drates], line_label, xlabel, ylabel, xdates=True)
         plt.savefig(plot_name)
         plt.close()
-        MultiScatterPlot(times, [A0], [[0]*len(A0)], line_label, xlabel, "A0", xdates=True)
-        plt.savefig(A0_name)
-        plt.close()
-        MultiScatterPlot(times, [A1], [[0]*len(A1)], line_label, xlabel, "A1", xdates=True)
-        plt.savefig(A1_name)
-        plt.close()
+        #MultiScatterPlot(times, [A0], [[0]*len(A0)], line_label, xlabel, "A0", xdates=True)
+        #plt.savefig(A0_name)
+        #plt.close()
+        #MultiScatterPlot(times, [A1], [[0]*len(A1)], line_label, xlabel, "A1", xdates=True)
+        #plt.savefig(A1_name)
+        #plt.close()
 
 
 def get_calibration(file):

@@ -430,7 +430,7 @@ class MultiPeakFit:
             #dbgtotsqr = integrate_lininterp_range(dbgsqr, inds[0], inds[1])
             tot = area - bgtot
             #dtot = sqrt(area + dbgtotsqr)
-            dtot = sqrt(area + .25 * bgtot * bgtot)
+            dtot = sqrt(area + 1.1*bgtot)
             areas.append((tot,dtot))
             #for x, y in zip(self.xs, self.ys):
             #    if (x > centroid - 3.5 * sigma) and (x < centroid + 3 * sigma):

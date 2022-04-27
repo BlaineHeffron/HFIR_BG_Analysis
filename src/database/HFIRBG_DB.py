@@ -364,12 +364,47 @@ class HFIRBG_DB(SQLiteBase):
                 files += fids
         return files
 
+    def retrieve_run_name_from_id(self, run_id):
+        row = self.fetchone("SELECT name from runs where id = {}".format(run_id))
+        if row:
+            return row[0]
+        else:
+            return None
+
+    def retrieve_file_paths_from_detector_config(self, detector_config_id, coord=None, exclude_cal=False):
+        ids = self.retrieve_file_ids_from_detector_config(detector_config_id, coord)
+        if exclude_cal:
+            my_ids = []
+            for id in ids:
+                run_id = self.retrieve_run_from_file_id(id)
+                run_name = self.retrieve_run_name_from_id(run_id)
+                if "_cal" in run_name:
+                    continue
+                my_ids.append(id)
+            return self.get_file_paths_from_ids(my_ids)
+        else:
+            return self.get_file_paths_from_ids(ids)
+
     def retrieve_run_number_from_file_id(self, id):
         name = self.fetchone("SELECT run_number from datafile where id = {}".format(id))
         if name:
             return name[0]
         else:
             return None
+
+    def get_rd_files(self):
+        """retrieves files taken while in russian doll shield, returns dictionary with key 1 = shield, key 2 = acquisition id
+        acquisition id 5 = low gain, 7 = highest gain, 17 = second highest gain (covers 70 keV)"""
+
+        rows = self.fetchall("SELECT id, acquisition_settings, shield FROM detector_configuration WHERE shield > 1")
+        fdict = {}
+        for row in rows:
+            if row[2] not in fdict:
+                fdict[row[2]] = {}
+            if row[1] not in fdict[row[2]]:
+                fdict[row[2]][row[1]] = []
+            fdict[row[2]][row[1]] += self.retrieve_file_paths_from_detector_config(row[0], exclude_cal=True)
+        return fdict
 
     def get_files_from_config(self, config):
         config_dict = {}
@@ -607,3 +642,10 @@ class HFIRBG_DB(SQLiteBase):
                 fids = self.retrieve_run_flist(row[0])
                 files += fids
         return files
+
+    def retrieve_shield_info(self, shield_id):
+        row = self.fetchone("SELECT name, description from shield_configuration where id = {}".format(shield_id))
+        if row:
+            return row[0], row[1]
+        else:
+            return None
