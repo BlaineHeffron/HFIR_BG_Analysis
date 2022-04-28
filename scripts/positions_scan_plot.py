@@ -63,6 +63,35 @@ def file_scan_main():
     plt.savefig("{}.png".format(name + "_3_up.png"))
     plt.close(fig)
 
+def plot_east_face_scan(scan_spec, energy_ranges, labels):
+    y = []
+    angles = []
+    rates = []
+    for key, val in scan_spec.items():
+        angle, phi = parse_orientation_key(key)
+        if angle == 0:
+            continue
+        for j, data in enumerate(val):
+            spec, coo = data
+            if coo[1] < 220 and coo[1] > 210 and coo[0] > 50 and coo[0] < 140 and angle > 40:
+                angles.append(angle)
+                y.append(coo[0])
+                for i in range(len(energy_ranges)):
+                    if j == 0:
+                        rates.append([])
+                    r, dr = spec.integrate(energy_ranges[i][0], energy_ranges[i][1], True)
+                    if r > 1:
+                        print("abnormally large rate for file {}".format(spec.fname))
+                    rates[i].append(r)
+    for i in range(len(energy_ranges)):
+        if len(rates[i]) < 3:
+            continue
+        fig = scatter_plot(y, angles, rates[i], "x [in]", "angle [deg]", "rate [hz/keV]",
+                                "east face scan",
+                                invert_y=False)
+        plot_name = "east_face_scan_{0}_to_{1}.png".format(energy_ranges[i][0], energy_ranges[i][1])
+        plt.savefig(join(outdir, plot_name), bbox_inches='tight')
+        plt.close(fig)
 
 def plot_top_down_rates(scan_spec, energy_ranges, labels):
     zero_data = []
@@ -85,16 +114,17 @@ def plot_top_down_rates(scan_spec, energy_ranges, labels):
                 if j == 0:
                     rates.append([])
                 r, dr = spec.integrate(energy_ranges[i][0], energy_ranges[i][1], True)
-                if r > 1:
-                    print("abnormally large rate for file {}".format(spec.fname))
+                r *= (energy_ranges[i][1]-energy_ranges[i][0])
+                #if r > 1:
+                #    print("abnormally large rate for file {}".format(spec.fname))
                 rates[i].append(r)
         for i in range(len(energy_ranges)):
             if len(rates[i]) < 3:
                 continue
             # fig = scatter_plot(x, y, rates[i], "z", "x", "rate [hz/keV]", "det angle = {0}, cart angle = {1}, {2}".format(angle, phi, labels[i]), xmin=40, ymin=0, xmax=420, ymax=160, invert_y=True)
-            fig = HFIR_scatter_plot(x, y, rates[i], "z [in]", "x [in]", "rate [hz/keV]",
+            fig = HFIR_scatter_plot(x, y, rates[i], "z [in]", "x [in]", "rate [hz]",
                                     "det angle = {0}, cart angle = {1}, {2}".format(angle, phi, labels[i]),
-                                    invert_y=True)
+                                    invert_y=True, use_contour=True)
             plot_name = "det_{0}_cart_{1}_{2}_to_{3}.png".format(angle, phi, energy_ranges[i][0], energy_ranges[i][1])
             plt.savefig(join(outdir, plot_name), bbox_inches='tight')
             plt.close(fig)
@@ -109,14 +139,15 @@ def plot_top_down_rates(scan_spec, energy_ranges, labels):
             if j == 0:
                 rates.append([])
             r, dr = spec.integrate(energy_ranges[i][0], energy_ranges[i][1], True)
-            if r > 1:
-                print("abnormally large rate for file {}".format(spec.fname))
+            r *= (energy_ranges[i][1] - energy_ranges[i][0])
+            #if r > 1:
+            #    print("abnormally large rate for file {}".format(spec.fname))
             rates[i].append(r)
     for i in range(len(energy_ranges)):
         if len(rates[i]) < 3:
             continue
         # fig = scatter_plot(x, y, rates[i], "z", "x", "rate [hz/keV]", "det angle = {0}, cart angle = {1}, {2}".format(angle, phi, labels[i]), xmin=40, ymin=0, xmax=420, ymax=160, invert_y=True)
-        fig = HFIR_scatter_plot(x, y, rates[i], "z [in]", "x [in]", "rate [hz/keV]",
+        fig = HFIR_scatter_plot(x, y, rates[i], "z [in]", "x [in]", "rate [hz]",
                                 "down facing, {}".format(labels[i]),
                                 invert_y=True)
         plot_name = "down_facing_{0}_to_{1}.png".format(energy_ranges[i][0], energy_ranges[i][1])
@@ -161,11 +192,12 @@ def main():
     for i in range(len(energy_cutoffs) - 1):
         energy_ranges.append([energy_cutoffs[i], energy_cutoffs[i + 1]])
         labels.append("{0} - {1} keV".format(energy_cutoffs[i], energy_cutoffs[i + 1]))
-    #energy_ranges.append([energy_cutoffs[0], energy_cutoffs[-1]])
-    #labels.append("{0} - {1} keV".format(energy_cutoffs[0], energy_cutoffs[-1]))
+    energy_ranges.append([energy_cutoffs[0], energy_cutoffs[-1]])
+    labels.append("{0} - {1} keV".format(energy_cutoffs[0], energy_cutoffs[-1]))
     db = CartScanFiles()
     scan_spec = db.retrieve_position_spectra(11400)
     plot_top_down_rates(scan_spec, energy_ranges, labels)
+    plot_east_face_scan(scan_spec, energy_ranges, labels)
     del scan_spec
     track_spec = db.retrieve_track_spectra()
     plot_track_rates(track_spec, energy_ranges)

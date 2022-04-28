@@ -9,6 +9,7 @@ rundata = { "corner_no_shield": "CORNER_MEASUREMENT_NO_SHIELD_WALL_LOW_GAIN",
             "MIF_no_shield":"CORNER_TPS_OVERNIGHT" }
 rundata = {"Reactor Spectrum":"MIF_BOX_REACTOR_OPTIMIZED_OVERNIGHT_LOWEST_GAIN.txt"}
 rundata = {"rxon":"MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","rxoff":"MIF_BOX_AT_REACTOR_RXOFF"}
+rundata = {"EAST_HIGH": "EAST_FACE_16", "EAST_LOW": "EAST_FACE_2"}
 #rundata = {"Reactor Spectrum":"MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt"}
 #rundata = {"MIF": "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","HB4":"HB4_DOWN_OVERNIGHT_1.txt"}
 #rundata = {"MIF": "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","HB4":"HB4_DOWN_OVERNIGHT_1.txt","SHIELD_CENTER":"CYCLE461_DOWN_FACING_OVERNIGHT.txt"}
@@ -28,7 +29,7 @@ def main():
     emin = [100+1000*i for i in range(12)]
     emax = [100+1000*(i+1) for i in range(12)]
     for key in data.keys():
-        plot_spectra([data[key]], key)
+        plot_spectra([data[key]], join(outdir, key))
         for i in range(len(emin)):
             plot_spectra([data[key]], join(outdir,"{0}, {1}-{2}".format(key, emin[i], emax[i])), emin=emin[i], emax=emax[i])
     #plot_subtract_spectra(data, "original", "no_wall_compare_subtract", rebin=100)

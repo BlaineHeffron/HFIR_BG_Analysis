@@ -5,10 +5,10 @@ sys.path.insert(1, dirname(dirname(realpath(__file__))))
 from src.database.HFIRBG_DB import HFIRBG_DB
 from src.utilities.util import get_data_dir, populate_data, fit_spectra
 
-#rundata = {"Reactor Spectrum": "MIF_BOX_REACTOR_OPTIMIZED_OVERNIGHT_LOWEST_GAIN.txt"}
+rundata = {"Reactor Spectrum": "MIF_BOX_REACTOR_OPTIMIZED_OVERNIGHT_LOWEST_GAIN.txt"}
 #rundata = {"MIF": "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","HB4":"HB4_DOWN_OVERNIGHT_1.txt"}
 #rundata = {"HB4":"HB4_DOWN_OVERNIGHT_1.txt"}
-rundata = {"rxoff":"MIF_BOX_AT_REACTOR_RXOFF"}
+#rundata = {"rxoff":"MIF_BOX_AT_REACTOR_RXOFF"}
 #energy_guesses = [964.082,1112.08,1408.013,778.9006]
 energy_guesses = [723.3,1274]
 #energy_guesses = [1085,1112]

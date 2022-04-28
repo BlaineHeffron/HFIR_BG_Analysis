@@ -871,17 +871,17 @@ def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, x
     return fig
 
 
-def HFIR_scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, invert_y=False, invert_x=False, xdates=False):
+def HFIR_scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, invert_y=False, invert_x=False, xdates=False, use_contour=False):
     xmin = 40
     ymin = 0
     xmax = 420
     ymax = 180
-    rcParams.update({'font.size': 18})
+    #rcParams.update({'font.size': 14})
     ratio = abs((ymax - ymin) / (xmax - xmin))*4./5
-    fig = plt.figure(figsize=(14, 14*ratio))
+    fig = plt.figure(figsize=(6, 6*ratio))
     ax1 = fig.add_subplot(111)
-    ax1.set_xlabel(xlabel)
-    ax1.set_ylabel(ylabel)
+    #ax1.set_xlabel(xlabel)
+    #ax1.set_ylabel(ylabel)
     if(xdates):
         x = mdate.epoch2num(x)
     if ymin is None:
@@ -912,11 +912,18 @@ def HFIR_scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, invert_y=False, in
             ax1.set_xlim(xmax,xmin)
         else:
             ax1.set_xlim(xmin, xmax)
+
+
+    if use_contour:
+        h = ax1.scatter(x,y,c=c, cmap='viridis')
+    else:
+        h = ax1.tricontourf(x, y, c, levels=20, cmap='viridis')
+
     # add box for prospect
     ax1.add_patch(Rectangle((165, 128), 46.25, -83.4,
-                               edgecolor='cornflowerblue',
-                               fill=False,
-                               lw=2))
+                            edgecolor='cornflowerblue',
+                            fill=False,
+                            lw=2))
     # lead shield wall
     ax1.add_patch(Rectangle((125, 21.5), 286.5-155, -14,
                             edgecolor='black',
@@ -925,11 +932,10 @@ def HFIR_scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, invert_y=False, in
                             lw=1))
     # russian doll
     ax1.add_patch(Circle((200, 21.5+12), 12,
-                            edgecolor='green',
-                            fill=False,
-                            lw=2))
-    h = ax1.scatter(x,y,c=c, cmap='viridis')
-    ax1.set_title(title)
+                         edgecolor='green',
+                         fill=False,
+                         lw=2))
+    #ax1.set_title(title)
     ax1.xaxis.set_minor_locator(AutoMinorLocator())
     ax1.yaxis.set_minor_locator(AutoMinorLocator())
     ax1.tick_params(axis="x", direction="in", length=16, width=1)

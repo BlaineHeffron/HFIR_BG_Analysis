@@ -138,6 +138,12 @@ rundata = {"MIF": "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","HB4":"H
 plot_name = "HB4_vs_MIF_vs_SHIELDCENTER"
 compare_to = "MIF"
 bins = get_bins(100, 11500, 11400)
+
+rundata = {"EAST_HIGH": "EAST_FACE_16", "EAST_LOW": "EAST_FACE_2", "SHIELD_CENTER":"CYCLE461_DOWN_FACING_OVERNIGHT.txt"}
+plot_name = "EAST_SIDE_HIGH_RATE_VS_LOW_RATE"
+compare_to = "EAST_LOW"
+bins = get_bins(100, 11500, 11400)
+
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "spectrum_plots")
 
 def main():
