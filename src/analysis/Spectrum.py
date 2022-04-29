@@ -49,7 +49,8 @@ class SpectrumData:
 
     def add(self, s):
         if s.A0 != self.A0 or s.A1 != self.A1:
-            raise ValueError("error: spectrum  addition not possible without rebinning")
+            print("attempting to add {0} to {1}".format(s.fname,self.fname))
+            raise ValueError("error: spectrum  addition not possible without rebinning, spec1 A0 = {0}, A1 = {1}, spec2 A0 = {2}, A1 = {3}".format(self.A0,self.A1, s.A0,s.A1))
         self.data += s.data
         self.live += s.live
 

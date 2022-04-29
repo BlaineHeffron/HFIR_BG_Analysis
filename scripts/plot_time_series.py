@@ -8,6 +8,7 @@ from src.utilities.util import *
 from src.database.HFIRBG_DB import HFIRBG_DB
 from src.utilities.util import plot_time_series
 
+config = None
 start = 4203
 end = 4216
 rundata = {"cycle494startup": [i for i in range(start, end + 1)]}
@@ -28,10 +29,13 @@ Emin = 30  # keV
 Emax = None
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "time_series")
 
-config = {"detector_coordinates": { "Rx": 21.0, "Rz": 94.5, "Lx": 38.0, "Lz": 90.5, "angle": 46.5, "track":0 },
-          "acquisition_settings": {"coarse_gain": 2, "fine_gain": 1.02},
-          "max_date": "2021-04-20, 00:00:00", "min_date": "2021-04-11, 00:00:00"}
+#config = {"detector_coordinates": { "Rx": 21.0, "Rz": 94.5, "Lx": 38.0, "Lz": 90.5, "angle": 46.5, "track":0 },
+#          "acquisition_settings": {"coarse_gain": 2, "fine_gain": 1.02},
+#          "max_date": "2021-04-20, 00:00:00", "min_date": "2021-04-11, 00:00:00"}
 name = "MIF_to_reactor"
+
+rundata = {0: [388 + i for i in range(395-388)], 5: [638], 10: [639,640], 20: [641], 40: [642], 60: [643], 80: [644], 95: [645], 100: [747+i for i in range(45)]}
+name = "cycle 491 startup"
 
 def main():
     if not os.path.exists(outdir):

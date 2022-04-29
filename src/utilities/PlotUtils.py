@@ -717,7 +717,8 @@ def ScatterLinePlot(xaxis, yvals, errors, linex, liney, lineerr, line_labels, xl
 def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
                   colors=None, styles=None,
                   xmax=-1, ymax=-1, ymin=None, xmin=None, ylog=True, xdates=False,
-                  vertlines=None, vlinelabel=None, xlog=False, title=None,  figsize=(5, 4)):
+                  vertlines=None, vlinelabel=None, xlog=False, title=None, legend_outside=False,
+                     legend_font_size=12,  figsize=(5, 4), legend_loc="best", legend_ncol=1):
     if colors is None:
         colors = []
     if styles is None:
@@ -727,7 +728,7 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
         if(vertlines):
             vertlines = mdate.epoch2num(vertlines)
     rcParams.update({'font.size': 18})
-    fig = plt.figure(figsize=(12, 6.5))
+    fig = plt.figure(figsize=figsize)
     ax1 = fig.add_subplot(111)
     ax1.set_xlabel(xlabel)
     ax1.set_ylabel(ylabel)
@@ -795,10 +796,12 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
     else:
         if(title):
             ax1.set_title(title)
-        ax1.set_position([box.x0,box.y0,box.width,box.height])
-        ax1.legend(line_labels,loc='center left', \
-                   bbox_to_anchor=(0.5,0.85),ncol=1)
-        rcParams.update({'font.size':14})
+        if legend_outside:
+            ax1.set_position([box.x0,box.y0,box.width,box.height])
+            ax1.legend(line_labels,loc='upper left', \
+                       bbox_to_anchor=(1.1, 1.0),borderaxespad=0, fontsize=legend_font_size)
+        else:
+            ax1.legend(line_labels, loc=legend_loc, ncol=legend_ncol, fontsize=legend_font_size)
     ax1.xaxis.set_minor_locator(AutoMinorLocator())
     if not ylog:
         ax1.yaxis.set_minor_locator(AutoMinorLocator())
@@ -811,6 +814,7 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
     #plt.gcf().subplots_adjust(right=0.05)
     #plt.savefig(outname)
     #plt.close()
+    plt.tight_layout()
     return fig
 
 def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, xmin=None, xmax=None, invert_y=False, invert_x=False, xdates=False):

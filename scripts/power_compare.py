@@ -7,11 +7,13 @@ from src.utilities.util import *
 from math import floor
 from src.utilities.PlotUtils import MultiScatterPlot
 import matplotlib.pyplot as plt
-import argparse
 from ntpath import basename
 
-pwr = {10: [17, 19], 30: [20], 50: [21], 70: [22], 90: [23], 100: [28]}
-ENERGY_RANGES = [i * 400. + 50. for i in range(10)]
+#pwr = {10: [17, 19], 30: [20], 50: [21], 70: [22], 90: [23], 100: [28]}
+pwr = {0: [388 + i for i in range(395-388)], 5: [638], 10: [639,640], 20: [641], 40: [642], 60: [643], 80: [644], 95: [645], 100: [747+i for i in range(5)]}
+pwr_unc = {5:2.5, 10:0.1, 20:5, 40: 5,60:5,80:5,95:2.5,100:0.5}
+pwr_names = {0:"0",5:"0-10", 10:"10", 20:"10-30", 40: "30-50",60:"50-70",80:"70-90",95:"90-100",100:"100"}
+ENERGY_RANGES = [i * 500. + 100. for i in range(24)]
 RANGE_LABELS = ["{0} - {1}".format(ENERGY_RANGES[i], ENERGY_RANGES[i + 1]) for i in range(len(ENERGY_RANGES) - 1)]
 
 
@@ -38,16 +40,17 @@ def integrate_ranges(ene_range, data, A0, A1):
     return results
 
 
-def retrieve_power_data(ene_range, fs, db=None):
-    pwr_data = {0: np.zeros((len(ene_range) - 1,), dtype=np.float32)}
-    live_time = {0: 0.}
+def retrieve_power_data(ene_range, datadir, fs, db=None):
+    pwr_data = {}
+    live_time = {}
     for key in pwr:
         pwr_data[key] = np.zeros((len(ene_range) - 1,), dtype=np.float32)
         live_time[key] = 0.
-    for f in fs:
-        spec = retrieve_data(f, db)
+    pwr_spec = populate_data(pwr, datadir, db)
+    combine_runs(pwr_spec)
+    for power, spec in pwr_spec.items():
         l, A0, A1, data = spec.live, spec.A0, spec.A1, spec.data
-        power = find_power(file_number(basename(f)))
+        #power = find_power(file_number(basename(f)))
         live_time[power] += l
         pwr_data[power] += integrate_ranges(ene_range, data, A0, A1)
     return pwr_data, live_time
@@ -60,18 +63,24 @@ def calc_rate_errors(pwr, lt):
         pwr[key] = np.divide(pwr[key], lt[key])
     return pwr, error
 
+#def calc_chisqr(pwr_percent,vals,pwr_unc):
 
 def plot_power_data(pwr, lt, write=True):
     bin_width = ENERGY_RANGES[1] - ENERGY_RANGES[0]
     midpoints = get_bin_midpoints(ENERGY_RANGES[0], ENERGY_RANGES[-1], len(ENERGY_RANGES) - 1)
-    labels = ["{}% power".format(key) for key in pwr.keys()]
+    labels = ["{}%".format(pwr_names[key]) for key in pwr.keys()]
     rates, errors = calc_rate_errors(pwr, lt)
     nonzerokeys = [key for key in rates.keys() if key != 0]
     ys = [[(rates[key][i] - rates[0][i]) / bin_width for i in range(rates[key].shape[0])] for key in nonzerokeys]
-    errs = [[(errors[key][i] - errors[0][i]) / bin_width for i in range(errors[key].shape[0])] for key in nonzerokeys]
-    fig = MultiScatterPlot(midpoints, ys, errs, labels[1:], "energy midpoint [keV]", "rate [hz/keV]", xmin=0, xmax=3700,
-                           title="rxoff subtracted rates (400 keV bins)", ylog=True)
+    errs = [[np.sqrt(errors[key][i]**2 + errors[0][i]**2) / bin_width for i in range(errors[key].shape[0])] for key in nonzerokeys]
+    fig = MultiScatterPlot(midpoints, ys, errs, labels[1:], "energy midpoint [keV]", "rate [hz/keV]", xmin=0,
+                           xmax=11400, ylog=True, figsize=(6,5), legend_font_size=12)
     plt.savefig("power_rates.png")
+    rate_ratios = [[(ys[i][j] / ys[-1][j])  for j in range(len(ys[-1]))] for i in range(len(ys)-1)]
+    ratio_errs = [[rate_ratios[i][j]*np.sqrt((errs[i][j]/ys[i][j])**2 + (errs[-1][j]/ys[-1][j])**2) for j in range(len(ys[-1]))] for i in range(len(ys)-1)]
+    fig = MultiScatterPlot(midpoints, rate_ratios, ratio_errs, labels[1:], "energy midpoint [keV]", "rate / 100% pwr rate", xmin=0,
+                           xmax=11400, ylog=False, figsize=(6,6), legend_font_size=12,  legend_ncol=int((len(rate_ratios)/2)))
+    plt.savefig("power_ratios.png")
     if write:
         for key in rates.keys():
             fout = "power_{}_rates.csv".format(key)
@@ -89,23 +98,12 @@ def plot_power_spectra(files):
     for power in file_sets:
         plot_spectra(file_sets[power], "{}_power".format(power), rebin=20)
 
-    multi_plot = {"rx on": file_sets[100], "rx off": file_sets[0]}
-    multi_plot = populate_data(multi_plot)
-    plot_multi_spectra(multi_plot, "rxonvsoff.png", rebin=20)
-
 
 def main():
     datadir = get_data_dir()
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--data", help="path to data")
-    args = parser.parse_args()
     db = HFIRBG_DB()
-    if not args.data:
-        files = retrieve_files(datadir)
-    else:
-        files = retrieve_files(args.data)
-    plot_power_spectra(files)
-    pwr, lt = retrieve_power_data(ENERGY_RANGES, files, db)
+    #plot_power_spectra(files)
+    pwr, lt = retrieve_power_data(ENERGY_RANGES, datadir, db)
     plot_power_data(pwr, lt)
 
 
