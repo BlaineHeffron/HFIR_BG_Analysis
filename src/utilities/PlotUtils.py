@@ -6,11 +6,12 @@ from matplotlib.colors import LogNorm
 from matplotlib.patches import PathPatch, Rectangle, Circle
 from matplotlib.path import Path
 from matplotlib.ticker import AutoMinorLocator, FormatStrFormatter
-from matplotlib import rcParams
+from matplotlib import rcParams, colors, cm
 import matplotlib.dates as mdate
 from pytz import timezone
-from math import ceil, floor
+from math import ceil, floor, pi, cos, sin
 from collections import OrderedDict
+
 
 #from util import safe_divide, write_x_y_csv
 
@@ -871,7 +872,7 @@ def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, x
     return fig
 
 
-def HFIR_scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, invert_y=False, invert_x=False, xdates=False, use_contour=False):
+def HFIR_scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, invert_y=False, invert_x=False, xdates=False, use_contour=False, phi=None):
     xmin = 40
     ymin = 0
     xmax = 420
@@ -914,10 +915,23 @@ def HFIR_scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, invert_y=False, in
             ax1.set_xlim(xmin, xmax)
 
 
-    if use_contour:
-        h = ax1.scatter(x,y,c=c, cmap='viridis')
+    h = None
+    if phi:
+        cmap = plt.cm.viridis
+        cNorm = colors.Normalize(vmin=np.min(c), vmax=np.max(c))
+        scalarMap = cm.ScalarMappable(norm=cNorm, cmap=cmap)
+        arrowSize = 10
+        h = ax1.scatter(x,y,c=c, cmap='viridis', s=1)
+        for xc, yc, phic, mag in zip(x, y, phi, c):
+            colorVal = scalarMap.to_rgba(mag)
+            x_mag = arrowSize*cos(pi*phic/180)
+            y_mag = arrowSize*sin(pi*phic/180)
+            plt.arrow(xc, yc, x_mag, y_mag, color=colorVal)
     else:
-        h = ax1.tricontourf(x, y, c, levels=20, cmap='viridis')
+        if not use_contour:
+            h = ax1.scatter(x,y,c=c, cmap='viridis')
+        else:
+            h = ax1.tricontourf(x, y, c, levels=20, cmap='viridis')
 
     # add box for prospect
     ax1.add_patch(Rectangle((165, 128), 46.25, -83.4,
@@ -942,8 +956,9 @@ def HFIR_scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, invert_y=False, in
     ax1.tick_params(axis="y", direction="in", length=16, width=1)
     ax1.tick_params(axis="x", which="minor", direction="in", length=8, width=1)
     ax1.tick_params(axis="y", which="minor", direction="in", length=8, width=1)
-    cb = plt.colorbar(h)
-    cb.set_label(zlabel, rotation=270, labelpad=20)
+    if h:
+        cb = plt.colorbar(h)
+        cb.set_label(zlabel, rotation=270, labelpad=20)
     #plt.subplots_adjust(bottom=-.1)
     #plt.tight_layout()
     return fig

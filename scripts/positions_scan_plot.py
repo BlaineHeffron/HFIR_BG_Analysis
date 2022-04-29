@@ -95,37 +95,46 @@ def plot_east_face_scan(scan_spec, energy_ranges, labels):
 
 def plot_top_down_rates(scan_spec, energy_ranges, labels):
     zero_data = []
+    angle_data = {}
     for key, val in scan_spec.items():
         angle, phi = parse_orientation_key(key)
         if angle == 0:
             zero_data += val
-    for key, val in scan_spec.items():
+        else:
+            if not angle in angle_data.keys():
+                angle_data[angle] = {}
+            if not phi in angle_data[angle].keys():
+                angle_data[angle][phi] = []
+            angle_data[angle][phi] += val
+    for angle, val in angle_data.items():
         x = []
         y = []
+        phis = []
         rates = []
-        angle, phi = parse_orientation_key(key)
         if angle == 0:
             continue
-        for j, data in enumerate(val):
-            spec, coo = data
-            x.append(coo[1])
-            y.append(coo[0])
-            for i in range(len(energy_ranges)):
-                if j == 0:
-                    rates.append([])
-                r, dr = spec.integrate(energy_ranges[i][0], energy_ranges[i][1], True)
-                r *= (energy_ranges[i][1]-energy_ranges[i][0])
-                #if r > 1:
-                #    print("abnormally large rate for file {}".format(spec.fname))
-                rates[i].append(r)
+        for phi, data_list in angle_data[angle].items():
+            phis += [phi]*len(data_list)
+            for j, data in enumerate(data_list):
+                spec, coo = data
+                x.append(coo[1])
+                y.append(coo[0])
+                for i in range(len(energy_ranges)):
+                    if j == 0:
+                        rates.append([])
+                    r, dr = spec.integrate(energy_ranges[i][0], energy_ranges[i][1], True)
+                    r *= (energy_ranges[i][1] - energy_ranges[i][0])
+                    #if r > 1:
+                    #    print("abnormally large rate for file {}".format(spec.fname))
+                    rates[i].append(r)
         for i in range(len(energy_ranges)):
             if len(rates[i]) < 3:
                 continue
             # fig = scatter_plot(x, y, rates[i], "z", "x", "rate [hz/keV]", "det angle = {0}, cart angle = {1}, {2}".format(angle, phi, labels[i]), xmin=40, ymin=0, xmax=420, ymax=160, invert_y=True)
             fig = HFIR_scatter_plot(x, y, rates[i], "z [in]", "x [in]", "rate [hz]",
-                                    "det angle = {0}, cart angle = {1}, {2}".format(angle, phi, labels[i]),
-                                    invert_y=True, use_contour=True)
-            plot_name = "det_{0}_cart_{1}_{2}_to_{3}.png".format(angle, phi, energy_ranges[i][0], energy_ranges[i][1])
+                                    "det angle = {0},{1}".format(angle, labels[i]),
+                                    invert_y=True, use_contour=False, phi=phis)
+            plot_name = "det_{0}_{1}_to_{2}.png".format(angle, energy_ranges[i][0], energy_ranges[i][1])
             plt.savefig(join(outdir, plot_name), bbox_inches='tight')
             plt.close(fig)
     x = []
@@ -149,7 +158,7 @@ def plot_top_down_rates(scan_spec, energy_ranges, labels):
         # fig = scatter_plot(x, y, rates[i], "z", "x", "rate [hz/keV]", "det angle = {0}, cart angle = {1}, {2}".format(angle, phi, labels[i]), xmin=40, ymin=0, xmax=420, ymax=160, invert_y=True)
         fig = HFIR_scatter_plot(x, y, rates[i], "z [in]", "x [in]", "rate [hz]",
                                 "down facing, {}".format(labels[i]),
-                                invert_y=True)
+                                invert_y=True, use_contour=True)
         plot_name = "down_facing_{0}_to_{1}.png".format(energy_ranges[i][0], energy_ranges[i][1])
         plt.savefig(join(outdir, plot_name), bbox_inches='tight')
         plt.close(fig)
