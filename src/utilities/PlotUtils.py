@@ -957,6 +957,10 @@ def HFIR_scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, invert_y=False, in
                          edgecolor='green',
                          fill=False,
                          lw=2))
+    # HB4
+    HB4line = [(235.5 + np.tan(30*pi/180)*x, x) for x in range(0, ymax+10, 20)]
+    ax1.plot([a[0] for a in HB4line], [a[1] for a in HB4line], linestyle='dashed', color='grey')
+    ax1.plot([a[0] + 10 for a in HB4line], [a[1] for a in HB4line], linestyle='dashed', color='grey')
     #ax1.set_title(title)
     ax1.xaxis.set_minor_locator(AutoMinorLocator())
     ax1.yaxis.set_minor_locator(AutoMinorLocator())
