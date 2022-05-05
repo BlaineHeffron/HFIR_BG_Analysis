@@ -12,7 +12,7 @@ from src.utilities.util import retrieve_position_scans, get_bins, get_data_dir, 
 from src.database.CartScanFiles import CartScanFiles, parse_orientation_key
 
 energy_cutoffs = [50, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11400]
-#energy_cutoffs = [50, 11400]
+# energy_cutoffs = [50, 11400]
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "position_scan")
 
 
@@ -63,10 +63,14 @@ def file_scan_main():
     plt.savefig("{}.png".format(name + "_3_up.png"))
     plt.close(fig)
 
+
 def plot_east_face_scan(scan_spec, energy_ranges, labels):
     y = []
     angles = []
     rates = []
+    text_names = []
+    text_coords = []
+    text_font = {"size":6}
     for key, val in scan_spec.items():
         angle, phi = parse_orientation_key(key)
         if angle == 0:
@@ -82,16 +86,20 @@ def plot_east_face_scan(scan_spec, energy_ranges, labels):
                     r, dr = spec.integrate(energy_ranges[i][0], energy_ranges[i][1], True)
                     if r > 1:
                         print("abnormally large rate for file {}".format(spec.fname))
+                    #if spec.fname.startswith("EAST_FACE_2.") or spec.fname.startswith("EAST_FACE_16."):
+                    #    text_names.append(spec.fname)
+                    #    text_coords.append((coo[0],angle))
                     rates[i].append(r)
+    text_data = {"names": text_names, "coords": text_coords, "font": text_font}
     for i in range(len(energy_ranges)):
         if len(rates[i]) < 3:
             continue
-        fig = scatter_plot(y, angles, rates[i], "x [in]", "angle [deg]", "rate [hz/keV]",
-                                "east face scan",
-                                invert_y=False)
+        fig = scatter_plot(y, angles, rates[i], "x [in]", "angle [deg]", "rate [hz/keV]", "east face scan",
+                           invert_y=False, text_data=text_data)
         plot_name = "east_face_scan_{0}_to_{1}.png".format(energy_ranges[i][0], energy_ranges[i][1])
         plt.savefig(join(outdir, plot_name), bbox_inches='tight')
         plt.close(fig)
+
 
 def plot_top_down_rates(scan_spec, energy_ranges, labels):
     zero_data = []
@@ -114,7 +122,7 @@ def plot_top_down_rates(scan_spec, energy_ranges, labels):
         if angle == 0:
             continue
         for phi, data_list in angle_data[angle].items():
-            phis += [phi]*len(data_list)
+            phis += [phi] * len(data_list)
             for j, data in enumerate(data_list):
                 spec, coo = data
                 x.append(coo[1])
@@ -124,7 +132,7 @@ def plot_top_down_rates(scan_spec, energy_ranges, labels):
                         rates.append([])
                     r, dr = spec.integrate(energy_ranges[i][0], energy_ranges[i][1], True)
                     r *= (energy_ranges[i][1] - energy_ranges[i][0])
-                    #if r > 1:
+                    # if r > 1:
                     #    print("abnormally large rate for file {}".format(spec.fname))
                     rates[i].append(r)
         for i in range(len(energy_ranges)):
@@ -149,7 +157,7 @@ def plot_top_down_rates(scan_spec, energy_ranges, labels):
                 rates.append([])
             r, dr = spec.integrate(energy_ranges[i][0], energy_ranges[i][1], True)
             r *= (energy_ranges[i][1] - energy_ranges[i][0])
-            #if r > 1:
+            # if r > 1:
             #    print("abnormally large rate for file {}".format(spec.fname))
             rates[i].append(r)
     for i in range(len(energy_ranges)):
@@ -162,7 +170,6 @@ def plot_top_down_rates(scan_spec, energy_ranges, labels):
         plot_name = "down_facing_{0}_to_{1}.png".format(energy_ranges[i][0], energy_ranges[i][1])
         plt.savefig(join(outdir, plot_name), bbox_inches='tight')
         plt.close(fig)
-
 
 
 def plot_track_rates(scan_spec, energy_ranges):

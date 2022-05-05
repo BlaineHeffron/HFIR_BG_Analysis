@@ -817,7 +817,8 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
     plt.tight_layout()
     return fig
 
-def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, xmin=None, xmax=None, invert_y=False, invert_x=False, xdates=False):
+def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, xmin=None, xmax=None,
+                 invert_y=False, invert_x=False, xdates=False, text_data=None):
     rcParams.update({'font.size': 18})
     if xmin is not None and xmax is not None and ymin is not None and ymax is not None:
         ratio = abs((ymax - ymin) / (xmax - xmin))*4./5
@@ -865,6 +866,9 @@ def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, x
         fig.autofmt_xdate()
     h = ax1.scatter(x,y,c=c, cmap='viridis')
     ax1.set_title(title)
+    if text_data:
+        for n, coo in zip(text_data["names"], text_data["coords"]):
+            ax1.annotate(n, coo)
     ax1.xaxis.set_minor_locator(AutoMinorLocator())
     ax1.yaxis.set_minor_locator(AutoMinorLocator())
     ax1.tick_params(axis="x", direction="in", length=16, width=1)
