@@ -887,7 +887,7 @@ def HFIR_scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, invert_y=False, in
     ymax = 180
     #rcParams.update({'font.size': 14})
     ratio = abs((ymax - ymin) / (xmax - xmin))*4./5
-    fig = plt.figure(figsize=(6, 6*ratio))
+    fig = plt.figure(figsize=(8, 8*ratio))
     ax1 = fig.add_subplot(111)
     #ax1.set_xlabel(xlabel)
     #ax1.set_ylabel(ylabel)
@@ -940,6 +940,7 @@ def HFIR_scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, invert_y=False, in
             h = ax1.scatter(x,y,c=c, cmap='viridis')
         else:
             h = ax1.tricontourf(x, y, c, levels=20, cmap='viridis')
+            #h = ax1.scatter(x,y,c=c, cmap='viridis')
 
     # add box for prospect
     ax1.add_patch(Rectangle((165, 128), 46.25, -83.4,
@@ -958,9 +959,17 @@ def HFIR_scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, invert_y=False, in
                          fill=False,
                          lw=2))
     # HB4
-    HB4line = [(235.5 + np.tan(30*pi/180)*x, x) for x in range(0, ymax+10, 20)]
+    HB4line = [(240.56 + np.tan(30*pi/180)*x, x) for x in range(0, ymax+10, 20)]
+    # HB3
+    HB3line = [(67.9 - np.tan(30*pi/180)*x, x) for x in range(0, ymax+10, 20)]
+    # "shutter drive rod sleeve" coming off hb3
+    drline = [(60.35 + np.sin(30*pi/180)*x, 13.0 + np.cos(30*pi/180)*x) for x in range(0, 113+10, 12)]
     ax1.plot([a[0] for a in HB4line], [a[1] for a in HB4line], linestyle='dashed', color='grey')
-    ax1.plot([a[0] + 10 for a in HB4line], [a[1] for a in HB4line], linestyle='dashed', color='grey')
+    ax1.plot([a[0] + 4 for a in HB4line], [a[1] for a in HB4line], linestyle='dashed', color='grey')
+    ax1.plot([a[0] for a in HB3line], [a[1] for a in HB3line], linestyle='dashed', color='grey')
+    ax1.plot([a[0] + 4 for a in HB3line], [a[1] for a in HB3line], linestyle='dashed', color='grey')
+    ax1.plot([a[0] for a in drline], [a[1] for a in drline], linestyle='dashed', color='grey')
+    ax1.plot([a[0] + 4 for a in drline], [a[1] for a in drline], linestyle='dashed', color='grey')
     #ax1.set_title(title)
     ax1.xaxis.set_minor_locator(AutoMinorLocator())
     ax1.yaxis.set_minor_locator(AutoMinorLocator())
