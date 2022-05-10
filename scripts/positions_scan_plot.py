@@ -95,7 +95,7 @@ def plot_east_face_scan(scan_spec, energy_ranges, labels):
         if len(rates[i]) < 3:
             continue
         fig = scatter_plot(y, angles, rates[i], "x [in]", "angle [deg]", "rate [hz/keV]", "east face scan",
-                           invert_y=False, text_data=text_data)
+                           invert_y=False, text_data=text_data, contour=True)
         plot_name = "east_face_scan_{0}_to_{1}.png".format(energy_ranges[i][0], energy_ranges[i][1])
         plt.savefig(join(outdir, plot_name), bbox_inches='tight')
         plt.close(fig)
@@ -194,7 +194,7 @@ def plot_track_rates(scan_spec, energy_ranges):
             continue
         # fig = scatter_plot(x, y, rates[i], "z", "x", "rate [hz/keV]", "det angle = {0}, cart angle = {1}, {2}".format(angle, phi, labels[i]), xmin=40, ymin=0, xmax=420, ymax=160, invert_y=True)
         fig = scatter_plot(x, y, rates[i], "z [in]", "angle [deg]", "rate [hz/keV]",
-                           "{0} - {1} keV".format(energy_ranges[i][0], energy_ranges[i][1]), invert_y=False)
+                           "{0} - {1} keV".format(energy_ranges[i][0], energy_ranges[i][1]), invert_y=False, contour=True)
         plot_name = "track_scan_{0}_to_{1}.png".format(energy_ranges[i][0], energy_ranges[i][1])
         plt.savefig(join(outdir, plot_name))
         plt.close(fig)

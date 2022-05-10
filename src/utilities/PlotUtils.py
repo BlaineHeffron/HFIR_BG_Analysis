@@ -818,7 +818,7 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
     return fig
 
 def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, xmin=None, xmax=None,
-                 invert_y=False, invert_x=False, xdates=False, text_data=None):
+                 invert_y=False, invert_x=False, xdates=False, text_data=None, contour=False):
     rcParams.update({'font.size': 18})
     if xmin is not None and xmax is not None and ymin is not None and ymax is not None:
         ratio = abs((ymax - ymin) / (xmax - xmin))*4./5
@@ -864,7 +864,11 @@ def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, x
         date_formatter = mdate.DateFormatter(date_fmt,tz=timezone('US/Eastern'))
         ax1.xaxis.set_major_formatter(date_formatter)
         fig.autofmt_xdate()
-    h = ax1.scatter(x,y,c=c, cmap='viridis')
+
+    if not contour:
+        h = ax1.scatter(x,y,c=c, cmap='viridis')
+    else:
+        h = ax1.tricontourf(x, y, c, levels=20, cmap='viridis')
     ax1.set_title(title)
     if text_data:
         for n, coo in zip(text_data["names"], text_data["coords"]):
@@ -942,6 +946,27 @@ def HFIR_scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, invert_y=False, in
             h = ax1.tricontourf(x, y, c, levels=20, cmap='viridis')
             #h = ax1.scatter(x,y,c=c, cmap='viridis')
 
+
+    # HB4
+    HB4line = [(240.56 + np.tan(30*pi/180)*x, x) for x in range(0, ymax+10, 20)]
+    # HB3
+    HB3line = [(67.9 - np.tan(30*pi/180)*x, x) for x in range(0, ymax+10, 20)]
+    # "shutter drive rod sleeve" coming off hb3
+    #drline = [(60.35 + np.sin(30*pi/180)*x, 13.0 + np.cos(30*pi/180)*x) for x in range(0, 113+10, 12)]
+    ax1.plot([a[0] for a in HB4line], [a[1] for a in HB4line], linestyle='dashed', color='grey')
+    ax1.plot([a[0] + 4 for a in HB4line], [a[1] for a in HB4line], linestyle='dashed', color='grey')
+    ax1.plot([a[0] for a in HB3line], [a[1] for a in HB3line], linestyle='dashed', color='grey')
+    ax1.plot([a[0] + 4 for a in HB3line], [a[1] for a in HB3line], linestyle='dashed', color='grey')
+    #ax1.plot([a[0] for a in drline], [a[1] for a in drline], linestyle='dashed', color='grey')
+    #ax1.plot([a[0] + 4 for a in drline], [a[1] for a in drline], linestyle='dashed', color='grey')
+    # next lets plot the monolith, passes through z = 141.5, x = 111, .1293 x/z
+    monolith_line1 = [(141.5 + a, 111 - a*.1293) for a in [-44.7,67.1]]
+    monolith_line2 = [(monolith_line1[0][0] - a, monolith_line1[0][1] - a*.43) for a in [0, 100]]
+    monolith_line3 = [(monolith_line1[1][0] + a, monolith_line1[1][1] - a*.58) for a in [0, 150]]
+    ax1.plot([a[0] for a in monolith_line1], [a[1] for a in monolith_line1], linestyle='solid', color='black')
+    ax1.plot([a[0] for a in monolith_line2], [a[1] for a in monolith_line2], linestyle='solid', color='black')
+    ax1.plot([a[0] for a in monolith_line3], [a[1] for a in monolith_line3], linestyle='solid', color='black')
+
     # add box for prospect
     ax1.add_patch(Rectangle((165, 128), 46.25, -83.4,
                             edgecolor='cornflowerblue',
@@ -958,18 +983,6 @@ def HFIR_scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, invert_y=False, in
                          edgecolor='green',
                          fill=False,
                          lw=2))
-    # HB4
-    HB4line = [(240.56 + np.tan(30*pi/180)*x, x) for x in range(0, ymax+10, 20)]
-    # HB3
-    HB3line = [(67.9 - np.tan(30*pi/180)*x, x) for x in range(0, ymax+10, 20)]
-    # "shutter drive rod sleeve" coming off hb3
-    drline = [(60.35 + np.sin(30*pi/180)*x, 13.0 + np.cos(30*pi/180)*x) for x in range(0, 113+10, 12)]
-    ax1.plot([a[0] for a in HB4line], [a[1] for a in HB4line], linestyle='dashed', color='grey')
-    ax1.plot([a[0] + 4 for a in HB4line], [a[1] for a in HB4line], linestyle='dashed', color='grey')
-    ax1.plot([a[0] for a in HB3line], [a[1] for a in HB3line], linestyle='dashed', color='grey')
-    ax1.plot([a[0] + 4 for a in HB3line], [a[1] for a in HB3line], linestyle='dashed', color='grey')
-    ax1.plot([a[0] for a in drline], [a[1] for a in drline], linestyle='dashed', color='grey')
-    ax1.plot([a[0] + 4 for a in drline], [a[1] for a in drline], linestyle='dashed', color='grey')
     #ax1.set_title(title)
     ax1.xaxis.set_minor_locator(AutoMinorLocator())
     ax1.yaxis.set_minor_locator(AutoMinorLocator())
