@@ -436,7 +436,7 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
                   colors=None, styles=None,
                   xmax=-1, ymax=-1, ymin=None, xmin=None, ylog=True, xdates=False,
                   vertlines=None, vlinelabel=None, xlog=False, title=None, figsize=(5, 4)):
-    rcParams.update({'font.size': 22})
+    #rcParams.update({'font.size': 22})
     if colors is None:
         colors = []
     if styles is None:
