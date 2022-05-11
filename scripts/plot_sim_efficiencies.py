@@ -34,7 +34,7 @@ def main():
         rootfile = join(args.dir, name.format(coll, e))
         hist_en = get_spec_from_root(rootfile,  "GeEfficiencyPlugin/hGeEnergy", "accumulated/runtime", True, 1000., 1)
         fitter.expected_peaks = [e]
-        fitter.fit(hist_en, e)
+        fitter.fit_peaks(hist_en)
         a, da = fitter.fit_values[e].area()
         areas.append(a/hist_en.live)
         dareas.append(da/hist_en.live)
