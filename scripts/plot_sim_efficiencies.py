@@ -25,10 +25,13 @@ def main():
     name = "coll_{0}_none_{1}.root"
 
     fitter = SpectrumFitter()
+    coll = "false"
+    if args.collimated:
+        coll = "true"
     areas = []
     dareas = []
     for e in ens:
-        rootfile = join(args.dir, name.format(args.collimated, e))
+        rootfile = join(args.dir, name.format(coll, e))
         hist_en = get_spec_from_root(rootfile,  "GeEfficiencyPlugin/hGeEnergy", "accumulated/runtime", True, 1000., 1)
         fitter.expected_peaks = [e]
         fitter.fit(hist_en, e)
