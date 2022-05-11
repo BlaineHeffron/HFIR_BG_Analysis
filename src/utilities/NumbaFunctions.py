@@ -119,7 +119,7 @@ def merge_sort_main_numba(A, sort="d"):
     """
     B = np.copy(A)
     Aux = np.copy(A)
-    merge_sort_numba(Aux, B, 0, len(B) - 1, sort.startswith("d"))
+    merge_sort_numba(Aux, B, 0, len(B) - 1, sort == "d")
     return B
 
 @jit(nopython=True)
@@ -129,7 +129,7 @@ def merge_sort_two(A, C, sort="d"):
     Aux = np.copy(A)
     second = np.copy(C)
     second_aux = np.copy(C)
-    merge_sort_numba_two(Aux, B, 0, len(B) - 1, second_aux, second, sort.startswith("d"))
+    merge_sort_numba_two(Aux, B, 0, len(B) - 1, second_aux, second, sort == "d")
     return B, second
 
 @jit(nopython=True)
