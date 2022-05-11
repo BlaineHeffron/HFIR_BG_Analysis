@@ -820,11 +820,11 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
 def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, xmin=None, xmax=None,
                  invert_y=False, invert_x=False, xdates=False, text_data=None, contour=False):
     rcParams.update({'font.size': 18})
-    if xmin is not None and xmax is not None and ymin is not None and ymax is not None:
-        ratio = abs((ymax - ymin) / (xmax - xmin))*4./5
-        fig = plt.figure(figsize=(12, 12*ratio))
-    else:
-        fig = plt.figure(figsize=(12, 6.5))
+    #if xmin is not None and xmax is not None and ymin is not None and ymax is not None:
+    #    ratio = abs((ymax - ymin) / (xmax - xmin))*4./5
+    #    fig = plt.figure(figsize=(6, 6*ratio))
+    #else:
+    fig = plt.figure(figsize=(6, 4))
     ax1 = fig.add_subplot(111)
     ax1.set_xlabel(xlabel)
     ax1.set_ylabel(ylabel)
@@ -869,7 +869,8 @@ def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, x
         h = ax1.scatter(x,y,c=c, cmap='viridis')
     else:
         h = ax1.tricontourf(x, y, c, levels=20, cmap='viridis')
-    ax1.set_title(title)
+    if title:
+        ax1.set_title(title)
     if text_data:
         for n, coo in zip(text_data["names"], text_data["coords"]):
             ax1.annotate(n, coo)
@@ -881,6 +882,7 @@ def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, x
     ax1.tick_params(axis="y", which="minor", direction="in", length=8, width=1)
     cb = plt.colorbar(h)
     cb.set_label(zlabel, rotation=270, labelpad=20)
+    plt.tight_layout()
     return fig
 
 
@@ -893,8 +895,8 @@ def HFIR_scatter_plot(x, y, c, zlabel, title, invert_y=False, invert_x=False, xd
     ratio = abs((ymax - ymin) / (xmax - xmin))*4./5
     fig = plt.figure(figsize=(7, 7*ratio))
     ax1 = fig.add_subplot(111)
-    #ax1.set_xlabel(xlabel)
-    #ax1.set_ylabel(ylabel)
+    ax1.set_xlabel("z [in]")
+    ax1.set_ylabel("x [in]")
     if(xdates):
         x = mdate.epoch2num(x)
     if ymin is None:
