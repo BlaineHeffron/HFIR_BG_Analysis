@@ -28,7 +28,7 @@ def main():
     areas = []
     dareas = []
     for e in ens:
-        rootfile = join(arg.dir, name.format(arg.collimated, e))
+        rootfile = join(args.dir, name.format(args.collimated, e))
         hist_en = get_spec_from_root(rootfile,  "GeEfficiencyPlugin/hGeEnergy", "accumulated/runtime", True, 1000., 1)
         fitter.expected_peaks = [e]
         fitter.fit(hist_en, e)
