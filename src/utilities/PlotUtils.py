@@ -884,14 +884,14 @@ def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, x
     return fig
 
 
-def HFIR_scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, invert_y=False, invert_x=False, xdates=False, use_contour=False, phi=None):
+def HFIR_scatter_plot(x, y, c, zlabel, title, invert_y=False, invert_x=False, xdates=False, use_contour=False, phi=None):
     xmin = 40
     ymin = 0
     xmax = 420
     ymax = 180
     #rcParams.update({'font.size': 14})
     ratio = abs((ymax - ymin) / (xmax - xmin))*4./5
-    fig = plt.figure(figsize=(8, 8*ratio))
+    fig = plt.figure(figsize=(7, 7*ratio))
     ax1 = fig.add_subplot(111)
     #ax1.set_xlabel(xlabel)
     #ax1.set_ylabel(ylabel)

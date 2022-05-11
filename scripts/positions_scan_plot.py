@@ -139,7 +139,7 @@ def plot_top_down_rates(scan_spec, energy_ranges, labels):
             if len(rates[i]) < 3:
                 continue
             # fig = scatter_plot(x, y, rates[i], "z", "x", "rate [hz/keV]", "det angle = {0}, cart angle = {1}, {2}".format(angle, phi, labels[i]), xmin=40, ymin=0, xmax=420, ymax=160, invert_y=True)
-            fig = HFIR_scatter_plot(x, y, rates[i], "z [in]", "x [in]", "rate [hz]",
+            fig = HFIR_scatter_plot(x, y, rates[i], "rate [hz]",
                                     "det angle = {0},{1}".format(angle, labels[i]),
                                     invert_y=True, use_contour=False, phi=phis)
             plot_name = "det_{0}_{1}_to_{2}.png".format(angle, energy_ranges[i][0], energy_ranges[i][1])
@@ -164,7 +164,7 @@ def plot_top_down_rates(scan_spec, energy_ranges, labels):
         if len(rates[i]) < 3:
             continue
         # fig = scatter_plot(x, y, rates[i], "z", "x", "rate [hz/keV]", "det angle = {0}, cart angle = {1}, {2}".format(angle, phi, labels[i]), xmin=40, ymin=0, xmax=420, ymax=160, invert_y=True)
-        fig = HFIR_scatter_plot(x, y, rates[i], "z [in]", "x [in]", "rate [hz]",
+        fig = HFIR_scatter_plot(x, y, rates[i], "rate [hz]",
                                 "down facing, {}".format(labels[i]),
                                 invert_y=True, use_contour=True)
         plot_name = "down_facing_{0}_to_{1}.png".format(energy_ranges[i][0], energy_ranges[i][1])

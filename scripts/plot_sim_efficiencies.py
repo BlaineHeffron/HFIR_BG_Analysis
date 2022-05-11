@@ -21,9 +21,12 @@ def main():
     ens = [i for i in range(40,11386)]
     arg.add_argument("dir",help="path to directory containing simulated histograms", type=str)
     arg.add_argument("--collimated", "-c", action="store_true", help="if collimated")
+    arg.add_argument("--direction", "-d", type=str, help="direction if not none")
     args = arg.parse_args()
-    name = "coll_{0}_front_{1}.root"
-
+    name = "coll_{0}_{1}_{2}.root"
+    direction = "none"
+    if args.direction:
+        direction = args.direction
     fitter = SpectrumFitter()
     coll = "false"
     if args.collimated:
@@ -31,7 +34,7 @@ def main():
     areas = []
     dareas = []
     for e in ens:
-        rootfile = join(args.dir, name.format(coll, e))
+        rootfile = join(args.dir, name.format(coll, direction, e))
         hist_en = get_spec_from_root(rootfile,  "GeEfficiencyPlugin/hGeEnergy", "accumulated/runtime", True, 1000., 1)
         fitter.expected_peaks = [e]
         fitter.fit_peaks(hist_en)
