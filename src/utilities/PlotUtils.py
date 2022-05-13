@@ -435,7 +435,7 @@ def GetMPLStyles():
 def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
                   colors=None, styles=None,
                   xmax=-1, ymax=-1, ymin=None, xmin=None, ylog=True, xdates=False,
-                  vertlines=None, vlinelabel=None, xlog=False, title=None, figsize=(5, 4)):
+                  vertlines=None, vlinelabel=None, xlog=False, title=None, figsize=(6, 4)):
     #rcParams.update({'font.size': 22})
     if colors is None:
         colors = []
@@ -814,7 +814,7 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
     #plt.gcf().subplots_adjust(right=0.05)
     #plt.savefig(outname)
     #plt.close()
-    plt.tight_layout()
+    #plt.tight_layout()
     return fig
 
 def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, xmin=None, xmax=None,

@@ -140,12 +140,22 @@ compare_to = "MIF"
 bins = get_bins(100, 11500, 11400)
 
 rundata = {"SE": "EAST_FACE_16", "NE": "EAST_FACE_2", "SHIELD_CENTER":"CYCLE461_DOWN_FACING_OVERNIGHT.txt"}
+rundata = {"SE": "EAST_FACE_16", "NE": "EAST_FACE_2", "Middle":"EAST_FACE_1"}
 #rundata = {"SE": "EAST_FACE_16", "NE": "EAST_FACE_6"}
 plot_name = "EAST_SIDE_HIGH_RATE_VS_LOW_RATE"
 compare_to = "NE"
 bins = get_bins(100, 11500, 11400)
 
+rundata = {"RD_494_ON": [4395 + i for i in range(5)], "RD_494_OFF": [4011 + i for i in range(5)]}
+plot_name = "RD_ON_VS_OFF_COMPARISON"
+compare_to = "RD_494_OFF"
+bins = get_bins(100, 11500, 11400)
+
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "spectrum_plots")
+
+emin = [1000 * i for i in range(12)]
+emax = [1000 * (i + 1) for i in range(12)]
+
 
 def main():
     if not os.path.exists(outdir):
@@ -160,11 +170,9 @@ def main():
     write_spectra(data, datadir, db)
     plot_multi_spectra(data, pname, rebin=10, emin=15)
     plot_subtract_spectra(data, compare_to, pname + "_subtract", rebin=100, emin=15)
-    emin = [800*i for i in range(15)]
-    emax = [800*(i+1) for i in range(15)]
-    #for i in range(len(emin)):
-    #    plot_multi_spectra(data, pname + "_{}".format(i), emin=emin[i], emax=emax[i])
-    #    plot_subtract_spectra(data, compare_to, pname + "_subtract_{}".format(i), emin=emin[i], emax=emax[i])
+    for i in range(len(emin)):
+        plot_multi_spectra(data, pname + "_{}".format(i), emin=emin[i], emax=emax[i])
+        plot_subtract_spectra(data, compare_to, pname + "_subtract_{}".format(i), emin=emin[i], emax=emax[i])
 
 
 if __name__ == "__main__":

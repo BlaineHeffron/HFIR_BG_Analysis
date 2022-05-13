@@ -195,6 +195,22 @@ def populate_rd_data(data_dict, db):
                 out[key1][key2].append(retrieve_data(f, db))
     return out
 
+def populate_data_db(data_dict, db):
+    """
+    given data_dict, a dictionary whose values are numbers or list of numbers, populate
+    a new dictionary with same keys and either SpectrumData or lists of SpectrumData for the
+    spectrum filepaths equating the numbers
+    """
+    out = {}
+    for key in data_dict:
+        if isinstance(data_dict[key], list):
+            out[key] = []
+            for n in data_dict[key]:
+                out[key].append(retrieve_data(n, db))
+        else:
+            out[key] = retrieve_data(data_dict[key], db)
+    return out
+
 def populate_data(data_dict, data_dir, db):
     """
     given data_dict, a dictionary whose values are numbers or list of numbers, populate
@@ -258,20 +274,36 @@ def populate_data_root(data_dict, spec_path, live_path, isParam=False, xScale=1,
     return out
 
 
-def combine_runs(data_dict):
+def combine_runs(data_dict, max_interval=None):
     """
     given a data dictionary with values of lists of spectrumdata, adds the lists of spectrum data
     together and replaces with spectrumdata of combined data
+    if max_interval is given, will combine only if the acquisition start time is less than max_interval in seconds from
+    first run in sequence. value of dict will be list of spectrumdata objects instead of a single spectrumdata object
     """
     for key in data_dict:
-        if isinstance(data_dict[key], list):
-            s = data_dict[key][0]
-            if len(data_dict[key]) > 1:
-                for i in range(1, len(data_dict[key])):
-                    s.add(data_dict[key][i])
-            data_dict[key] = s
-        elif isinstance(data_dict[key], set):
+        if isinstance(data_dict[key], set):
             mylist = list(data_dict[key])
+        elif isinstance(data_dict[key], list):
+            mylist = data_dict[key]
+        else:
+            raise ValueError("Incorrect format supplied to combine_runs, should be dictionary with values of lists or sets")
+        if max_interval is not None:
+            mylist.sort(key=lambda x: timestring_to_dt(x.start))
+            s = mylist[0]
+            newlist = []
+            if len(mylist) > 1:
+                max_time = timestring_to_dt(s.start) + max_interval
+                for i in range(1, len(mylist)):
+                    if timestring_to_dt(mylist[i].start) > max_time:
+                        newlist.append(s)
+                        s = mylist[i]
+                        max_time = timestring_to_dt(s.start) + max_interval
+                    else:
+                        s.add(mylist[i])
+            newlist.append(s)
+            data_dict[key] = newlist
+        else:
             s = mylist[0]
             if len(mylist) > 1:
                 for i in range(1, len(mylist)):
@@ -490,6 +522,8 @@ def plot_spectra(fs, name, rebin=1, emin=None, emax=None):
         spec = copy(spec)
         spec.rebin_factor(rebin)
     start_index, end_index = set_indices(0, 0, emin, emax, spec)
+    if start_index >= end_index:
+        return
     y = spec.get_normalized_hist()[start_index:end_index]
     errs = np.sqrt(spec.hist)
     x = spec.bin_midpoints[start_index:end_index]

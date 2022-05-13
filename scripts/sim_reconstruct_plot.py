@@ -62,7 +62,7 @@ def main():
     hist_recon.GetXaxis().SetRangeUser(xlow, xhigh)
     hist_measure.GetXaxis().SetRangeUser(xlow, xhigh)
     hist_en.GetXaxis().SetRangeUser(xlow, xhigh)
-    hist_en.Rebin(2)
+    #hist_en.Rebin(2)
     #hist_measure.SetLineColor(kBlack)
     hist_measure.Draw("L")
     hist_recon.SetLineColor(kBlue)

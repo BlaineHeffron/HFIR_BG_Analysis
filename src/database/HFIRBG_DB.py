@@ -392,18 +392,42 @@ class HFIRBG_DB(SQLiteBase):
         else:
             return None
 
-    def get_rd_files(self):
+    def get_rd_files(self, run_grouping=False, gain_setting=None):
         """retrieves files taken while in russian doll shield, returns dictionary with key 1 = shield, key 2 = acquisition id
-        acquisition id 5 = low gain, 7 = highest gain, 17 = second highest gain (covers 70 keV)"""
-
-        rows = self.fetchall("SELECT id, acquisition_settings, shield FROM detector_configuration WHERE shield > 1")
+        acquisition id 5 = low gain, 7 = highest gain, 17 = second highest gain (covers 70 keV)
+        if run_grouping is true, returns keys with run name, value file list
+        if gain_setting is set, must be set to one of 'low', 'medium', 'high', or '90', will retrieve
+        files for that setting"""
+        qry = "SELECT id, acquisition_settings, shield FROM detector_configuration WHERE shield > 1"
+        if gain_setting is not None:
+            map = {"high": 7, "90": 17, "medium": 16, "low": 5}
+            if isinstance(gain_setting, str):
+                gain_setting = [gain_setting]
+            for i, g in enumerate(gain_setting):
+                if g not in map.keys():
+                    raise ValueError("gain setting must be one of 'high', 'medium', 'low', or '90'")
+                if i == 0:
+                    qry += " AND acquisition_settings IN ({}".format(map[g])
+                else:
+                    qry += ",{}".format(map[g])
+            qry += ")"
+        rows = self.fetchall(qry)
         fdict = {}
-        for row in rows:
-            if row[2] not in fdict:
-                fdict[row[2]] = {}
-            if row[1] not in fdict[row[2]]:
-                fdict[row[2]][row[1]] = []
-            fdict[row[2]][row[1]] += self.retrieve_file_paths_from_detector_config(row[0], exclude_cal=True)
+        if run_grouping:
+            for row in rows:
+                runs = self.fetchall("SELECT id, name from runs WHERE detector_configuration = {}".format(row[0]))
+                for run in runs:
+                    if run[1] in fdict.keys():
+                        print("ERROR: run {} already in file dictionary!".format(run[1]))
+                    fids = self.retrieve_run_flist(run[0])
+                    fdict[run[1]] = self.get_file_paths_from_ids(fids)
+        else:
+            for row in rows:
+                if row[2] not in fdict:
+                    fdict[row[2]] = {}
+                if row[1] not in fdict[row[2]]:
+                    fdict[row[2]][row[1]] = []
+                fdict[row[2]][row[1]] += self.retrieve_file_paths_from_detector_config(row[0], exclude_cal=True)
         return fdict
 
     def get_files_from_config(self, config):

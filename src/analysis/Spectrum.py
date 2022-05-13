@@ -815,9 +815,9 @@ class SpectrumFitter:
             max_ind = int(round(np.average(indice) + start_ind))
         else:
             max_ind = start_ind + indice[0]
-        if self.expected_offset_factor == 1:
-            self.expected_offset_factor = max_ind / peak_guess
-            print("setting expected offset factor to {} for subsequent peak searches".format(self.expected_offset_factor))
+        #if self.expected_offset_factor == 1:
+        #    self.expected_offset_factor = max_ind / peak_guess
+        #    print("setting expected offset factor to {} for subsequent peak searches".format(self.expected_offset_factor))
         num_samples = int(round(self.window_factor * sigma_guess / spec.A1))
         start_ind = max_ind - int(floor(num_samples / 2))
         stop_ind = max_ind + int(floor(num_samples / 2)) + 1
