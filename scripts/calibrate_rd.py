@@ -19,10 +19,10 @@ rundata = {"EAST_FACE_1": "EAST_FACE_1.txt"}
 #expected_peaks = [7724.034, 7645.58, 7631.18, 1460.8, 1332.5, 1293.64, 1173.2, 511.0]
 #expected_peaks = [7724.034, 7645.58, 7631.18, 1460.8, 1332.5, 1293.64, 1173.2, 511.0]
 #expected_peaks = [1293.64, 511.0, 374.72, 768.36, 1120.29, 1238.11, 1377.67]
-expected_peaks = [1293.64, 511.0, 374.72, 1120.29]
+expected_peaks = [2614.533, 1293.64, 511.0, 1120.29, 609.31, 2223.245]
 #expected_peaks = [7724.034, 7645.58, 7631.18, 1460.8, 1332.5, 1293.64, 1173.2, 511.0, 374.72, 768.36, 1120.29, 1238.11, 1377.67]
 #expected_peaks = [1460.8, 1332.5, 1274.43, 1173.2,964.082,1112.08,1408.013,778.9006]
-dt = 86400*4
+dt = 86400*14
 
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "russian_doll")
 
@@ -31,7 +31,7 @@ def main():
     if not os.path.exists(outdir):
         os.mkdir(outdir)
     db = HFIRBG_DB()
-    rd_data = db.get_rd_files(True, gain_setting=['low'])
+    rd_data = db.get_rd_files(True, gain_setting=['medium'])
     rd_data = populate_data_db(rd_data, db)
     combine_runs(rd_data, max_interval=dt)
     if not exists(outdir):

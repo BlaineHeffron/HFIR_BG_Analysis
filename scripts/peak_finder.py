@@ -21,7 +21,9 @@ rundata = {"RD 494 low gain": [4395 + i for i in range(4)]}
 #energy_guesses = [6791]
 energy_guesses = [610, 768, 1120]
 energy_guesses = [1238, 1377]
-energy_guesses = [595.8,867.9,608.4,1489.3]
+#energy_guesses = [595.8,867.9,608.4,1489.3]
+#energy_guesses = [2614.3, 474,477,480,483]
+energy_guesses = [2614.3, 1215, 1238]
 verify = True
 
 
