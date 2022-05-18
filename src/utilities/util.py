@@ -592,9 +592,9 @@ def plot_time_series(data, outdir, emin=30, emax=None, legend_map=None, ymin=Non
             keys = data_dict.keys()
             keys = [x for _, x in sorted(zip(times, keys), key=lambda pair: pair[0][0])]
             times.sort(key=lambda x: x[0])
-            MultiXScatterPlot(times, rates, drates, keys, xlabel, ylabel, xdates=True, ymin=ymin, figsize=figsize, legend_outside=True, legend_fraction=legend_fraction)
+            MultiXScatterPlot(times, rates, drates, keys, xlabel, ylabel, xdates=True, ymin=ymin, figsize=figsize, legend_outside=True, legend_fraction=legend_fraction, title=energystring)
         else:
-            MultiScatterPlot(times, [rates], [drates], line_label, xlabel, ylabel, xdates=True, ymin=ymin)
+            MultiScatterPlot(times, [rates], [drates], line_label, xlabel, ylabel, xdates=True, ymin=ymin, title=energystring)
         plt.savefig(plot_name)
         plt.close()
         #MultiScatterPlot(times, [A0], [[0]*len(A0)], line_label, xlabel, "A0", xdates=True)

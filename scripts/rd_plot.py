@@ -25,7 +25,7 @@ def main():
         os.mkdir(outdir)
     db = HFIRBG_DB()
     if plot_time_series_bool:
-        rd_data = db.get_rd_files()
+        rd_data = db.get_rd_files(min_time=100)
         rd_data = populate_rd_data(rd_data, db)
         low_e_data = {"low_e_data": []}
         legend = []
@@ -38,7 +38,7 @@ def main():
                 plot_time_series({name: rd_data[shield_id][acq_id]}, outdir, emin=Emin, emax=Emax)
         for i in range(len(low_e_ranges) - 1):
             plot_time_series(low_e_data, outdir, emin=low_e_ranges[i], emax=low_e_ranges[i + 1], legend_map={"low_e_data": legend}, ymin=.005, legend_fraction=0.3, figsize=(10,4))
-        rd_data = db.get_rd_files(True)
+        rd_data = db.get_rd_files(True, min_time=100)
         rd_data = populate_data_db(rd_data, db)
         low_e_data = {"low_e_data_runs": []}
         legend = []

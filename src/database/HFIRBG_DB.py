@@ -342,6 +342,16 @@ class HFIRBG_DB(SQLiteBase):
             print("file name {} not in database!".format(fname))
             return None
 
+    def get_file_paths_from_ids_min_time(self, fids, min_time):
+        data = self.fetchall(
+            "SELECT f.directory_id, d.path, f.name, f.live_time from datafile f join directory d on f.directory_id = d.id where f.id {0} AND live_time > {1}".format(
+                generate_in_clause(fids), min_time))
+        fs = []
+        if data:
+            for row in data:
+                fs.append(os.path.join(row[1], row[2] + ".txt"))
+        return fs
+
     def get_file_paths_from_ids(self, fids):
         data = self.fetchall(
             "SELECT f.directory_id, d.path, f.name from datafile f join directory d on f.directory_id = d.id where f.id {}".format(
@@ -371,7 +381,7 @@ class HFIRBG_DB(SQLiteBase):
         else:
             return None
 
-    def retrieve_file_paths_from_detector_config(self, detector_config_id, coord=None, exclude_cal=False):
+    def retrieve_file_paths_from_detector_config(self, detector_config_id, coord=None, exclude_cal=False, min_time=None):
         ids = self.retrieve_file_ids_from_detector_config(detector_config_id, coord)
         if exclude_cal:
             my_ids = []
@@ -381,9 +391,15 @@ class HFIRBG_DB(SQLiteBase):
                 if "_cal" in run_name:
                     continue
                 my_ids.append(id)
-            return self.get_file_paths_from_ids(my_ids)
+            if min_time:
+                return self.get_file_paths_from_ids_min_time(my_ids, min_time)
+            else:
+                return self.get_file_paths_from_ids(my_ids)
         else:
-            return self.get_file_paths_from_ids(ids)
+            if min_time:
+                return self.get_file_paths_from_ids_min_time(ids, min_time)
+            else:
+                return self.get_file_paths_from_ids(ids)
 
     def retrieve_run_number_from_file_id(self, id):
         name = self.fetchone("SELECT run_number from datafile where id = {}".format(id))
@@ -392,7 +408,7 @@ class HFIRBG_DB(SQLiteBase):
         else:
             return None
 
-    def get_rd_files(self, run_grouping=False, gain_setting=None):
+    def get_rd_files(self, run_grouping=False, gain_setting=None, min_time=None):
         """retrieves files taken while in russian doll shield, returns dictionary with key 1 = shield, key 2 = acquisition id
         acquisition id 5 = low gain, 7 = highest gain, 17 = second highest gain (covers 70 keV)
         if run_grouping is true, returns keys with run name, value file list
@@ -422,14 +438,17 @@ class HFIRBG_DB(SQLiteBase):
                     if "_cal" in run[1]:
                         continue
                     fids = self.retrieve_run_flist(run[0])
-                    fdict[run[1]] = self.get_file_paths_from_ids(fids)
+                    if min_time:
+                        fdict[run[1]] = self.get_file_paths_from_ids_min_time(fids, min_time)
+                    else:
+                        fdict[run[1]] = self.get_file_paths_from_ids(fids)
         else:
             for row in rows:
                 if row[2] not in fdict:
                     fdict[row[2]] = {}
                 if row[1] not in fdict[row[2]]:
                     fdict[row[2]][row[1]] = []
-                fdict[row[2]][row[1]] += self.retrieve_file_paths_from_detector_config(row[0], exclude_cal=True)
+                fdict[row[2]][row[1]] += self.retrieve_file_paths_from_detector_config(row[0], exclude_cal=True, min_time=min_time)
         return fdict
 
     def get_files_from_config(self, config):
