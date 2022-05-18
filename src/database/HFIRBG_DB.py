@@ -419,6 +419,8 @@ class HFIRBG_DB(SQLiteBase):
                 for run in runs:
                     if run[1] in fdict.keys():
                         print("ERROR: run {} already in file dictionary!".format(run[1]))
+                    if "_cal" in run[1]:
+                        continue
                     fids = self.retrieve_run_flist(run[0])
                     fdict[run[1]] = self.get_file_paths_from_ids(fids)
         else:

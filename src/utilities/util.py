@@ -15,7 +15,8 @@ import numpy as np
 from scipy import stats
 
 from src.analysis.Spectrum import SpectrumData, SpectrumFitter
-from src.utilities.PlotUtils import MultiLinePlot, MultiScatterPlot, ScatterLinePlot, ScatterDifferencePlot
+from src.utilities.PlotUtils import MultiLinePlot, MultiScatterPlot, ScatterLinePlot, ScatterDifferencePlot, \
+    MultiXScatterPlot
 from src.utilities.FitUtils import linfit, sqrtfit
 from copy import copy
 from ROOT import TFile, TVectorF
@@ -287,7 +288,7 @@ def combine_runs(data_dict, max_interval=None):
         elif isinstance(data_dict[key], list):
             mylist = data_dict[key]
         else:
-            raise ValueError("Incorrect format supplied to combine_runs, should be dictionary with values of lists or sets")
+            continue
         if max_interval is not None:
             mylist.sort(key=lambda x: timestring_to_dt(x.start))
             s = mylist[0]
@@ -537,7 +538,7 @@ def plot_spectra(fs, name, rebin=1, emin=None, emax=None):
     plt.close()
 
 
-def plot_time_series(data, outdir, emin=30, emax=None):
+def plot_time_series(data, outdir, emin=30, emax=None, legend_map=None, ymin=None, legend_fraction=None, figsize=(5,4)):
     if emin is None and emax is None:
         energystring = "full"
     elif emin is None and emax is not None:
@@ -561,7 +562,12 @@ def plot_time_series(data, outdir, emin=30, emax=None):
         A0 = []
         A1 = []
         e1, e2 = data[key][0].get_e_limits(emin, emax)
-        line_label = ["{0:.0f} - {1:.0f} keV".format(e1, e2)]
+        if legend_map is not None and key in legend_map.keys():
+            legend = legend_map[key]
+            line_label = []
+        else:
+            legend = None
+            line_label = ["{0:.0f} - {1:.0f} keV".format(e1, e2)]
         for spec in data[key]:
             r, dr = spec.integrate(emin, emax, norm=True)
             rates.append(r)
@@ -569,7 +575,26 @@ def plot_time_series(data, outdir, emin=30, emax=None):
             A0.append(spec.A0)
             A1.append(spec.A1)
             times.append(spec.start_timestamp())
-        MultiScatterPlot(times, [rates], [drates], line_label, xlabel, ylabel, xdates=True)
+        if legend:
+            data_dict = {}
+            for i, label in enumerate(legend):
+                if label not in data_dict.keys():
+                    data_dict[label] = [[],[],[]]
+                data_dict[label][0].append(rates[i])
+                data_dict[label][1].append(drates[i])
+                data_dict[label][2].append(times[i])
+            rates = [data_dict[l][0] for l in data_dict.keys()]
+            drates = [data_dict[l][1] for l in data_dict.keys()]
+            times = [data_dict[l][2] for l in data_dict.keys()]
+            
+            rates = [x for _, x in sorted(zip(times, rates), key=lambda pair: pair[0][0])]
+            drates = [x for _, x in sorted(zip(times, drates), key=lambda pair: pair[0][0])]
+            keys = data_dict.keys()
+            keys = [x for _, x in sorted(zip(times, keys), key=lambda pair: pair[0][0])]
+            times.sort(key=lambda x: x[0])
+            MultiXScatterPlot(times, rates, drates, keys, xlabel, ylabel, xdates=True, ymin=ymin, figsize=figsize, legend_outside=True, legend_fraction=legend_fraction)
+        else:
+            MultiScatterPlot(times, [rates], [drates], line_label, xlabel, ylabel, xdates=True, ymin=ymin)
         plt.savefig(plot_name)
         plt.close()
         #MultiScatterPlot(times, [A0], [[0]*len(A0)], line_label, xlabel, "A0", xdates=True)
