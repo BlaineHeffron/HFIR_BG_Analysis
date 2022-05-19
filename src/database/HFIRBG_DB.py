@@ -408,7 +408,7 @@ class HFIRBG_DB(SQLiteBase):
         else:
             return None
 
-    def get_rd_files(self, run_grouping=False, gain_setting=None, min_time=None):
+    def get_rd_files(self, run_grouping=False, gain_setting=None, min_time=None, exclude_cal=True):
         """retrieves files taken while in russian doll shield, returns dictionary with key 1 = shield, key 2 = acquisition id
         acquisition id 5 = low gain, 7 = highest gain, 17 = second highest gain (covers 70 keV)
         if run_grouping is true, returns keys with run name, value file list
@@ -435,7 +435,7 @@ class HFIRBG_DB(SQLiteBase):
                 for run in runs:
                     if run[1] in fdict.keys():
                         print("ERROR: run {} already in file dictionary!".format(run[1]))
-                    if "_cal" in run[1]:
+                    if "_cal" in run[1] and exclude_cal:
                         continue
                     fids = self.retrieve_run_flist(run[0])
                     if min_time:
@@ -448,7 +448,7 @@ class HFIRBG_DB(SQLiteBase):
                     fdict[row[2]] = {}
                 if row[1] not in fdict[row[2]]:
                     fdict[row[2]][row[1]] = []
-                fdict[row[2]][row[1]] += self.retrieve_file_paths_from_detector_config(row[0], exclude_cal=True, min_time=min_time)
+                fdict[row[2]][row[1]] += self.retrieve_file_paths_from_detector_config(row[0], exclude_cal=exclude_cal, min_time=min_time)
         return fdict
 
     def get_files_from_config(self, config):

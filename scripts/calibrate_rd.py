@@ -25,20 +25,35 @@ expected_peaks = [2614.533, 1293.64, 511.0, 1120.29, 609.31, 2223.245]
 dt = 86400*14
 
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "russian_doll")
+calibrate_high_gain = True
+gain_setting = ['medium']
 
 
 def main():
     if not os.path.exists(outdir):
         os.mkdir(outdir)
     db = HFIRBG_DB()
-    rd_data = db.get_rd_files(True, gain_setting=['medium'])
-    rd_data = populate_data_db(rd_data, db)
-    combine_runs(rd_data, max_interval=dt)
-    if not exists(outdir):
-        os.mkdir(outdir)
-    for run in rd_data.keys():
-        for i, spec in enumerate(rd_data[run]):
-            calibrate_spectra({"{0}_interval_{1}".format(run, i): spec}, expected_peaks, db, outdir, True, True, True)
+    if calibrate_high_gain:
+        rd_data = db.get_rd_files(run_grouping=True, gain_setting=['high', '90'], exclude_cal=False)
+        rd_cal_data = {}
+        for run in rd_data.keys():
+            if "_cal" in run:
+                rd_cal_data[run] = rd_data[run]
+        rd_data = populate_data_db(rd_cal_data, db)
+        for run in rd_data.keys():
+            print("peak fitting for calibration run {}".format(run))
+            for i, spec in enumerate(rd_data[run]):
+                calibrate_spectra({"{0}_interval_{1}".format(run, i): spec}, [59.541], db, outdir, True,
+                                      True, True, allow_undetermined=True)
+    else:
+        rd_data = db.get_rd_files(True, gain_setting=gain_setting)
+        rd_data = populate_data_db(rd_data, db)
+        combine_runs(rd_data, max_interval=dt)
+        if not exists(outdir):
+            os.mkdir(outdir)
+        for run in rd_data.keys():
+            for i, spec in enumerate(rd_data[run]):
+                calibrate_spectra({"{0}_interval_{1}".format(run, i): spec}, expected_peaks, db, outdir, True, True, True)
 
 
 if __name__ == "__main__":

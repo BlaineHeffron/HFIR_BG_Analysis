@@ -894,7 +894,7 @@ def fit_spectra(data, expected_peaks, plot_dir=None, user_verify=False, plot_fit
     return fit_data
 
 
-def calibrate_spectra(data, expected_peaks, db, plot_dir=None, user_verify=False, tolerate_fails=False, plot_fit=False):
+def calibrate_spectra(data, expected_peaks, db, plot_dir=None, user_verify=False, tolerate_fails=False, plot_fit=False, allow_undetermined=False):
     for name, spec in data.items():
         spec_fitter = SpectrumFitter(expected_peaks, name=name)
         spec_fitter.fit_peaks(spec)
@@ -902,7 +902,7 @@ def calibrate_spectra(data, expected_peaks, db, plot_dir=None, user_verify=False
             plot_dir = join(plot_dir, name)
             if not os.path.exists(plot_dir):
                 os.mkdir(plot_dir)
-        cal, _ = spec_fitter.retrieve_calibration(user_verify, tolerate_fails, plot_dir, plot_fit)
+        cal, _ = spec_fitter.retrieve_calibration(user_verify, tolerate_fails, plot_dir, plot_fit, allow_undetermined=allow_undetermined)
         if cal:
             db.insert_calibration(cal[0], cal[1], spec.fname)
 
