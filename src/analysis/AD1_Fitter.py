@@ -25,7 +25,7 @@ def AD1_gamma_fit_jac(x, Hg, He, c, s, c2, s2, A, B):
                       dc2.reshape(-1, 1), ds2.reshape(-1, 1), dA.reshape(-1, 1), dB.reshape(-1, 1)))
 
 
-def fit_spec(spec, e1, e2, plot_dir=""):
+def fit_spec(spec, e1, e2, plot_dir="", name=""):
     ind1 = spec.data_at_x(e1)
     ind2 = spec.data_at_x(e2)
     xs = spec.get_data_x()
@@ -62,6 +62,9 @@ def fit_spec(spec, e1, e2, plot_dir=""):
         fig = ScatterLinePlot(xs, ys, sigma, linex, liney, lineerr,
                         ["best fit", r'1 $\sigma$ error', "peak fits to data"], "energy [MeV]",
                         "counts", ylog=True, legend_loc='best', xmin=xs[0], xmax=xs[-1], ymin=miny)
-        plt.savefig(plot_dir + "/AD1_fit_{0}-{1}.png".format(e1,e2))
+        if name:
+            plt.savefig(plot_dir + "/{2}_fit_{0}-{1}.png".format(e1,e2, name))
+        else:
+            plt.savefig(plot_dir + "/AD1_fit_{0}-{1}.png".format(e1, e2))
         plt.close()
     return parameters, errs, cs, len(ys) - 8
