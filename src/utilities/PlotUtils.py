@@ -62,7 +62,7 @@ plt.rcParams['axes.labelsize'] = 16
 #plt.rcParams['axes.labelweight'] = 'bold'
 plt.rcParams['xtick.labelsize'] = 14
 plt.rcParams['ytick.labelsize'] = 14
-plt.rcParams['legend.fontsize'] = 16
+plt.rcParams['legend.fontsize'] = 12
 plt.rcParams['figure.titlesize'] = 16
 
 def plot_z_acc_matrix(cm, nx, ny, title, zlabel="mean average error [mm]", cmap=plt.cm.viridis):
@@ -94,7 +94,7 @@ def plot_z_acc_matrix(cm, nx, ny, title, zlabel="mean average error [mm]", cmap=
             plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center",
                      color="black" if cm[i, j] > thresh else "white", fontsize=fontsize)
 
-    plt.tight_layout()
+    #plt.tight_layout()
     plt.ylabel('y segment')
     plt.xlabel('x segment')
     fig.subplots_adjust(left=0.1)
@@ -121,7 +121,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Bl
         plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center",
                  color="white" if cm[i, j] > thresh else "black", fontsize=fontsize)
 
-    plt.tight_layout()
+    #plt.tight_layout()
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
     fig.subplots_adjust(bottom=0.20)
@@ -669,8 +669,8 @@ def ScatterLinePlot(xaxis, yvals, errors, linex, liney, lineerr, line_labels, xl
         colors = tab_colors
     if not styles:
         styles = category_styles
-    ax1.plot(linex, liney)
     ax1.errorbar(xaxis,yvals,yerr=errors, fmt='o')
+    ax1.plot(linex, liney)
     ax1.fill_between(linex, liney - lineerr, liney + lineerr, alpha=0.2)
     if(vertlines is not None):
         for v in vertlines:
@@ -711,7 +711,7 @@ def ScatterLinePlot(xaxis, yvals, errors, linex, liney, lineerr, line_labels, xl
     #plt.gcf().subplots_adjust(right=0.05)
     #plt.savefig(outname)
     #plt.close()
-    plt.tight_layout()
+    #plt.tight_layout()
     return fig
 
 def MultiXScatterPlot(xvals, yvals, errors, line_labels, xlabel, ylabel,
@@ -996,7 +996,7 @@ def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, x
     ax1.tick_params(axis="y", which="minor", direction="in", length=8, width=1)
     cb = plt.colorbar(h)
     cb.set_label(zlabel, rotation=270, labelpad=20)
-    plt.tight_layout()
+    #plt.tight_layout()
     return fig
 
 

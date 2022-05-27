@@ -60,7 +60,7 @@ def fit_spec(spec, e1, e2, plot_dir="", name=""):
             nonzeros[nonzeros == 0] = 99999999999
             miny = np.amin(nonzeros)
         fig = ScatterLinePlot(xs, ys, sigma, linex, liney, lineerr,
-                        ["best fit", r'1 $\sigma$ error', "peak fits to data"], "energy [MeV]",
+                        ["data", "best fit", r'1 $\sigma$ error'], "energy [MeV]",
                         "counts", ylog=True, legend_loc='best', xmin=xs[0], xmax=xs[-1], ymin=miny)
         if name:
             plt.savefig(plot_dir + "/{2}_fit_{0}-{1}.png".format(e1,e2, name))

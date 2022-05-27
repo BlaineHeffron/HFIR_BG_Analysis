@@ -1453,7 +1453,7 @@
         {
             "file_list": "4011-4017",
             "description": "PreCycle 494 Low gain russian doll",
-            "name": "Cycle494_RD_low_gain",
+            "name": "PreCycle494_RD_low_gain",
             "detector_configuration": 16,
             "detector_coordinates": [
                 33.5,

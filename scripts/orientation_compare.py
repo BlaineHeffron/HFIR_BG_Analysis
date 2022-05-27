@@ -151,10 +151,37 @@ plot_name = "RD_ON_VS_OFF_COMPARISON"
 compare_to = "RD_494_OFF"
 bins = get_bins(100, 11500, 11400)
 
+rundata = {"RD_494_OFF_HIGH_GAIN": [3830 + i for i in range(6)], "RD_494_OFF_LOW_GAIN": [4011 + i for i in range(5)],
+           "RD_494_OFF_MED_GAIN": [4203, 4204]}
+plot_name = "RD_494_OFF_GAIN_COMPARISON"
+compare_to = "RD_494_OFF_HIGH_GAIN"
+bins = get_bins(0, 100,100)
+
+rundata = {"RD_493_ON_HIGH_GAIN": [3819 + i for i in range(10)], "RD_493_ON_LOW_GAIN": [3051 + i for i in range(4)],
+           "RD_493_ON_MED_GAIN": [3435 + i for i in range(6)]}
+plot_name = "RD_493_ON_GAIN_COMPARISON"
+compare_to = "RD_493_ON_HIGH_GAIN"
+bins = get_bins(0, 100,100)
+
+rundata = {str(i+1): [4011+i] for i in range(7)}
+plot_name = "RD_494_OFF_LOW_GAIN_DAY_COMPARISON"
+compare_to = "1"
+bins = None
+
+rundata = {str(i+1): [4410+i] for i in range(8)}
+plot_name = "RD_495_OFF_LOW_GAIN_DAY_COMPARISON"
+compare_to = "1"
+bins = None
+
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "spectrum_plots")
 
 emin = [1000 * i for i in range(12)]
 emax = [1000 * (i + 1) for i in range(12)]
+emin = [20]
+emax = [100]
+
+emin_plot = 0
+rebin = 1
 
 
 def main():
@@ -165,11 +192,12 @@ def main():
     datadir = get_data_dir()
     data = populate_data(rundata, datadir, db)
     combine_runs(data)
-    rebin_spectra(data, bins)
+    if bins:
+        rebin_spectra(data, bins)
     #data = background_subtract(data, "Rxoff", get_bins(100, 9400, 3100))
-    write_spectra(data, datadir, db)
-    plot_multi_spectra(data, pname, rebin=10, emin=15)
-    plot_subtract_spectra(data, compare_to, pname + "_subtract", rebin=100, emin=15)
+    #write_spectra(data, datadir, db)
+    plot_multi_spectra(data, pname, rebin=rebin, emin=emin_plot)
+    plot_subtract_spectra(data, compare_to, pname + "_subtract", rebin=rebin, emin=emin_plot)
     for i in range(len(emin)):
         plot_multi_spectra(data, pname + "_{}".format(i), emin=emin[i], emax=emax[i])
         plot_subtract_spectra(data, compare_to, pname + "_subtract_{}".format(i), emin=emin[i], emax=emax[i])

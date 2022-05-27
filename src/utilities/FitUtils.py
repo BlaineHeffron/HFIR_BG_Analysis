@@ -15,7 +15,7 @@ def linfit(x, y, sigma, plot=None, xlabel="channel #", ylabel="Peak Energy [keV]
         liney = np.array([coeff[0] * i + coeff[1] for i in linex])
         fit_y_errs = np.array([sqrt(cov[1, 1] + i ** 2 * cov[0, 0] + 2 * i * cov[0, 1]) for i in linex])
         ScatterLinePlot(x, y, sigma, linex, liney, fit_y_errs,
-                        ["best fit", r'1 $\sigma$ error', "peak fits to data"], xlabel, ylabel,
+                        ["data", "best fit", r'1 $\sigma$ error'], xlabel, ylabel,
                         ylog=False, legend_loc='best', xmin=xmin, xmax=xmax)
         plt.savefig(plot + ".png")
         plt.close()
@@ -67,7 +67,7 @@ def sqrtfit(x, y, sigma, plot=None, xlabel="channel #", ylabel="Peak Energy [eV]
         jac = sqrt_func_jac(linex, *parameters)
         lineerr = np.sqrt(np.diag(np.matmul(jac, np.matmul(covariance, jac.T))))
         ScatterLinePlot(x, y*1000, sigma*1000, linex, liney*1000, lineerr*1000,
-                        ["best fit", r'1 $\sigma$ error', "peak fits to data"], xlabel, ylabel,
+                        ["data", "best fit", r'1 $\sigma$ error'], xlabel, ylabel,
                         ylog=False, legend_loc='best')
         plt.savefig(plot + ".png")
         plt.close()

@@ -431,11 +431,11 @@ def plot_subtract_spectra(fdict, compare_name, fname, rebin=1, emin=20, emax=Non
     MultiScatterPlot(x, ys, errs, names, "Energy [keV]", "Rate Difference [hz/keV]", ylog=False)
     if rebin > 1:
         fname = fname + "_rebin{}".format(rebin)
-    plt.savefig("{}.png".format(fname))
+    plt.savefig("{}.png".format(fname), bbox_inches="tight")
     MultiScatterPlot(x, absys, errs, names, "Energy [keV]", "Absolute Rate Difference [hz/keV]", ylog=True)
-    plt.savefig("{}_absdiff.png".format(fname))
+    plt.savefig("{}_absdiff.png".format(fname), bbox_inches="tight")
     MultiScatterPlot(x, percys, errs, names, "Energy [keV]", "Rate Difference Percentage", ylog=False)
-    plt.savefig("{}_percdiff.png".format(fname))
+    plt.savefig("{}_percdiff.png".format(fname), bbox_inches="tight")
 
 
 def find_start_index(data, A0, A1, emin):
@@ -501,7 +501,7 @@ def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None, loc="upper right")
         # MultiScatterPlot(x, [y], [err], [name], "Energy [keV]", "Rate [hz/keV]")
         # plt.savefig("{}_errors.png".format(name))
     fig = MultiLinePlot(x, ys, names, "Energy [keV]", "Rate [hz/keV]", ylog=True)
-    plt.savefig("{}.png".format(n))
+    plt.savefig("{}.png".format(n), bbox_inches="tight")
     plt.close(fig)
 
 
@@ -531,10 +531,10 @@ def plot_spectra(fs, name, rebin=1, emin=None, emax=None):
     err = [errs[i] / spec.live / (spec.bin_edges[i + 1] - spec.bin_edges[i]) for i in range(len(spec.bin_edges) - 1)]
     err = err[start_index:end_index]
     MultiScatterPlot(x, [y], [err], [name], "Energy [keV]", "Rate [hz/keV]")
-    plt.savefig("{}_errors.png".format(name))
+    plt.savefig("{}_errors.png".format(name), bbox_inches="tight")
     plt.close()
     MultiLinePlot(x, [y], [name], "Energy [keV]", "Rate [hz/keV]")
-    plt.savefig("{}.png".format(name))
+    plt.savefig("{}.png".format(name), bbox_inches="tight")
     plt.close()
 
 
