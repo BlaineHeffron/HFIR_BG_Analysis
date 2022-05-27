@@ -43,9 +43,9 @@ def main():
         dareas.append(da/hist_en.live)
         fitter.fit_values = {}
 
-    write_x_y_csv(join(outdir, "sim_efficiencies.csv"), "energy [keV]", "peak area", "peak area uncertainty", ens, areas, dareas)
+    write_x_y_csv(join(outdir, "sim_efficiencies_{0}_{1}.csv".format(coll, direction)), "energy [keV]", "peak area", "peak area uncertainty", ens, areas, dareas)
     fig = MultiLinePlot(ens, [areas], [""], "energy [keV]", "peak area [hz]")
-    plt.savefig(join(outdir, "sim_efficiencies.png"))
+    plt.savefig(join(outdir, "sim_efficiencies_{0}_{1}.png".format(coll, direction)))
 
 
 if __name__ == "__main__":
