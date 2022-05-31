@@ -452,14 +452,15 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
 
     if(ymin is None):
         if(ylog):
-            ymin = min([min(y)  for y in yvals])*0.5
+            ymin = min([min(y)  for y in yvals])
+            ymin = ymin*.999
             if(ymin <= 0):
                 print("error: ymin is ", ymin, " on a log-y axis. Defaulting to 1e-5")
                 ymin = 1e-5
         else:
             ymin = min([min(y)  for y in yvals])
-            if ymin < 0: ymin *= 1.05
-            else: ymin *= .95
+            maxy = max([max(y)  for y in yvals])
+            ymin = ymin - (maxy - ymin)*.01
     if(xmin is None):
         xmin = min(xaxis)
     if(xlog):
@@ -472,9 +473,12 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
         ax1.set_yscale('linear')
     if(ymax == -1):
         if(ylog):
-            ax1.set_ylim(ymin,max([max(y) for y in yvals])*1.5)
+            maxy = max([max(y)  for y in yvals])
+            ymax = maxy + (maxy - ymin)*.1
         else:
-            ax1.set_ylim(ymin,max([max(y) for y in yvals])*1.05)
+            maxy = max([max(y)  for y in yvals])
+            ymax = maxy + (maxy - ymin)*.01
+        ax1.set_ylim(ymin,ymax)
     else:
         ax1.set_ylim(ymin,ymax)
     if(xmax == -1):

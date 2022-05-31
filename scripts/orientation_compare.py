@@ -168,17 +168,62 @@ plot_name = "RD_494_OFF_LOW_GAIN_DAY_COMPARISON"
 compare_to = "1"
 bins = None
 
-rundata = {str(i+1): [4410+i] for i in range(8)}
-plot_name = "RD_495_OFF_LOW_GAIN_DAY_COMPARISON"
+rundata = {str(i+1): [4428+i] for i in range(3)}
+plot_name = "RD_495_ON_LOW_GAIN_DAY_COMPARISON"
 compare_to = "1"
 bins = None
+
+
+rundata = {"RD_494_ON_HIGH_GAIN": [4428 + i for i in range(2)],
+           "RD_494_ON_LOW_GAIN": [4587 + i for i in range(3)]}
+plot_name = "RD_494_ON_GAIN_COMPARISON"
+compare_to = "RD_494_ON_LOW_GAIN"
+bins = get_bins(0, 100,100)
+
+rundata = {str(i+1): [4779+i] for i in range(2)}
+plot_name = "RD_495_ON_HIGH_GAIN_DAY_COMPARISON"
+compare_to = "1"
+bins = None
+
+
+
+
+rundata = {"RD_495_ON_LOW_GAIN": [4428 + i for i in range(2)],
+           "RD_495_ON_HIGH_GAIN": [4587 + i for i in range(3)]}
+plot_name = "RD_495_ON_GAIN_COMPARISON_lead"
+compare_to = "RD_495_ON_HIGH_GAIN"
+bins = get_bins(0, 100,100)
+
+rundata = {"RD_495_ON_HIGH_GAIN": [4971 + i for i in range(6)],
+           "RD_495_ON_LOW_GAIN": [5163 + i for i in range(9)]}
+plot_name = "RD_495_ON_GAIN_COMPARISON_water"
+compare_to = "RD_495_ON_HIGH_GAIN"
+bins = get_bins(0, 100,100)
+
+rundata = {str(i+1): [5356+i] for i in range(8)}
+plot_name = "RD_496_OFF_HIGH_GAIN_DAY_COMPARISON"
+compare_to = "1"
+bins = None
+
+
+rundata = {"RD_496_ON_HIGH_GAIN_60BRICKS": [5569 + i for i in range(4)],
+           "RD_496_ON_HIGH_GAIN_68BRICKS": [5574 + i for i in range(4)]}
+plot_name = "RD_496_ON_WATER_COMPARISON"
+compare_to = "RD_496_ON_HIGH_GAIN_68BRICKS"
+bins = get_bins(0, 100,100)
+
+rundata = {str(i+1): [5574+i] for i in range(4)}
+plot_name = "RD_496_ON_HIGH_GAIN_68BRICKS_DAY_COMPARISON"
+compare_to = "1"
+bins = get_bins(0, 88,180)
+#bins = None
 
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "spectrum_plots")
 
 emin = [1000 * i for i in range(12)]
 emax = [1000 * (i + 1) for i in range(12)]
-emin = [20]
-emax = [100]
+emin = [12]
+emax = [88]
 
 emin_plot = 0
 rebin = 1
@@ -192,7 +237,7 @@ def main():
     datadir = get_data_dir()
     data = populate_data(rundata, datadir, db)
     combine_runs(data)
-    if bins:
+    if bins is not None:
         rebin_spectra(data, bins)
     #data = background_subtract(data, "Rxoff", get_bins(100, 9400, 3100))
     #write_spectra(data, datadir, db)
