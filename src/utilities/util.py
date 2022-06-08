@@ -799,9 +799,9 @@ def get_spec_from_root(fname, spec_path, live_path, isParam=False, xScale=1, reb
     for i in range(myHist.GetNbinsX()):
         data[i] = myHist.GetBinContent(i + 1)
     if isParam:
-        live = myFile.Get(live_path).GetVal()
+        live = abs(myFile.Get(live_path).GetVal())
     else:
-        live = myFile.Get(live_path)[0]
+        live = abs(myFile.Get(live_path)[0])
     A1 = myHist.GetXaxis().GetBinLowEdge(2) - myHist.GetXaxis().GetBinLowEdge(1)
     A0 = myHist.GetXaxis().GetBinLowEdge(1) - A1 / 2.
     if (xScale != 1):
