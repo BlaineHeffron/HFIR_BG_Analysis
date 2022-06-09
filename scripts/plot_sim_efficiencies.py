@@ -38,9 +38,13 @@ def main():
         hist_en = get_spec_from_root(rootfile,  "GeEfficiencyPlugin/hGeEnergy", "accumulated/runtime", True, 1000., 1)
         fitter.expected_peaks = [e]
         fitter.fit_peaks(hist_en)
-        a, da = fitter.fit_values[e].area()
-        areas.append(a/hist_en.live)
-        dareas.append(da/hist_en.live)
+        if e in fitter.fit_values.keys():
+            a, da = fitter.fit_values[e].area()
+            areas.append(a/hist_en.live)
+            dareas.append(da/hist_en.live)
+        else:
+            areas.append(0)
+            dareas.append(0)
         fitter.fit_values = {}
 
     write_x_y_csv(join(outdir, "sim_efficiencies_{0}_{1}.csv".format(coll, direction)), "energy [keV]", "peak area", "peak area uncertainty", ens, areas, dareas)
