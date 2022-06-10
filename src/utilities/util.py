@@ -178,6 +178,13 @@ def write_rows_csv(f, header, rows, delimiter="|"):
     for row in rows:
         writer.writerow(row)
 
+def read_rows_csv(f, delimiter=','):
+    data = []
+    with open(f, 'r') as csvfile:
+        reader = csv.reader(csvfile, delimiter=delimiter)
+        for row in reader:
+            data.append(row)
+    return data
 
 def get_data_dir():
     if "HFIRBGDATA" not in os.environ:
