@@ -282,7 +282,7 @@ def populate_data_root(data_dict, spec_path, live_path, isParam=False, xScale=1,
     return out
 
 
-def combine_runs(data_dict, max_interval=None):
+def combine_runs(data_dict, max_interval=None, ignore_failed_add=False):
     """
     given a data dictionary with values of lists of spectrumdata, adds the lists of spectrum data
     together and replaces with spectrumdata of combined data
@@ -308,14 +308,28 @@ def combine_runs(data_dict, max_interval=None):
                         s = mylist[i]
                         max_time = timestring_to_dt(s.start) + max_interval
                     else:
-                        s.add(mylist[i])
+                        if ignore_failed_add:
+                            try:
+                                s.add(mylist[i])
+                            except Exception as e:
+                                print(e)
+                                print("skipping...")
+                        else:
+                            s.add(mylist[i])
             newlist.append(s)
             data_dict[key] = newlist
         else:
             s = mylist[0]
             if len(mylist) > 1:
                 for i in range(1, len(mylist)):
-                    s.add(mylist[i])
+                    if ignore_failed_add:
+                        try:
+                            s.add(mylist[i])
+                        except Exception as e:
+                            print(e)
+                            print("skipping...")
+                    else:
+                        s.add(mylist[i])
             data_dict[key] = s
 
 

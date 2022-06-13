@@ -2,16 +2,23 @@ import sys
 import os
 from os.path import dirname, realpath, join
 from argparse import ArgumentParser
-
-
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
-
-from src.utilities.util import get_spec_from_root, plot_multi_spectra, get_bins
+from src.utilities.util import get_spec_from_root, plot_multi_spectra, get_bins, populate_rd_data, combine_runs, \
+    rebin_spectra
+from src.database.HFIRBG_DB import HFIRBG_DB
 
 outdir = join(join(os.environ["HFIRBG_ANALYSIS"], "russian_doll"), "sim")
 
+full_bins = get_bins(0, 11500, 11500)
+full_range = [30, 11500]
+med_range = [30, 2700]
+low_range = [30, 60]
+ninety_range = [30, 90]
+acq_id_map = {5: full_range, 7: low_range, 17: ninety_range, 16: med_range}
+
 emin = [1000 * i for i in range(12)]
 emax = [1000 * (i + 1) for i in range(12)]
+
 def main():
     if not os.path.exists(outdir):
         os.mkdir(outdir)
@@ -31,10 +38,26 @@ def main():
                 else:
                     hist_dict[nm].add(hist_en)
     print(hist_dict)
+    rebin_spectra(hist_dict, full_bins)
     plot_name = join(outdir, "sim_compare")
-    plot_multi_spectra(hist_dict, plot_name, rebin=100)
+    plot_multi_spectra(hist_dict, plot_name)
     for i in range(len(emin)):
-        plot_multi_spectra(hist_dict, plot_name + "_{}".format(i), emin=emin[i], emax=emax[i], rebin=100)
+        plot_multi_spectra(hist_dict, plot_name + "_{}".format(i), emin=emin[i], emax=emax[i])
+
+
+    db = HFIRBG_DB()
+    rd_data = db.get_rd_files(min_time=1000)
+    rd_data = populate_rd_data(rd_data, db)
+    for key in rd_data:
+        combine_runs(rd_data[key], ignore_failed_add=True)
+    for shield_id in rd_data.keys():
+        rd_shield_id = shield_id - 2
+        for acq_id in rd_data[shield_id].keys():
+            plot_multi_spectra({"sim_{}".format(rd_shield_id): hist_dict["RD_{}".format(rd_shield_id)],
+                                "data_{0}_{1}".format(rd_shield_id, acq_id): rd_data[shield_id][acq_id]},
+                               join(outdir, "sim_data_comparison_{0}_{1}".format(rd_shield_id, acq_id)),
+                               emin=acq_id_map[acq_id][0], emax=acq_id_map[acq_id][1])
+
 
 if __name__ == "__main__":
     main()
