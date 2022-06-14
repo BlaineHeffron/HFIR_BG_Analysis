@@ -5,6 +5,13 @@ from src.utilities.util import get_data_dir, retrieve_file_extension, start_date
     read_csv_list_of_tuples, get_json, is_number, timestring_to_dt
 
 
+def is_rxon_name(name):
+    name = name.lower()
+    if "outage" in name or "precycle" in name or "postcycle" in name or "shutdown" in name or "_cal" in name or "startup" in name:
+        return False
+    return True
+
+
 class HFIRBG_DB(SQLiteBase):
     def __init__(self, path=None):
         if path is None:
@@ -381,14 +388,16 @@ class HFIRBG_DB(SQLiteBase):
         else:
             return None
 
-    def retrieve_file_paths_from_detector_config(self, detector_config_id, coord=None, exclude_cal=False, min_time=None):
+    def retrieve_file_paths_from_detector_config(self, detector_config_id, coord=None, exclude_cal=False, min_time=None, rxon_only=False):
         ids = self.retrieve_file_ids_from_detector_config(detector_config_id, coord)
-        if exclude_cal:
+        if exclude_cal or rxon_only:
             my_ids = []
             for id in ids:
                 run_id = self.retrieve_run_from_file_id(id)
                 run_name = self.retrieve_run_name_from_id(run_id)
-                if "_cal" in run_name:
+                if exclude_cal and "_cal" in run_name:
+                    continue
+                if rxon_only and not is_rxon_name(run_name):
                     continue
                 my_ids.append(id)
             if min_time:
@@ -408,7 +417,7 @@ class HFIRBG_DB(SQLiteBase):
         else:
             return None
 
-    def get_rd_files(self, run_grouping=False, gain_setting=None, min_time=None, exclude_cal=True):
+    def get_rd_files(self, run_grouping=False, gain_setting=None, min_time=None, exclude_cal=True, rxon_only=False):
         """retrieves files taken while in russian doll shield, returns dictionary with key 1 = shield, key 2 = acquisition id
         acquisition id 5 = low gain, 7 = highest gain, 17 = second highest gain (covers 70 keV)
         if run_grouping is true, returns keys with run name, value file list
@@ -435,7 +444,9 @@ class HFIRBG_DB(SQLiteBase):
                 for run in runs:
                     if run[1] in fdict.keys():
                         print("ERROR: run {} already in file dictionary!".format(run[1]))
-                    if "_cal" in run[1] and exclude_cal:
+                    if exclude_cal and "_cal" in run[1]:
+                        continue
+                    if rxon_only and not is_rxon_name(run[1]):
                         continue
                     fids = self.retrieve_run_flist(run[0])
                     if min_time:
@@ -448,7 +459,7 @@ class HFIRBG_DB(SQLiteBase):
                     fdict[row[2]] = {}
                 if row[1] not in fdict[row[2]]:
                     fdict[row[2]][row[1]] = []
-                fdict[row[2]][row[1]] += self.retrieve_file_paths_from_detector_config(row[0], exclude_cal=exclude_cal, min_time=min_time)
+                fdict[row[2]][row[1]] += self.retrieve_file_paths_from_detector_config(row[0], exclude_cal=exclude_cal, min_time=min_time, rxon_only=rxon_only)
         return fdict
 
     def get_files_from_config(self, config):

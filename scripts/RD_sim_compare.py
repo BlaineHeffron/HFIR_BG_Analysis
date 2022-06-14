@@ -36,7 +36,6 @@ def main():
                     hist_dict[nm] = hist_en
                 else:
                     hist_dict[nm].add(hist_en)
-    print(hist_dict)
     rebin_spectra(hist_dict, full_bins)
     plot_name = join(outdir, "sim_compare")
     plot_multi_spectra(hist_dict, plot_name)
@@ -45,7 +44,7 @@ def main():
 
 
     db = HFIRBG_DB()
-    rd_data = db.get_rd_files(min_time=1000)
+    rd_data = db.get_rd_files(min_time=1000, rxon_only=True)
     rd_data = populate_rd_data(rd_data, db)
     for key in rd_data:
         combine_runs(rd_data[key], ignore_failed_add=True)
@@ -56,6 +55,12 @@ def main():
                                 "data_{0}_{1}".format(rd_shield_id, acq_id): rd_data[shield_id][acq_id]},
                                join(outdir, "sim_data_comparison_{0}_{1}".format(rd_shield_id, acq_id)),
                                rebin_edges=acq_id_map[acq_id])
+            if acq_id == 5:
+                for i in range(len(emin)):
+                    plot_multi_spectra({"sim_{}".format(rd_shield_id): hist_dict["RD_{}".format(rd_shield_id)],
+                                        "data_{0}_{1}".format(rd_shield_id, acq_id): rd_data[shield_id][acq_id]},
+                                       join(outdir, "sim_data_comparison_{0}_{1}_en{2}".format(rd_shield_id, acq_id, i)),
+                                       rebin_edges=acq_id_map[acq_id], emin=emin[i], emax=emax[i])
 
 
 if __name__ == "__main__":

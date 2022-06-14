@@ -5,18 +5,25 @@ from os.path import dirname, realpath, join
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
 from src.database.HFIRBG_DB import HFIRBG_DB
 from src.utilities.util import populate_rd_data, plot_time_series, combine_runs, plot_spectra, populate_data, \
-    populate_data_db
+    populate_data_db, get_bins, plot_multi_spectra
 
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "russian_doll")
 
 acq_id_map = {5: "low gain", 7: "high gain", 17: "90 keV range", 16: "medium gain"}
+
+full_bins = get_bins(30, 11500, 11470)
+med_range = get_bins(30, 2400, 2670)
+low_range = get_bins(30, 60, 120)
+ninety_range = get_bins(30, 88, 180)
+acq_id_bin_map = {5: full_bins, 7: low_range, 17: ninety_range, 16: med_range}
 Emin = 50
 Emax = None
 low_e_ranges = [20, 30, 40, 50, 60]
 max_interval = 86400*7
 
-plot_time_series_bool = True
+plot_time_series_bool = False
 plot_spectra_bool = False
+plot_spectra_compare_bool = True
 
 
 
@@ -61,6 +68,31 @@ def main():
                 for i in range(len(emin)):
                     plot_spectra([spec], join(outdir,"{0}_interval_{1}, {2}-{3}".format(run_name, j, emin[i], emax[i])), emin=emin[i], emax=emax[i])
 
+    if plot_spectra_compare_bool:
+        rd_data = db.get_rd_files(min_time=100, rxon_only=True)
+        rd_data = populate_rd_data(rd_data, db)
+        for key in rd_data:
+            combine_runs(rd_data[key], ignore_failed_add=True)
+        high_e_data = {}
+        low_e_data = {}
+        med_e_data = {}
+        for shield_id in rd_data.keys():
+            rd_shield_id = shield_id - 2
+            for acq_id in rd_data[shield_id].keys():
+                if acq_id == 7 or acq_id == 17:
+                    low_e_data[rd_shield_id] = rd_data[shield_id][acq_id]
+                elif acq_id == 5:
+                    high_e_data[rd_shield_id] = rd_data[shield_id][acq_id]
+                else:
+                    med_e_data[rd_shield_id] = rd_data[shield_id][acq_id]
+        plot_multi_spectra(high_e_data, join(outdir, "rd_high_en_shield_comparison"), rebin_edges=full_bins)
+        plot_multi_spectra(low_e_data, join(outdir, "rd_low_en_shield_comparison"), rebin_edges=ninety_range)
+        plot_multi_spectra(med_e_data, join(outdir, "rd_med_en_shield_comparison"), rebin_edges=med_range)
+        emin = [1000 * i for i in range(12)]
+        emax = [1000 * (i + 1) for i in range(12)]
+        for i in range(len(emin)):
+            plot_multi_spectra(high_e_data, join(outdir, "rd_high_en_shield_comparison_{}".format(i)),
+                               rebin_edges=full_bins, emin=emin[i], emax=emax[i])
 
 if __name__ == "__main__":
     main()
