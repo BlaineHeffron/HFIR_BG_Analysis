@@ -499,7 +499,7 @@ def write_spectra(fdict, outdir, db):
         f.close()
 
 
-def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None, loc="upper right"):
+def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None, loc="upper right", rebin_edges=None):
     ys = []
     names = []
     x = []
@@ -513,6 +513,9 @@ def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None, loc="upper right")
         if rebin > 1:
             spec = copy(spec)
             spec.rebin_factor(rebin)
+        elif rebin_edges is not None:
+            spec = copy(spec)
+            spec.rebin(rebin_edges)
         y = spec.get_normalized_hist()
         start_index, end_index = set_indices(start_index, end_index, emin, emax, spec)
         x = spec.bin_midpoints[start_index:end_index]

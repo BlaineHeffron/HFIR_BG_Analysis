@@ -9,12 +9,11 @@ from src.database.HFIRBG_DB import HFIRBG_DB
 
 outdir = join(join(os.environ["HFIRBG_ANALYSIS"], "russian_doll"), "sim")
 
-full_bins = get_bins(0, 11500, 11500)
-full_range = [30, 11500]
-med_range = [30, 2700]
-low_range = [30, 60]
-ninety_range = [30, 90]
-acq_id_map = {5: full_range, 7: low_range, 17: ninety_range, 16: med_range}
+full_bins = get_bins(30, 11500, 11470)
+med_range = get_bins(30, 2400, 2670)
+low_range = get_bins(30, 60, 120)
+ninety_range = get_bins(30, 88, 180)
+acq_id_map = {5: full_bins, 7: low_range, 17: ninety_range, 16: med_range}
 
 emin = [1000 * i for i in range(12)]
 emax = [1000 * (i + 1) for i in range(12)]
@@ -56,7 +55,7 @@ def main():
             plot_multi_spectra({"sim_{}".format(rd_shield_id): hist_dict["RD_{}".format(rd_shield_id)],
                                 "data_{0}_{1}".format(rd_shield_id, acq_id): rd_data[shield_id][acq_id]},
                                join(outdir, "sim_data_comparison_{0}_{1}".format(rd_shield_id, acq_id)),
-                               emin=acq_id_map[acq_id][0], emax=acq_id_map[acq_id][1])
+                               rebin_edges=acq_id_map[acq_id])
 
 
 if __name__ == "__main__":

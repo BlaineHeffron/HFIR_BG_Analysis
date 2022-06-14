@@ -53,7 +53,9 @@ class SpectrumData:
                 "error: spectrum  addition not possible without rebinning, spec1 A0 = {0}, A1 = {1}, spec2 A0 = {2}, A1 = {3}".format(
                     self.A0, self.A1, s.A0, s.A1))
         self.data += s.data
+        #print("adding hists {0} + {1}, live time is {2} + {3}".format(self.fname, s.fname, self.live, s.live))
         self.live += s.live
+
 
     def start_timestamp(self):
         dt = datetime.strptime(self.start.strip(), "%Y-%m-%d, %H:%M:%S")
