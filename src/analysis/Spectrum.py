@@ -93,6 +93,9 @@ class SpectrumData:
     def get_data_energies(self):
         return [self.A0 + self.A1 * i for i in range(1, self.data.shape[0] + 1)]
 
+    def scale_hist(self, scale):
+        self.hist *= scale
+
     def rebin(self, bin_edges=None):
         set_to_data = False
         if bin_edges is None:
@@ -148,6 +151,16 @@ class SpectrumData:
         norm = np.zeros((self.hist.shape[0] - 2,))
         for i in range(1, self.nbins + 1):
             norm[i - 1] = self.hist[i] / (self.bin_edges[i] - self.bin_edges[i - 1])
+        norm /= self.live
+        return norm
+
+    def get_normalized_err(self):
+        """
+        :return: normalized histogram (no underflow and overflow)
+        """
+        norm = np.zeros((self.hist.shape[0] - 2,))
+        for i in range(1, self.nbins + 1):
+            norm[i - 1] = sqrt(self.hist[i]) / (self.bin_edges[i] - self.bin_edges[i - 1])
         norm /= self.live
         return norm
 

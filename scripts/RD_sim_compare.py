@@ -4,8 +4,9 @@ from os.path import dirname, realpath, join
 from argparse import ArgumentParser
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
 from src.utilities.util import get_spec_from_root, plot_multi_spectra, get_bins, populate_rd_data, combine_runs, \
-    rebin_spectra
+    rebin_spectra, set_indices
 from src.database.HFIRBG_DB import HFIRBG_DB
+from src.utilities.FitUtils import minimize_diff
 
 outdir = join(join(os.environ["HFIRBG_ANALYSIS"], "russian_doll"), "sim")
 
@@ -42,7 +43,6 @@ def main():
     for i in range(len(emin)):
         plot_multi_spectra(hist_dict, plot_name + "_{}".format(i), emin=emin[i], emax=emax[i])
 
-
     db = HFIRBG_DB()
     rd_data = db.get_rd_files(min_time=1000, rxon_only=True)
     rd_data = populate_rd_data(rd_data, db)
@@ -56,11 +56,27 @@ def main():
                                join(outdir, "sim_data_comparison_{0}_{1}".format(rd_shield_id, acq_id)),
                                rebin_edges=acq_id_map[acq_id])
             if acq_id == 5:
-                for i in range(len(emin)):
-                    plot_multi_spectra({"sim_{}".format(rd_shield_id): hist_dict["RD_{}".format(rd_shield_id)],
-                                        "data_{0}_{1}".format(rd_shield_id, acq_id): rd_data[shield_id][acq_id]},
-                                       join(outdir, "sim_data_comparison_{0}_{1}_en{2}".format(rd_shield_id, acq_id, i)),
-                                       rebin_edges=acq_id_map[acq_id], emin=emin[i], emax=emax[i])
+                try:
+                    rd_data[shield_id][acq_id].rebin(full_bins)
+                    start_index, end_index = set_indices(0, 0, 7620, 7650, rd_data[shield_id][acq_id])
+                    sim = hist_dict["RD_{}".format(rd_shield_id)].get_normalized_hist()[start_index:end_index]
+                    data = rd_data[shield_id][acq_id].get_normalized_hist()[start_index:end_index]
+                    data_err = rd_data[shield_id][acq_id].get_normalized_err()[start_index:end_index]
+                    scale = minimize_diff(sim, data, data_err)
+                    print("best scale factor found for shield {0} is {1}".format(shield_id, scale))
+                    hist_dict["RD_{}".format(rd_shield_id)].scale_hist(scale)
+                    for i in range(len(emin)):
+                        plot_multi_spectra({"sim_{}".format(rd_shield_id): hist_dict["RD_{}".format(rd_shield_id)],
+                                            "data_{0}_{1}".format(rd_shield_id, acq_id): rd_data[shield_id][acq_id]},
+                                           join(outdir, "sim_scaled_data_comparison_{0}_{1}_en{2}".format(rd_shield_id, acq_id, i)),
+                                           emin=emin[i], emax=emax[i])
+                except RuntimeError as e:
+                    print(e)
+                    for i in range(len(emin)):
+                        plot_multi_spectra({"sim_{}".format(rd_shield_id): hist_dict["RD_{}".format(rd_shield_id)],
+                                            "data_{0}_{1}".format(rd_shield_id, acq_id): rd_data[shield_id][acq_id]},
+                                           join(outdir, "sim_data_comparison_{0}_{1}_en{2}".format(rd_shield_id, acq_id, i)),
+                                           rebin_edges=acq_id_map[acq_id], emin=emin[i], emax=emax[i])
 
 
 if __name__ == "__main__":

@@ -2,14 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from src.utilities.PlotUtils import ScatterLinePlot
 from math import sqrt
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, minimize
 
 
 def linfit(x, y, sigma, plot=None, xlabel="channel #", ylabel="Peak Energy [keV]"):
     # print("fitting x values {0} y values {1} with sigma {2}".format(x,y,sigma))
     coeff, cov = np.polyfit(x, y, 1, cov=True, w=(1 / sigma))
-    xmin = min(x)*.9
-    xmax = max(x)*1.01
+    xmin = min(x) * .9
+    xmax = max(x) * 1.01
     if plot is not None:
         linex = np.linspace(xmin, xmax, 100)
         liney = np.array([coeff[0] * i + coeff[1] for i in linex])
@@ -48,7 +48,7 @@ def linfit_to_calibration(coeff, cov):
 
 
 def sqrt_func(x, A, B, C):
-    return np.sqrt(x) * B + A + x*C
+    return np.sqrt(x) * B + A + x * C
 
 
 def sqrt_func_jac(x, A, B, C):
@@ -66,7 +66,7 @@ def sqrtfit(x, y, sigma, plot=None, xlabel="channel #", ylabel="Peak Energy [eV]
         liney = sqrt_func(linex, *parameters)
         jac = sqrt_func_jac(linex, *parameters)
         lineerr = np.sqrt(np.diag(np.matmul(jac, np.matmul(covariance, jac.T))))
-        ScatterLinePlot(x, y*1000, sigma*1000, linex, liney*1000, lineerr*1000,
+        ScatterLinePlot(x, y * 1000, sigma * 1000, linex, liney * 1000, lineerr * 1000,
                         ["data", "best fit", r'1 $\sigma$ error'], xlabel, ylabel,
                         ylog=False, legend_loc='best')
         plt.savefig(plot + ".png")
@@ -75,3 +75,17 @@ def sqrtfit(x, y, sigma, plot=None, xlabel="channel #", ylabel="Peak Energy [eV]
     chis = chisqr(y, fity, sigma)
     print("average sigma error of sqrt fit is {}".format(ave_sig_error(y, sigma, fity)))
     return parameters, covariance, chis
+
+
+def minimize_diff(data, ref, ref_errs):
+    """Returns scale factor to minimize chisqr diff between data and ref"""
+
+    def scale_min_chisqr(x):
+        return chisqr(data * x, ref, ref_errs)
+
+    initial_guess = np.array([np.sum(ref) / np.sum(data)])
+    res = minimize(scale_min_chisqr, initial_guess, method='Nelder-Mead')
+    if res.success:
+        return res.x[0]
+    else:
+        raise RuntimeError(res.message)
