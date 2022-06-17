@@ -9,7 +9,7 @@ from argparse import ArgumentParser
 from src.utilities.ROOT_style import ROOT_style
 from src.analysis.AD1_Fitter import fit_spec
 
-en = [5, 6.5, 8.5, 10.5, 12]
+en = [5, 6.5, 8.5, 10, 12]
 
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "AD1_fit")
 
@@ -21,11 +21,15 @@ def main():
     arg.add_argument("f", help="path to root file containing AD1 hist", type=str)
     arg.add_argument("name", help="name for output plots", type=str)
     arg.add_argument("--path","-p", help="path in root file to spectrum", type=str)
+    arg.add_argument("--bg","-b", help="path to background root file", type=str)
     args = arg.parse_args()
+    spec_path = "SingleSegmentsIoniPlugin/hSumE"
     if args.path:
-        spec = get_spec_from_root(args.f, "SingleSegmentsIoniPlugin/{}".format(args.path), "runtime", False)
-    else:
-        spec = get_spec_from_root(args.f, "SingleSegmentsIoniPlugin/hSumE", "runtime", False)
+        spec_path = "SingleSegmentsIoniPlugin/{}".format(args.path)
+    spec = get_spec_from_root(args.f, spec_path, "runtime", False)
+    if args.bg:
+        bgspec = get_spec_from_root(args.bg, spec_path, "runtime", False)
+        spec.hist_subtract(bgspec)
     outpath = join(outdir, args.name)
     if not os.path.exists(outpath):
         os.mkdir(outpath)
@@ -39,9 +43,9 @@ def main():
     mydata = []
     for i in range(len(en) - 1):
         if args.path:
-            par, err, cs, ndf = fit_spec(spec, en[i], en[i + 1], outpath, name=args.path)
+            par, err, cs, ndf = fit_spec(spec, en[i], en[i + 1], outpath, name=args.path, use_hist=(args.bg is not None))
         else:
-            par, err, cs, ndf = fit_spec(spec, en[i], en[i + 1], outpath)
+            par, err, cs, ndf = fit_spec(spec, en[i], en[i + 1], outpath, use_hist=(args.bg is not None))
         mydata.append([])
         for p, e in zip(par, err):
             mydata[-1].append(p)

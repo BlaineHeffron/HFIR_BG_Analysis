@@ -37,8 +37,17 @@ class SpectrumData:
         """return raw data x values"""
         return np.linspace(self.A0 + self.A1, self.A0 + self.A1 * self.data.shape[0], self.data.shape[0])
 
-    def data_at_x(self, x):
+    def data_at_x(self, x, use_hist=False):
         """return the index of the raw data closest to x"""
+        if use_hist:
+            closest_diff = abs(self.bin_midpoints[0] - x)
+            for i, midpoint in enumerate(self.bin_midpoints[1:]):
+                diff = abs(midpoint - x)
+                if diff < closest_diff:
+                    closest_diff = diff
+                else:
+                    return i
+            return len(self.bin_midpoints) - 1
         closest = int(round((x - self.A0) / self.A1 - 1))
         if closest < 0:
             return 0

@@ -25,16 +25,27 @@ def AD1_gamma_fit_jac(x, Hg, He, c, s, c2, s2, A, B):
                       dc2.reshape(-1, 1), ds2.reshape(-1, 1), dA.reshape(-1, 1), dB.reshape(-1, 1)))
 
 
-def fit_spec(spec, e1, e2, plot_dir="", name=""):
-    ind1 = spec.data_at_x(e1)
-    ind2 = spec.data_at_x(e2)
-    xs = spec.get_data_x()
-    if ind2 + 1 > len(xs):
-        xs = xs[ind1:]
-        ys = spec.data[ind1:]
+def fit_spec(spec, e1, e2, plot_dir="", name="", use_hist=False):
+    if use_hist:
+        ind1 = spec.data_at_x(e1, use_hist=use_hist)
+        ind2 = spec.data_at_x(e2, use_hist=use_hist)
+        xs = spec.bin_midpoints
+        if ind2 + 1 > len(xs):
+            xs = xs[ind1:]
+            ys = spec.hist[ind1:]
+        else:
+            xs = xs[ind1:ind2+1]
+            ys = spec.hist[ind1:ind2+1]
     else:
-        xs = xs[ind1:ind2+1]
-        ys = spec.data[ind1:ind2+1]
+        ind1 = spec.data_at_x(e1)
+        ind2 = spec.data_at_x(e2)
+        xs = spec.get_data_x()
+        if ind2 + 1 > len(xs):
+            xs = xs[ind1:]
+            ys = spec.data[ind1:]
+        else:
+            xs = xs[ind1:ind2+1]
+            ys = spec.data[ind1:ind2+1]
     sigma = np.sqrt(ys)
     for i in range(len(sigma)):
         if sigma[i] == 0:
