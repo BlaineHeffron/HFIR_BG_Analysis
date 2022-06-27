@@ -520,7 +520,6 @@ def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None, loc="upper right",
         y = spec.get_normalized_hist()
         start_index, end_index = set_indices(start_index, end_index, emin, emax, spec)
         x = spec.bin_midpoints[start_index:end_index]
-        print(y)
         ys.append(y[start_index:end_index])
         minval = np.min(ys[-1][np.nonzero(ys[-1])])
         if ymin > minval:

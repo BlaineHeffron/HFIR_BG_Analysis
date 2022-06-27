@@ -1061,10 +1061,6 @@ class SubtractSpectrum(SpectrumData):
         self.bin_midpoints = spec.bin_midpoints
         self.nbins = spec.nbins
         self.hist = spec.live*(spec.hist/spec.live - subspec.hist/subspec.live)
-        print("len bin edges is {}".format(len(self.bin_edges)))
-        print("len bin mids is {}".format(len(self.bin_midpoints)))
-        print("len hist is {}".format(len(self.hist)))
-        print("nbins is {}".format(self.nbins))
         self.data = self.hist[1:-1]
         self.start = spec.start
         self.substart = subspec.start
@@ -1073,4 +1069,3 @@ class SubtractSpectrum(SpectrumData):
         self.A0 = self.bin_midpoints[0] - self.A1
         self.fname = spec.fname
         self.subfname = subspec.fname
-        print(self.hist)
