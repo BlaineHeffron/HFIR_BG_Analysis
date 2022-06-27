@@ -4,8 +4,8 @@ from os.path import dirname, realpath, join
 
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
 from src.database.HFIRBG_DB import HFIRBG_DB
-from src.utilities.util import populate_rd_data, plot_time_series, combine_runs, plot_spectra, populate_data, \
-    populate_data_db, get_bins, plot_multi_spectra
+from src.utilities.util import populate_rd_data, plot_time_series, combine_runs, plot_spectra, \
+    populate_data_db, get_bins, plot_multi_spectra, get_rd_data
 
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "russian_doll")
 
@@ -69,29 +69,48 @@ def main():
                     plot_spectra([spec], join(outdir,"{0}_interval_{1}, {2}-{3}".format(run_name, j, emin[i], emax[i])), emin=emin[i], emax=emax[i])
 
     if plot_spectra_compare_bool:
-        rd_data = db.get_rd_files(min_time=100, rxon_only=True)
-        rd_data = populate_rd_data(rd_data, db)
-        for key in rd_data:
-            combine_runs(rd_data[key], ignore_failed_add=True)
+        rd_data = get_rd_data(db, rxon_only=True)
+        rd_data_off = get_rd_data(db, rxoff_only=True)
         high_e_data = {}
         low_e_data = {}
         med_e_data = {}
+        high_e_data_off = {}
+        low_e_data_off = {}
+        med_e_data_off = {}
         for shield_id in rd_data.keys():
             rd_shield_id = shield_id - 2
             for acq_id in rd_data[shield_id].keys():
                 if acq_id == 7 or acq_id == 17:
                     low_e_data[rd_shield_id] = rd_data[shield_id][acq_id]
+                    if shield_id in rd_data_off.keys():
+                        if acq_id in rd_data_off[shield_id].keys():
+                            low_e_data_off[rd_shield_id] = rd_data_off[shield_id][acq_id]
                 elif acq_id == 5:
                     high_e_data[rd_shield_id] = rd_data[shield_id][acq_id]
+                    if shield_id in rd_data_off.keys():
+                        if acq_id in rd_data_off[shield_id].keys():
+                            high_e_data_off[rd_shield_id] = rd_data_off[shield_id][acq_id]
                 else:
                     med_e_data[rd_shield_id] = rd_data[shield_id][acq_id]
+                    if shield_id in rd_data_off.keys():
+                        if acq_id in rd_data_off[shield_id].keys():
+                            med_e_data_off[rd_shield_id] = rd_data_off[shield_id][acq_id]
         plot_multi_spectra(high_e_data, join(outdir, "rd_high_en_shield_comparison"), rebin_edges=full_bins)
         plot_multi_spectra(low_e_data, join(outdir, "rd_low_en_shield_comparison"), rebin_edges=ninety_range)
         plot_multi_spectra(med_e_data, join(outdir, "rd_med_en_shield_comparison"), rebin_edges=med_range)
+        plot_multi_spectra(high_e_data_off, join(outdir, "rd_RxOff_high_en_shield_comparison"), rebin_edges=full_bins)
+        plot_multi_spectra(low_e_data_off, join(outdir, "rd_RxOff_low_en_shield_comparison"), rebin_edges=ninety_range)
+        plot_multi_spectra(med_e_data_off, join(outdir, "rd_RxOff_med_en_shield_comparison"), rebin_edges=med_range)
         emin = [1000 * i for i in range(12)]
         emax = [1000 * (i + 1) for i in range(12)]
         for i in range(len(emin)):
             plot_multi_spectra(high_e_data, join(outdir, "rd_high_en_shield_comparison_{}".format(i)),
+                               rebin_edges=full_bins, emin=emin[i], emax=emax[i])
+        for key in high_e_data_off.keys():
+            for i in range(len(emin)):
+                plot_multi_spectra({"shield_" + str(key) + "_rxoff": high_e_data_off[key],
+                                "shield_" + str(key) + "_rxon": high_e_data[key]},
+                               join(outdir, "rd_high_en_rxon_off_shield_{0}_comparison_{1}".format(key, i)),
                                rebin_edges=full_bins, emin=emin[i], emax=emax[i])
 
 if __name__ == "__main__":

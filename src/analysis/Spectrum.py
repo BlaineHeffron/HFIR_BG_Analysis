@@ -17,6 +17,7 @@ from src.utilities.PlotUtils import ScatterLinePlot
 from src.utilities.NumbaFunctions import average_median, integrate_lininterp_range
 
 
+
 class SpectrumData:
     def __init__(self, data, start, live, A0, A1, fname):
         """hist convention is first bin edge inclusive, last bin edge exclusive,
@@ -32,6 +33,8 @@ class SpectrumData:
         self.nbins = None
         self.fname = fname
         self.rebin()
+
+
 
     def get_data_x(self):
         """return raw data x values"""
@@ -169,6 +172,8 @@ class SpectrumData:
         """
         norm = np.zeros((self.hist.shape[0] - 2,))
         for i in range(1, self.nbins + 1):
+            if self.bin_edges[i] - self.bin_edges[i -1] == 0:
+                raise RuntimeError("bin edges is incorrectly set")
             norm[i - 1] = sqrt(self.hist[i]) / (self.bin_edges[i] - self.bin_edges[i - 1])
         norm /= self.live
         return norm
@@ -1039,3 +1044,33 @@ class SpectrumFitter:
         print("old coefficients were A0 = {0} A1 = {1}".format(self.A0, self.A1))
         print("new coefficients are A0 = {0} ~ {1} A1 = {2} ~ {3}".format(coeff[0], errs[0], coeff[1], errs[1]))
         return coeff, errs
+
+class SubtractSpectrum(SpectrumData):
+    """
+    SpectrumData object created from two spectra
+    @param spec: spectrum from which to subtract
+    @param subspec: spectrum we are subtracting
+    """
+    def __init__(self, spec: SpectrumData, subspec: SpectrumData, bin_edges=None):
+        if bin_edges is not None:
+            spec.rebin(bin_edges)
+            subspec.rebin(bin_edges)
+        else:
+            subspec.rebin(spec.bin_edges)
+        self.bin_edges = spec.bin_edges
+        self.bin_midpoints = spec.bin_midpoints
+        self.nbins = spec.nbins
+        self.hist = spec.live*(spec.hist/spec.live - subspec.hist/subspec.live)
+        print("len bin edges is {}".format(len(self.bin_edges)))
+        print("len bin mids is {}".format(len(self.bin_midpoints)))
+        print("len hist is {}".format(len(self.hist)))
+        print("nbins is {}".format(self.nbins))
+        self.data = self.hist[1:-1]
+        self.start = spec.start
+        self.substart = subspec.start
+        self.live = spec.live
+        self.A1 = self.bin_midpoints[1] - self.bin_midpoints[0]
+        self.A0 = self.bin_midpoints[0] - self.A1
+        self.fname = spec.fname
+        self.subfname = subspec.fname
+        print(self.hist)

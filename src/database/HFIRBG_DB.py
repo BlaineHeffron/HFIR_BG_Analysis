@@ -11,6 +11,13 @@ def is_rxon_name(name):
         return False
     return True
 
+def is_rxoff_name(name):
+    name = name.lower()
+    if "outage" in name or "shutdown" in name or "_cal" in name or "startup" in name:
+        return False
+    elif "precycle" in name or "postcycle" in name:
+        return True
+    return False
 
 class HFIRBG_DB(SQLiteBase):
     def __init__(self, path=None):
@@ -388,9 +395,10 @@ class HFIRBG_DB(SQLiteBase):
         else:
             return None
 
-    def retrieve_file_paths_from_detector_config(self, detector_config_id, coord=None, exclude_cal=False, min_time=None, rxon_only=False):
+    def retrieve_file_paths_from_detector_config(self, detector_config_id, coord=None, exclude_cal=False, min_time=None,
+                                                 rxon_only=False, rxoff_only=False):
         ids = self.retrieve_file_ids_from_detector_config(detector_config_id, coord)
-        if exclude_cal or rxon_only:
+        if exclude_cal or rxon_only or rxoff_only:
             my_ids = []
             for id in ids:
                 run_id = self.retrieve_run_from_file_id(id)
@@ -399,7 +407,11 @@ class HFIRBG_DB(SQLiteBase):
                     continue
                 if rxon_only and not is_rxon_name(run_name):
                     continue
+                if rxoff_only and not is_rxoff_name(run_name):
+                    continue
                 my_ids.append(id)
+            if not my_ids:
+                return []
             if min_time:
                 return self.get_file_paths_from_ids_min_time(my_ids, min_time)
             else:
@@ -417,13 +429,15 @@ class HFIRBG_DB(SQLiteBase):
         else:
             return None
 
-    def get_rd_files(self, run_grouping=False, gain_setting=None, min_time=None, exclude_cal=True, rxon_only=False):
+    def get_rd_files(self, run_grouping=False, gain_setting=None, min_time=None, exclude_cal=True, rxon_only=False, rxoff_only=False):
         """retrieves files taken while in russian doll shield, returns dictionary with key 1 = shield, key 2 = acquisition id
         acquisition id 5 = low gain, 7 = highest gain, 17 = second highest gain (covers 70 keV)
         if run_grouping is true, returns keys with run name, value file list
         if gain_setting is set, must be set to one of 'low', 'medium', 'high', or '90', will retrieve
         files for that setting"""
         qry = "SELECT id, acquisition_settings, shield FROM detector_configuration WHERE shield > 1"
+        if rxon_only and rxoff_only:
+            raise ValueError("rxon only and rxoff only cannot both be true")
         if gain_setting is not None:
             map = {"high": 7, "90": 17, "medium": 16, "low": 5}
             if isinstance(gain_setting, str):
@@ -448,6 +462,8 @@ class HFIRBG_DB(SQLiteBase):
                         continue
                     if rxon_only and not is_rxon_name(run[1]):
                         continue
+                    if rxoff_only and not is_rxoff_name(run[1]):
+                        continue
                     fids = self.retrieve_run_flist(run[0])
                     if min_time:
                         fdict[run[1]] = self.get_file_paths_from_ids_min_time(fids, min_time)
@@ -459,7 +475,7 @@ class HFIRBG_DB(SQLiteBase):
                     fdict[row[2]] = {}
                 if row[1] not in fdict[row[2]]:
                     fdict[row[2]][row[1]] = []
-                fdict[row[2]][row[1]] += self.retrieve_file_paths_from_detector_config(row[0], exclude_cal=exclude_cal, min_time=min_time, rxon_only=rxon_only)
+                fdict[row[2]][row[1]] += self.retrieve_file_paths_from_detector_config(row[0], exclude_cal=exclude_cal, min_time=min_time, rxon_only=rxon_only, rxoff_only=rxoff_only)
         return fdict
 
     def get_files_from_config(self, config):

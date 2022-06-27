@@ -14,7 +14,7 @@ import ctypes
 import numpy as np
 from scipy import stats
 
-from src.analysis.Spectrum import SpectrumData, SpectrumFitter
+from src.analysis.Spectrum import SpectrumData, SpectrumFitter, SubtractSpectrum
 from src.utilities.PlotUtils import MultiLinePlot, MultiScatterPlot, ScatterLinePlot, ScatterDifferencePlot, \
     MultiXScatterPlot
 from src.utilities.FitUtils import linfit, sqrtfit
@@ -520,6 +520,7 @@ def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None, loc="upper right",
         y = spec.get_normalized_hist()
         start_index, end_index = set_indices(start_index, end_index, emin, emax, spec)
         x = spec.bin_midpoints[start_index:end_index]
+        print(y)
         ys.append(y[start_index:end_index])
         minval = np.min(ys[-1][np.nonzero(ys[-1])])
         if ymin > minval:
@@ -1318,6 +1319,40 @@ def compare_peaks(data, simdata, expected_peaks, plot_dir=None, user_verify=Fals
                               ["sim through - real", "sim all - real"], "energy [keV]",
                               "1st to 2nd escape area ratio difference")
         plt.savefig(join(plot_dir, nm + "_peak_ratios_12_diff.png"))
+
+
+def get_rd_data(db, rxon_only=False, rxoff_only=False, min_time=100):
+    rd_data = db.get_rd_files(min_time=min_time, rxon_only=rxon_only, rxoff_only=rxoff_only)
+    rd_data = populate_rd_data(rd_data, db)
+    dels = []
+    for key in rd_data:
+        del_keys = []
+        for key2 in rd_data[key]:
+            if not rd_data[key][key2]:
+                del_keys.append(key2)
+        for key2 in del_keys:
+            del rd_data[key][key2]
+        if rd_data[key]:
+            combine_runs(rd_data[key], ignore_failed_add=True)
+        else:
+            dels.append(key)
+    for key in dels:
+        del rd_data[key]
+    return rd_data
+
+
+def subtract_rd_data(rd_data, rd_data_off, acq_id_bin_edges=None):
+    sub_data = {}
+    for key in rd_data_off.keys():
+        if not key in sub_data.keys():
+            sub_data[key] = {}
+        for key2 in rd_data_off[key].keys():
+            if key2 in acq_id_bin_edges.keys():
+                sub_data[key][key2] = SubtractSpectrum(rd_data[key][key2], rd_data_off[key][key2], bin_edges=acq_id_bin_edges[key2])
+            else:
+                sub_data[key][key2] = SubtractSpectrum(rd_data[key][key2], rd_data_off[key][key2])
+    return sub_data
+
 
 
 if __name__ == "__main__":
