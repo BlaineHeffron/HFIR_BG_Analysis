@@ -3,11 +3,13 @@ import os
 from os.path import dirname, realpath, join
 from argparse import ArgumentParser
 
+
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
 from src.utilities.util import get_spec_from_root, plot_multi_spectra, get_bins, populate_rd_data, combine_runs, \
     rebin_spectra, set_indices, get_rd_data, subtract_rd_data
 from src.database.HFIRBG_DB import HFIRBG_DB
 from src.utilities.FitUtils import minimize_diff
+from src.analysis.Spectrum import SubtractSpectrum
 
 outdir = join(join(os.environ["HFIRBG_ANALYSIS"], "russian_doll"), "sim")
 
@@ -50,10 +52,11 @@ def main():
     rd_data = get_rd_data(db, rxon_only=True, min_time=1000)
     rd_data_off = get_rd_data(db, rxoff_only=True, min_time=1000)
     rd_sub = subtract_rd_data(rd_data, rd_data_off, acq_id_bin_edges=acq_id_map)
+    rxoff_sub_sim_diff = {}
     for shield_id in rd_data.keys():
         rd_shield_id = shield_id - 2
         for acq_id in rd_data[shield_id].keys():
-            if rd_sub[shield_id] and acq_id in rd_sub[shield_id].keys():
+            if shield_id in rd_sub and rd_sub[shield_id] and acq_id in rd_sub[shield_id].keys():
                 plot_multi_spectra({"sim_{}".format(rd_shield_id): hist_dict["RD_{}".format(rd_shield_id)],
                                     "RxOff_sub_data_{0}_{1}".format(rd_shield_id, acq_id): rd_sub[shield_id][acq_id]},
                                    join(outdir, "sim_data_rxoff_sub_comparison_{0}_{1}".format(rd_shield_id, acq_id)),
@@ -65,25 +68,24 @@ def main():
                                rebin_edges=acq_id_map[acq_id])
             if acq_id == 5:
                 try:
-                    if rd_sub[shield_id] and acq_id in rd_sub[shield_id].keys():
-                        start_index, end_index = set_indices(0, 0, 7620, 7650, rd_sub[shield_id][acq_id])
+                    if shield_id in rd_sub and rd_sub[shield_id] and acq_id in rd_sub[shield_id].keys():
+                        start_index, end_index = set_indices(0, 0, 7500, 7800, rd_sub[shield_id][acq_id])
                         sim = hist_dict["RD_{}".format(rd_shield_id)].get_normalized_hist()[start_index:end_index]
                         data = rd_sub[shield_id][acq_id].get_normalized_hist()[start_index:end_index]
                         data_err = rd_sub[shield_id][acq_id].get_normalized_err()[start_index:end_index]
                         scale = minimize_diff(sim, data, data_err)
                         print("best scale factor found for shield {0} is {1}".format(shield_id, scale))
-                        hist_dict["RD_{}".format(rd_shield_id)].scale_hist(scale)
+                        hist_dict["RD_{}".format(rd_shield_id)].scale_hist(scale, True)
+                        rxoff_sub_sim_diff["shield {}".format(str(rd_shield_id))] = \
+                            SubtractSpectrum(rd_sub[shield_id][acq_id], hist_dict["RD_{}".format(rd_shield_id)])
                         for i in range(len(emin)):
                             plot_multi_spectra({"sim_{}".format(rd_shield_id): hist_dict["RD_{}".format(rd_shield_id)],
                                                 "data_{0}_{1}".format(rd_shield_id, acq_id): rd_sub[shield_id][acq_id]},
-                                               join(outdir,
-                                                    "sim_scaled_data_comparison_{0}_{1}_en{2}".format(rd_shield_id,
-                                                                                                      acq_id,
-                                                                                                      i)),
+                                               join(outdir, "sim_scaled_data_rxoff_sub_comparison_{0}_{1}_en{2}".format(rd_shield_id, acq_id, i)),
                                                emin=emin[i], emax=emax[i])
                     else:
                         rd_data[shield_id][acq_id].rebin(full_bins)
-                        start_index, end_index = set_indices(0, 0, 7620, 7650, rd_data[shield_id][acq_id])
+                        start_index, end_index = set_indices(0, 0, 7500, 7800, rd_data[shield_id][acq_id])
                         sim = hist_dict["RD_{}".format(rd_shield_id)].get_normalized_hist()[start_index:end_index]
                         data = rd_data[shield_id][acq_id].get_normalized_hist()[start_index:end_index]
                         data_err = rd_data[shield_id][acq_id].get_normalized_err()[start_index:end_index]
@@ -92,11 +94,8 @@ def main():
                         hist_dict["RD_{}".format(rd_shield_id)].scale_hist(scale)
                         for i in range(len(emin)):
                             plot_multi_spectra({"sim_{}".format(rd_shield_id): hist_dict["RD_{}".format(rd_shield_id)],
-                                                "data_{0}_{1}".format(rd_shield_id, acq_id): rd_data[shield_id][
-                                                    acq_id]},
-                                               join(outdir,
-                                                    "sim_scaled_data_comparison_{0}_{1}_en{2}".format(rd_shield_id,
-                                                                                                      acq_id, i)),
+                                                "data_{0}_{1}".format(rd_shield_id, acq_id): rd_data[shield_id][ acq_id]},
+                                               join(outdir, "sim_scaled_data_comparison_{0}_{1}_en{2}".format(rd_shield_id, acq_id, i)),
                                                emin=emin[i], emax=emax[i])
                 except RuntimeError as e:
                     print(e)
@@ -106,6 +105,10 @@ def main():
                                            join(outdir,
                                                 "sim_data_comparison_{0}_{1}_en{2}".format(rd_shield_id, acq_id, i)),
                                            rebin_edges=acq_id_map[acq_id], emin=emin[i], emax=emax[i])
+    plot_multi_spectra(rxoff_sub_sim_diff, join(outdir, "rxoff_sub_data_minus_scaled_sim"))
+    for i in range(len(emin)):
+        plot_multi_spectra(rxoff_sub_sim_diff, join(outdir, "rxoff_sub_data_minus_scaled_sim_en{0}".format(i)),
+                                                    emin=emin[i], emax=emax[i])
 
 
 if __name__ == "__main__":

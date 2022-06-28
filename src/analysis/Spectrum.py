@@ -105,7 +105,9 @@ class SpectrumData:
     def get_data_energies(self):
         return [self.A0 + self.A1 * i for i in range(1, self.data.shape[0] + 1)]
 
-    def scale_hist(self, scale):
+    def scale_hist(self, scale, scale_data=False):
+        if scale_data:
+            self.data *= scale
         self.hist *= scale
 
     def rebin(self, bin_edges=None):
@@ -171,6 +173,8 @@ class SpectrumData:
         :return: normalized histogram (no underflow and overflow)
         """
         norm = np.zeros((self.hist.shape[0] - 2,))
+        if self.nbins != self.hist.shape[0] - 2:
+            raise RuntimeError("error: nbins is not correctly set, nbins = {0}, hist shape = {1}".format(self.nbins, self.hist.shape[0]))
         for i in range(1, self.nbins + 1):
             if self.bin_edges[i] - self.bin_edges[i -1] == 0:
                 raise RuntimeError("bin edges is incorrectly set")
@@ -244,6 +248,29 @@ def rebin_data(a, n):
     a = a.reshape(sh).sum(axis=-1)
     return a
 
+@nb.jit(nopython=True)
+def numba_fill_bins(hist, old_bin_value, i, j, nbins, bin_edges, up, A1):
+    """
+    # new bins larger than old
+    # hist is the rebinned histogram we are filling
+    # old  is the old histogram's value for bin i
+    # i is the bin number of the old histogram's value
+    # j is the bin number of the bin we just filled
+    # nbins is the number of bins
+    # bin_edges is the array of bin edges
+    # up is the upper bound of the old histogram
+    """
+    k = 1
+    while j + k <= nbins and bin_edges[j + k] < up:
+        hist[j + k] += old_bin_value * (bin_edges[j + k] - bin_edges[j + k - 1]) / A1
+        k += 1
+    if j + k == nbins + 1 and up > bin_edges[-1]:
+        # rest of it goes in overflow
+        hist[j + k] += old_bin_value * (up - bin_edges[-1]) / A1
+    else:
+        # get rest of the value in the last bin
+        hist[j + k] += old_bin_value * (bin_edges[j + k] - up) / A1
+
 
 @nb.jit(nopython=True)
 def numba_rebin(data, hist, A0, A1, bin_edges):
@@ -251,33 +278,24 @@ def numba_rebin(data, hist, A0, A1, bin_edges):
     for i in range(data.shape[0]):
         low = A0 + A1 * i + A1 / 2.
         up = A0 + A1 * (i + 1) + A1 / 2.
-        if low < bin_edges[0]:
+        if up <= bin_edges[0]:
             hist[0] += data[i]
-        elif up > bin_edges[-1]:
+        elif low >= bin_edges[-1]:
             hist[-1] += data[i]
         else:
             for j, bedge in enumerate(bin_edges):
                 if bedge >= low:
-                    if bedge > up:
+                    if bedge >= up:
                         hist[j] += data[i]
                     else:
                         hist[j] += data[i] * (bedge - low) / A1
                         if j == nbins:
                             hist[j + 1] += data[i] * (up - bedge) / A1
-                        elif bin_edges[j + 1] > up:
+                        elif bin_edges[j + 1] >= up:
                             hist[j + 1] += data[i] * (up - bedge) / A1
                         else:
                             # new bins larger than old
-                            k = 1
-                            while j + k <= nbins and bin_edges[j + k] < up:
-                                hist[j + k] += data[i] * (bin_edges[j + k] - bin_edges[j + k - 1]) / A1
-                                k += 1
-                            if j + k == nbins + 1 and up > bin_edges[-1]:
-                                # rest of it goes in overflow
-                                hist[j + k] += data[i] * (up - bin_edges[-1]) / A1
-                            else:
-                                # get rest of the value in the last bin
-                                hist[j + k] += data[i] * (bin_edges[j + k] - up) / A1
+                            numba_fill_bins(hist, data[i], i, j, nbins, bin_edges, up, A1)
                     break
 
 
@@ -1061,6 +1079,7 @@ class SubtractSpectrum(SpectrumData):
         self.bin_midpoints = spec.bin_midpoints
         self.nbins = spec.nbins
         self.hist = spec.live*(spec.hist/spec.live - subspec.hist/subspec.live)
+        self.err = np.sqrt(np.abs(spec.hist) + np.square(spec.live/subspec.live)*np.abs(subspec.hist))
         self.data = self.hist[1:-1]
         self.start = spec.start
         self.substart = subspec.start
@@ -1069,3 +1088,14 @@ class SubtractSpectrum(SpectrumData):
         self.A0 = self.bin_midpoints[0] - self.A1
         self.fname = spec.fname
         self.subfname = subspec.fname
+
+    def get_normalized_err(self):
+        return (self.err[1:-1] / (self.bin_edges[1:] - self.bin_edges[:-1]))/self.live
+
+    def rebin(self, bin_edges=None):
+        super().rebin(bin_edges)
+        numba_rebin(self.err[1:-1], self.err, self.A0, self.A1, self.bin_edges)
+
+    def add(self, s):
+        super().add(s)
+        self.err = np.sqrt(self.err + s.err)

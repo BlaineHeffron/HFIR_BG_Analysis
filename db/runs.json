@@ -1837,7 +1837,7 @@
         {
             "file_list": "5599-5608",
             "description": "PreCycle 497 with modified high gain russian doll + floor lead + 60.5 water bricks tightly packed + 7th layer of water bricks",
-            "name": "PreCycle497Shutdown_RD_mod_high_gain_lead_68brickstight",
+            "name": "PreCycle497_RD_mod_high_gain_lead_68brickstight",
             "detector_configuration": 25,
             "detector_coordinates": [
                 33.5,
