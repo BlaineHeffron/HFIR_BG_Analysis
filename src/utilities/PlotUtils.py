@@ -1,6 +1,7 @@
 import itertools
 import numpy as np
 import matplotlib as mpl
+from math import ceil
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib.patches import PathPatch, Rectangle, Circle
@@ -783,8 +784,12 @@ def MultiXScatterPlot(xvals, yvals, errors, line_labels, xlabel, ylabel,
         colors = tab_colors
     if not styles:
         styles = category_styles
+    bbox = ax1.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+    #width, height = 0.75*fig.dpi*bbox.width, 0.75*fig.dpi*bbox.height # width and height in points
+    width = 0.75*fig.dpi*(bbox.width)/2 # width in points
+    ebarwidth = width/len(xvals[0])
     for i in range(len(yvals)):
-        ax1.errorbar(xvals[i],yvals[i],yerr=errors[i],color=colors[i%10],fmt=category_markers[i%len(category_markers)], capsize=3)
+        ax1.errorbar(xvals[i],yvals[i],yerr=errors[i],color=colors[i%10],fmt=category_markers[i%len(category_markers)], capsize=ebarwidth)
     if(vertlines is not None):
         for v in vertlines:
             ax1.axvline(v,color='k',linestyle='-')#,label=vlinelabel)
@@ -886,8 +891,12 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
         colors = tab_colors
     if not styles:
         styles = category_styles
+    bbox = ax1.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+    #width, height = 0.75*fig.dpi*bbox.width, 0.75*fig.dpi*bbox.height # width and height in points
+    width = 0.75*fig.dpi*(bbox.width)/2 # width in points
+    ebarwidth = width/len(xaxis)
     for i in range(len(yvals)):
-        ax1.errorbar(xaxis,yvals[i],yerr=errors[i],color=colors[i%10],fmt=category_markers[i%len(category_markers)], capsize=3)
+        ax1.errorbar(xaxis,yvals[i],yerr=errors[i],color=colors[i%10],fmt=category_markers[i%len(category_markers)], markersize=3, capsize=ebarwidth)
     if(vertlines is not None):
         for v in vertlines:
             ax1.axvline(v,color='k',linestyle='-')#,label=vlinelabel)
@@ -905,7 +914,6 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
         #ax1.xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.1f'))
         #plt.setp(ax1.get_xticklabels(), rotation=30,\
         #horizontalalignment='right')
-    box = ax1.get_position()
     if(len(yvals) == 1):
         if(not title):
             ax1.set_title(line_labels[0])

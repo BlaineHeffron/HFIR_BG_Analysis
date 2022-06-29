@@ -91,7 +91,7 @@ def main():
                         data_err = rd_data[shield_id][acq_id].get_normalized_err()[start_index:end_index]
                         scale = minimize_diff(sim, data, data_err)
                         print("best scale factor found for shield {0} is {1}".format(shield_id, scale))
-                        hist_dict["RD_{}".format(rd_shield_id)].scale_hist(scale)
+                        hist_dict["RD_{}".format(rd_shield_id)].scale_hist(scale, True)
                         for i in range(len(emin)):
                             plot_multi_spectra({"sim_{}".format(rd_shield_id): hist_dict["RD_{}".format(rd_shield_id)],
                                                 "data_{0}_{1}".format(rd_shield_id, acq_id): rd_data[shield_id][ acq_id]},

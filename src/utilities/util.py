@@ -506,6 +506,7 @@ def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None, loc="upper right",
     end_index = 0
     start_index = 0
     ymin = 9e10
+    yerrs = []
     for name in fdict.keys():
         if isinstance(fdict[name], SpectrumData):
             spec = fdict[name]
@@ -521,6 +522,7 @@ def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None, loc="upper right",
         start_index, end_index = set_indices(start_index, end_index, emin, emax, spec)
         x = spec.bin_midpoints[start_index:end_index]
         ys.append(y[start_index:end_index])
+        yerrs.append(spec.get_normalized_err()[start_index:end_index])
         minval = 9e10
         for i in range(len(ys)):
             mval = np.min(ys[i][ys[i] > 0])
@@ -532,7 +534,7 @@ def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None, loc="upper right",
         # err = [d / live / A1 for d in errs]
         # MultiScatterPlot(x, [y], [err], [name], "Energy [keV]", "Rate [hz/keV]")
         # plt.savefig("{}_errors.png".format(name))
-    fig = MultiLinePlot(x, ys, names, "Energy [keV]", "Rate [hz/keV]", ylog=True, ymin=ymin)
+    fig = MultiScatterPlot(x, ys, yerrs, names, "Energy [keV]", "Rate [hz/keV]", ylog=True, ymin=ymin)
     plt.savefig("{}.png".format(n), bbox_inches="tight")
     plt.close(fig)
 
