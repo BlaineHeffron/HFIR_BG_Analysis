@@ -39,8 +39,8 @@ def HFIR_diagram():
     ax1.plot([a[0] + 4 for a in HB4line], [a[1] for a in HB4line], linestyle='dashed', color='grey')
     ax1.plot([a[0] for a in HB3line], [a[1] for a in HB3line], linestyle='dashed', color='grey')
     ax1.plot([a[0] + 4 for a in HB3line], [a[1] for a in HB3line], linestyle='dashed', color='grey')
-    ax1.text(90, -80, 'HB3', fontsize=15, color='grey')
-    ax1.text(190, -100, 'HB4', fontsize=15, color='grey')
+    ax1.text(90, -80, 'HB3', fontsize=15, color='black')
+    ax1.text(190, -100, 'HB4', fontsize=15, color='black')
     ax1.text(50, -145, 'Reactor Core', fontsize=15, color='black')
     # ax1.plot([a[0] for a in drline], [a[1] for a in drline], linestyle='dashed', color='grey')
     # ax1.plot([a[0] + 4 for a in drline], [a[1] for a in drline], linestyle='dashed', color='grey')
@@ -51,7 +51,7 @@ def HFIR_diagram():
     ax1.plot([a[0] for a in monolith_line1], [a[1] for a in monolith_line1], linestyle='solid', color='grey')
     ax1.plot([a[0] for a in monolith_line2], [a[1] for a in monolith_line2], linestyle='solid', color='grey')
     ax1.plot([a[0] for a in monolith_line3], [a[1] for a in monolith_line3], linestyle='solid', color='grey')
-    ax1.text(30, 130, 'Monolith Boundary', fontsize=15, color='grey')
+    ax1.text(30, 130, 'Monolith Boundary', fontsize=15, color='black')
     #pool wall
     ax1.plot([0,xmax],[0, 0], linestyle='solid', color='black')
     ax1.plot([0,0],[0, -200], linestyle='solid', color='black')
@@ -61,7 +61,7 @@ def HFIR_diagram():
                             edgecolor='cornflowerblue',
                             fill=False,
                             lw=2))
-    ax1.text(99, 95, 'PROSPECT\nScintillator\nVolume', fontsize=15, color='cornflowerblue')
+    ax1.text(99, 95, 'PROSPECT\nScintillator\nVolume', fontsize=15, color='black')
     # lead shield wall
     ax1.add_patch(Rectangle((125, 21.5), 286.5 - 155, -14,
                             edgecolor='black',
@@ -77,15 +77,15 @@ def HFIR_diagram():
                             edgecolor='red',
                             fill=False,
                             lw=1))
-    ax1.text(76, 10, 'MIF', color='red', fontsize=15)
-    ax1.text(145, 18, 'Lead Shield Wall', color='black', fontsize=15)
-    ax1.text(20, 18, 'Lead', color='black', fontsize=15)
+    ax1.text(76, 10, 'MIF', color='black', fontsize=15)
+    ax1.text(145, 18, 'Pb Wall', color='black', fontsize=15)
+    ax1.text(20, 18, 'Pb Wall', color='black', fontsize=15)
     # russian doll
     ax1.add_patch(Circle((200, 21.5 + 12), 12,
                          edgecolor='green',
                          fill=False,
                          lw=2))
-    ax1.text(72, 38, 'Russian Doll Shield', fontsize=15, color='green')
+    ax1.text(72, 38, 'Russian Doll Shield', fontsize=15, color='black')
     # ax1.set_title(title)
     ax1.xaxis.set_minor_locator(AutoMinorLocator())
     ax1.yaxis.set_minor_locator(AutoMinorLocator())
