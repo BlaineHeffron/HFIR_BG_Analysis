@@ -3,7 +3,7 @@ from os.path import dirname, realpath
 
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
 from src.database.HFIRBG_DB import HFIRBG_DB
-from src.utilities.util import get_data_dir, populate_data, fit_spectra, combine_runs
+from src.utilities.util import get_data_dir, populate_data, fit_spectra, combine_runs, populate_data_config
 
 #rundata = {"Reactor Spectrum": "MIF_BOX_REACTOR_OPTIMIZED_OVERNIGHT_LOWEST_GAIN.txt"}
 #rundata = {"RD 494 low gain": [4395 + i for i in range(4)]}
@@ -26,8 +26,23 @@ energy_guesses = [1238, 1377]
 #energy_guesses = [2614.3, 474,477,480,483]
 energy_guesses = [2614.3, 1215, 1238]
 energy_guesses = [7631,7645]
-verify = True
+energy_guesses = [6853.9, 1677, 1023, 1293]
+#energy_guesses = [6838, 5837]
 
+energy_guesses = [7367.96, 5823, 7916.3, 6346, 5823 - 511, 5823 - 511*2, 4815]
+energy_guesses = [5824.6, 805.9, 651.26, 558.46] # cd-113 (n, gamma)
+energy_guesses = [7367.96, 7368-511] #lead 207 n, gamma
+verify = True
+#config = {"runs": {"name": "Cycle493_RD_low_gain"}}
+#config = {"runs": {"name": "Cycle494_RD_low_gain_lead"}}
+config = None
+
+rundata= {"NFACE": "CYCLE461_DOWN_FACING_OVERNIGHT.txt"}
+
+
+#config = {"runs": {"name": "Cycle495_RD_low_gain_cal_lead_60bricks"}}
+
+#config = {"runs": {"name": "Cycle495_RD_low_gain_cal_lead_60bricks"}}
 
 def main():
     datadir = get_data_dir()
@@ -35,8 +50,13 @@ def main():
     for e in energy_guesses:
         all_energies.append(float(e))
     db = HFIRBG_DB()
-    data = populate_data(rundata, datadir, db)
+    if config:
+        data = populate_data_config(config, db, comb_runs=True)
+    else:
+        data = populate_data(rundata, datadir, db)
     combine_runs(data)
+    for key in data.keys():
+        print("live time for {0} is {1}".format(key, data[key].live))
     peak_data = fit_spectra(data, all_energies, None, verify, False)
     for e, d in peak_data.items():
         print("----------------")

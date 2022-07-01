@@ -535,6 +535,7 @@ class MultiPeakFit:
 
     def display(self):
         ind = 0
+        areas = self.area()
         while ind + 8 <= len(self.parameters):
             i = int(ind / 5) + 1
             print("H {0}: {1} ~ {2} counts".format(i, self.parameters[ind + 0], self.errors[ind + 0]))
@@ -542,6 +543,7 @@ class MultiPeakFit:
             print("centroid {0}: {1} ~ {2} keV".format(i, self.parameters[ind + 2], self.errors[ind + 2]))
             print("std deviation {0}: {1} ~ {2} keV".format(i, self.parameters[ind + 3], self.errors[ind + 3]))
             print("skewness {0}: {1} ~ {2} keV".format(i, self.parameters[ind + 4], self.errors[ind + 4]))
+            print("peak area is {0} ~ {1}".format(areas[i-1][0], areas[i-1][1]))
             ind += 5
         print("A: {0} ~ {1} counts".format(self.parameters[-3], self.errors[-3]))
         print("B: {0} ~ {1} counts/keV".format(self.parameters[-2], self.errors[-2]))
@@ -631,12 +633,14 @@ class PeakFit:
             plt.savefig(outname + ".png")
 
     def display(self):
+        area = self.area()
         print("H: {0} ~ {1} counts".format(self.parameters[0], self.errors[0]))
         print("R: {0} ~ {1} ".format(self.parameters[1], self.errors[1]))
         # print("step: {0} ~ {1} ".format(self.parameters[2], self.errors[2]))
         print("centroid: {0} ~ {1} keV".format(self.parameters[2], self.errors[2]))
         print("std deviation: {0} ~ {1} keV".format(self.parameters[3], self.errors[3]))
         print("skewness: {0} ~ {1} keV".format(self.parameters[4], self.errors[4]))
+        print("peak area is {0} ~ {1}".format(area[0], area[1]))
         print("A: {0} ~ {1} counts".format(self.parameters[5], self.errors[5]))
         print("B: {0} ~ {1} counts/keV".format(self.parameters[6], self.errors[6]))
         print("C: {0} ~ {1} counts/keV^2".format(self.parameters[7], self.errors[7]))

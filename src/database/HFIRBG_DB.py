@@ -116,7 +116,10 @@ class HFIRBG_DB(SQLiteBase):
         :param run_id: run id (int)
         :return: list of file ids in the run
         """
-        fids = self.fetchall("SELECT file_id FROM run_file_list WHERE run_id = {0}".format(run_id))
+        if isinstance(run_id, list):
+            fids = self.fetchall("SELECT file_id FROM run_file_list WHERE run_id {0}".format(generate_in_clause(run_id)))
+        else:
+            fids = self.fetchall("SELECT file_id FROM run_file_list WHERE run_id = {0}".format(run_id))
         return list(map(lambda x: x[0], fids))
 
     def retrieve_run_range(self, run_range):
@@ -487,10 +490,17 @@ class HFIRBG_DB(SQLiteBase):
         if "shield" in config.keys():
             config_dict["shield"] = config["shield"]
         coord_id = None
+        run_id = None
         if "detector_coordinates" in config.keys():
             coord_id = self.dictionary_select("detector_coordinates", config["detector_coordinates"])
             if coord_id:
                 coord_id = coord_id[0][0]
+        if "runs" in config.keys():
+            runs = self.dictionary_select("runs", config["runs"])
+            if runs:
+                run_id = []
+                for run in runs:
+                    run_id.append(run[0])
         detector_config_ids = None
         if config_dict:
             detector_config_ids = self.dictionary_select("detector_configuration", config_dict)
@@ -500,6 +510,8 @@ class HFIRBG_DB(SQLiteBase):
                 file_ids += self.retrieve_file_ids_from_detector_config(row[0], coord_id)
         elif coord_id:
             file_ids += self.retrieve_file_ids_from_detector_coord(coord_id)
+        elif run_id:
+            file_ids += self.retrieve_run_flist(run_id)
         where = "WHERE "
         if file_ids:
             where += "id " + generate_in_clause(file_ids) + " AND "

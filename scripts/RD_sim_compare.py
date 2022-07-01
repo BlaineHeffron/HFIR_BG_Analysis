@@ -82,7 +82,7 @@ def main():
                             plot_multi_spectra({"sim_{}".format(rd_shield_id): hist_dict["RD_{}".format(rd_shield_id)],
                                                 "data_{0}_{1}".format(rd_shield_id, acq_id): rd_sub[shield_id][acq_id]},
                                                join(outdir, "sim_scaled_data_rxoff_sub_comparison_{0}_{1}_en{2}".format(rd_shield_id, acq_id, i)),
-                                               emin=emin[i], emax=emax[i])
+                                               emin=emin[i], emax=emax[i], ebars=False)
                     else:
                         rd_data[shield_id][acq_id].rebin(full_bins)
                         start_index, end_index = set_indices(0, 0, 7500, 7800, rd_data[shield_id][acq_id])
@@ -96,7 +96,7 @@ def main():
                             plot_multi_spectra({"sim_{}".format(rd_shield_id): hist_dict["RD_{}".format(rd_shield_id)],
                                                 "data_{0}_{1}".format(rd_shield_id, acq_id): rd_data[shield_id][ acq_id]},
                                                join(outdir, "sim_scaled_data_comparison_{0}_{1}_en{2}".format(rd_shield_id, acq_id, i)),
-                                               emin=emin[i], emax=emax[i])
+                                               emin=emin[i], emax=emax[i], ebars=False)
                 except RuntimeError as e:
                     print(e)
                     for i in range(len(emin)):
@@ -104,11 +104,11 @@ def main():
                                             "data_{0}_{1}".format(rd_shield_id, acq_id): rd_data[shield_id][acq_id]},
                                            join(outdir,
                                                 "sim_data_comparison_{0}_{1}_en{2}".format(rd_shield_id, acq_id, i)),
-                                           rebin_edges=acq_id_map[acq_id], emin=emin[i], emax=emax[i])
+                                           rebin_edges=acq_id_map[acq_id], emin=emin[i], emax=emax[i], ebars=False)
     plot_multi_spectra(rxoff_sub_sim_diff, join(outdir, "rxoff_sub_data_minus_scaled_sim"))
     for i in range(len(emin)):
         plot_multi_spectra(rxoff_sub_sim_diff, join(outdir, "rxoff_sub_data_minus_scaled_sim_en{0}".format(i)),
-                                                    emin=emin[i], emax=emax[i])
+                                                    emin=emin[i], emax=emax[i], ebars=False)
 
 
 if __name__ == "__main__":

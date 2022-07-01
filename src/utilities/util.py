@@ -499,7 +499,7 @@ def write_spectra(fdict, outdir, db):
         f.close()
 
 
-def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None, loc="upper right", rebin_edges=None):
+def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None, loc="upper right", rebin_edges=None, ebars=True):
     ys = []
     names = []
     x = []
@@ -534,7 +534,10 @@ def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None, loc="upper right",
         # err = [d / live / A1 for d in errs]
         # MultiScatterPlot(x, [y], [err], [name], "Energy [keV]", "Rate [hz/keV]")
         # plt.savefig("{}_errors.png".format(name))
-    fig = MultiScatterPlot(x, ys, yerrs, names, "Energy [keV]", "Rate [hz/keV]", ylog=True, ymin=ymin)
+    if ebars:
+        fig = MultiScatterPlot(x, ys, yerrs, names, "Energy [keV]", "Rate [hz/keV]", ylog=True, ymin=ymin)
+    else:
+        fig = MultiLinePlot(x, ys, names, "Energy [keV]", "Rate [hz/keV]", ylog=True, ymin=ymin)
     plt.savefig("{}.png".format(n), bbox_inches="tight")
     plt.close(fig)
 

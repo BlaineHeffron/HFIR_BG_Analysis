@@ -896,7 +896,8 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
     width = 0.75*fig.dpi*(bbox.width)/2 # width in points
     ebarwidth = width/len(xaxis)
     for i in range(len(yvals)):
-        ax1.errorbar(xaxis,yvals[i],yerr=errors[i],color=colors[i%10],fmt=category_markers[i%len(category_markers)], markersize=3, capsize=ebarwidth)
+        ax1.errorbar(xaxis, yvals[i], yerr=errors[i], color=colors[i % 10], fmt='.',#fmt=category_markers[i % len(category_markers)],
+                 markersize=ebarwidth, capsize=ebarwidth)
     if(vertlines is not None):
         for v in vertlines:
             ax1.axvline(v,color='k',linestyle='-')#,label=vlinelabel)
