@@ -32,15 +32,16 @@ energy_guesses = [6853.9, 1677, 1023, 1293]
 energy_guesses = [7367.96, 5823, 7916.3, 6346, 5823 - 511, 5823 - 511*2, 4815]
 energy_guesses = [5824.6, 805.9, 651.26, 558.46] # cd-113 (n, gamma)
 energy_guesses = [7367.96, 7368-511] #lead 207 n, gamma
+energy_guesses = [558]
 verify = True
 #config = {"runs": {"name": "Cycle493_RD_low_gain"}}
-#config = {"runs": {"name": "Cycle494_RD_low_gain_lead"}}
-config = None
+config = {"runs": {"name": "Cycle494_RD_low_gain_lead"}}
+#config = None
 
-rundata= {"NFACE": "CYCLE461_DOWN_FACING_OVERNIGHT.txt"}
+#rundata= {"NFACE": "CYCLE461_DOWN_FACING_OVERNIGHT.txt"}
 
 
-#config = {"runs": {"name": "Cycle495_RD_low_gain_cal_lead_60bricks"}}
+#config = {"runs": {"name": "Cycle495_RD_low_gain_lead_60bricks"}}
 
 #config = {"runs": {"name": "Cycle495_RD_low_gain_cal_lead_60bricks"}}
 

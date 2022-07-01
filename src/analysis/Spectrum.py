@@ -628,7 +628,7 @@ class PeakFit:
         jac = ge_peak_function_jac(linex, *self.parameters)
         lineerr = np.sqrt(np.diag(np.matmul(jac, np.matmul(self.cov, jac.T))))
         ScatterLinePlot(self.xs, yvals, np.sqrt(yvals), linex, liney, lineerr, ["data", "fit", r'1 $\sigma$ error'],
-                        "uncorrected energy [keV]", "counts")
+                        "uncorrected energy [keV]", "counts", ylog=False)
         if outname is not None:
             plt.savefig(outname + ".png")
 
