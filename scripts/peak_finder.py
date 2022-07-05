@@ -33,6 +33,7 @@ energy_guesses = [7367.96, 5823, 7916.3, 6346, 5823 - 511, 5823 - 511*2, 4815]
 energy_guesses = [5824.6, 805.9, 651.26, 558.46] # cd-113 (n, gamma)
 energy_guesses = [7367.96, 7368-511] #lead 207 n, gamma
 energy_guesses = [558]
+energy_guesses = [2223, 139.7, 693]
 verify = True
 #config = {"runs": {"name": "Cycle493_RD_low_gain"}}
 config = {"runs": {"name": "Cycle494_RD_low_gain_lead"}}

@@ -528,7 +528,7 @@ class MultiPeakFit:
         liney = ge_multi_peak_function(linex, *self.parameters)
         jac = ge_multi_peak_function_jac(linex, *self.parameters)
         lineerr = np.sqrt(np.diag(np.matmul(jac, np.matmul(self.cov, jac.T))))
-        ScatterLinePlot(self.xs, yvals, np.sqrt(yvals), linex, liney, lineerr, ["data", "fit", r'1 $\sigma$ error'],
+        ScatterLinePlot(self.xs, yvals, np.sqrt(yvals), linex, liney, lineerr, ["fit", r'1 $\sigma$ error', "data"],
                         "uncorrected energy [keV]", "counts")
         if outname is not None:
             plt.savefig(outname + ".png")
@@ -627,7 +627,7 @@ class PeakFit:
         liney = ge_peak_function(linex, *self.parameters)
         jac = ge_peak_function_jac(linex, *self.parameters)
         lineerr = np.sqrt(np.diag(np.matmul(jac, np.matmul(self.cov, jac.T))))
-        ScatterLinePlot(self.xs, yvals, np.sqrt(yvals), linex, liney, lineerr, ["data", "fit", r'1 $\sigma$ error'],
+        ScatterLinePlot(self.xs, yvals, np.sqrt(yvals), linex, liney, lineerr, ["fit", r'1 $\sigma$ error', "data"],
                         "uncorrected energy [keV]", "counts", ylog=False)
         if outname is not None:
             plt.savefig(outname + ".png")
