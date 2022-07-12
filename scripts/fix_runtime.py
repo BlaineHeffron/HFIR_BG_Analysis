@@ -2,15 +2,32 @@
 script to fix incorrect runtime for surface thrower event generator
 """
 
-import sys
 import h5py
 import os
-from os.path import dirname, realpath, join
+from os.path import join
 from argparse import ArgumentParser
-sys.path.insert(1, dirname(dirname(realpath(__file__))))
-from src.utilities.util import get_runtime_from_xml, change_xml_attr
 
 
+
+def get_runtime_from_xml(f, SAname="RDThrower"):
+    tree = ET.parse(f)
+    root = tree.getroot()
+    el = root.find("./AnalysisStep/Run/PrimaryGenerator/" + SAname)
+    return float(el.attrib["nAttempts"])/float(str(el.attrib["s_area"]).split(" ")[0])/1.e6
+
+def change_xml_attr(f, value, path="./AnalysisStep/Run/PrimaryGenerator", name="time", newname=None):
+    """Change the attributes with name 'name' at path 'path' of xml file 'f' to value 'value'"""
+    tree = ET.parse(f)
+    root = tree.getroot()
+    try:
+        el = root.find(path)
+        el.attrib[name] = value
+        if newname is not None:
+            tree.write(newname)
+        else:
+            tree.write(f)
+    except Exception as e:
+        print(e)
 
 def main():
     arg = ArgumentParser()

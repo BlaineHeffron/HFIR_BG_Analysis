@@ -1366,41 +1366,7 @@ def subtract_rd_data(rd_data, rd_data_off, acq_id_bin_edges=None):
     return sub_data
 
 
-def get_runtime_from_xml(f, SAname="RDThrower"):
-    tree = ET.parse(f)
-    root = tree.getroot()
-    el = root.find("./AnalysisStep/Run/PrimaryGenerator/" + SAname)
-    return float(el.attrib["nAttempts"])/float(str(el.attrib["s_area"]).split(" ")[0])/1.e6
 
-def change_xml_attr(f, value, path="./AnalysisStep/Run/PrimaryGenerator", name="time", newname=None):
-    """Change the attributes with name 'name' at path 'path' of xml file 'f' to value 'value'"""
-    tree = ET.parse(f)
-    root = tree.getroot()
-    try:
-        el = root.find(path)
-        el.attrib[name] = value
-        if newname is not None:
-            tree.write(newname)
-        else:
-            tree.write(f)
-    except Exception as e:
-        print(e)
-
-
-
-def main():
-    import h5py
-    mydir = "/home/blaine/projects/HFIR_BG/sim/RD/test/"
-    f = "/home/blaine/projects/HFIR_BG/sim/RD/test/Run_1.h5.xml"
-    get_runtime_from_xml(f)
-    name = f[0:-4]
-    rt = get_runtime_from_xml(f)
-    change_xml_attr(f, "12 s ")
-    with h5py.File(join(mydir, name), "r") as f:
-        for key in f.keys():
-            for attr in f[key].attrs:
-                print("{0}: {1}".format(key,attr))
 
 if __name__ == "__main__":
-    #fix_table(os.path.expanduser("~/src/HFIR_BG_Analysis/db/position_scans.txt"))
-    main()
+    fix_table(os.path.expanduser("~/src/HFIR_BG_Analysis/db/position_scans.txt"))
