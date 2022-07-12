@@ -36,8 +36,8 @@ def main():
     for f in os.listdir(args.basedir):
         if f.endswith(".xml"):
             name = f[0:-4]
-            rt = get_runtime_from_xml(f)
-            change_xml_attr(f, "{:.3f} s ".format(rt))
+            rt = get_runtime_from_xml(join(args.basedir, f))
+            change_xml_attr(join(args.basedir, f), "{:.3f} s ".format(rt))
             with h5py.File(join(args.basedir, name), "r+") as f:
                 f['ioni'].attrs['runtime'] = rt
 
