@@ -6,7 +6,7 @@ import h5py
 import os
 from os.path import join
 from argparse import ArgumentParser
-
+import xml.etree.ElementTree as ET
 
 
 def get_runtime_from_xml(f, SAname="RDThrower"):

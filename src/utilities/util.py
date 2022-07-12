@@ -10,7 +10,6 @@ import platform
 from csv import reader
 import shutil
 import ctypes
-import xml.etree.ElementTree as ET
 
 import numpy as np
 from scipy import stats
