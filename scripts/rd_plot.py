@@ -105,18 +105,18 @@ def main():
         emax = [1000 * (i + 1) for i in range(12)]
         for i in range(len(emin)):
             plot_multi_spectra(high_e_data, join(outdir, "rd_high_en_shield_comparison_{}".format(i)),
-                               rebin_edges=full_bins, emin=emin[i], emax=emax[i])
+                               rebin_edges=full_bins, emin=emin[i], emax=emax[i], ebars=False)
         for key in high_e_data_off.keys():
             for i in range(len(emin)):
                 plot_multi_spectra({"shield_" + str(key) + "_rxoff": high_e_data_off[key],
                                 "shield_" + str(key) + "_rxon": high_e_data[key]},
                                join(outdir, "rd_high_en_rxon_off_shield_{0}_comparison_{1}".format(key, i)),
-                               rebin_edges=full_bins, emin=emin[i], emax=emax[i])
+                               rebin_edges=full_bins, emin=emin[i], emax=emax[i], ebars=False)
         for key in low_e_data_off.keys():
             plot_multi_spectra({"shield_" + str(key) + "_rxoff": low_e_data_off[key],
                                 "shield_" + str(key) + "_rxon": low_e_data[key]},
                                join(outdir, "rd_low_en_rxon_off_shield_{0}_comparison".format(key)),
-                               rebin_edges=ninety_range)
+                               rebin_edges=ninety_range, ebars=False)
 
 if __name__ == "__main__":
     main()

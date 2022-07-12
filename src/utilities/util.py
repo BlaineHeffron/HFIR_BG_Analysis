@@ -10,6 +10,7 @@ import platform
 from csv import reader
 import shutil
 import ctypes
+import xml.etree.ElementTree as ET
 
 import numpy as np
 from scipy import stats
@@ -934,14 +935,17 @@ def fit_spectra(data, expected_peaks, plot_dir=None, user_verify=False, plot_fit
 def calibrate_spectra(data, expected_peaks, db, plot_dir=None, user_verify=False, tolerate_fails=False, plot_fit=False, allow_undetermined=False):
     for name, spec in data.items():
         spec_fitter = SpectrumFitter(expected_peaks, name=name)
-        spec_fitter.fit_peaks(spec)
-        if plot_dir is not None:
-            plot_dir = join(plot_dir, name)
-            if not os.path.exists(plot_dir):
-                os.mkdir(plot_dir)
-        cal, _ = spec_fitter.retrieve_calibration(user_verify, tolerate_fails, plot_dir, plot_fit, allow_undetermined=allow_undetermined)
-        if cal:
-            db.insert_calibration(cal[0], cal[1], spec.fname)
+        try:
+            spec_fitter.fit_peaks(spec)
+            if plot_dir is not None:
+                plot_dir = join(plot_dir, name)
+                if not os.path.exists(plot_dir):
+                    os.mkdir(plot_dir)
+            cal, _ = spec_fitter.retrieve_calibration(user_verify, tolerate_fails, plot_dir, plot_fit, allow_undetermined=allow_undetermined)
+            if cal:
+                db.insert_calibration(cal[0], cal[1], spec.fname)
+        except Exception as e:
+            print("failed to fit peak for spectrum {0}, error: {1}".format(spec.fname, e))
 
 
 def calibrate_nearby_runs(data, expected_peaks, db, plot_dir=None, user_verify=False, tolerate_fails=False,
@@ -1362,6 +1366,41 @@ def subtract_rd_data(rd_data, rd_data_off, acq_id_bin_edges=None):
     return sub_data
 
 
+def get_runtime_from_xml(f, SAname="RDThrower"):
+    tree = ET.parse(f)
+    root = tree.getroot()
+    el = root.find("./AnalysisStep/Run/PrimaryGenerator/" + SAname)
+    return float(el.attrib["nAttempts"])/float(str(el.attrib["s_area"]).split(" ")[0])/1.e6
+
+def change_xml_attr(f, value, path="./AnalysisStep/Run/PrimaryGenerator", name="time", newname=None):
+    """Change the attributes with name 'name' at path 'path' of xml file 'f' to value 'value'"""
+    tree = ET.parse(f)
+    root = tree.getroot()
+    try:
+        el = root.find(path)
+        el.attrib[name] = value
+        if newname is not None:
+            tree.write(newname)
+        else:
+            tree.write(f)
+    except Exception as e:
+        print(e)
+
+
+
+def main():
+    import h5py
+    mydir = "/home/blaine/projects/HFIR_BG/sim/RD/test/"
+    f = "/home/blaine/projects/HFIR_BG/sim/RD/test/Run_1.h5.xml"
+    get_runtime_from_xml(f)
+    name = f[0:-4]
+    rt = get_runtime_from_xml(f)
+    change_xml_attr(f, "12 s ")
+    with h5py.File(join(mydir, name), "r") as f:
+        for key in f.keys():
+            for attr in f[key].attrs:
+                print("{0}: {1}".format(key,attr))
 
 if __name__ == "__main__":
-    fix_table(os.path.expanduser("~/src/HFIR_BG_Analysis/db/position_scans.txt"))
+    #fix_table(os.path.expanduser("~/src/HFIR_BG_Analysis/db/position_scans.txt"))
+    main()

@@ -9,7 +9,8 @@ from src.utilities.util import  calibrate_spectra,  combine_runs, populate_data_
 from os.path import join, exists
 import os
 
-expected_peaks = [2614.533, 1293.64, 511.0, 1120.29, 609.31, 2223.245, 7367.96]
+#expected_peaks = [2614.533, 1293.64, 511.0, 1120.29, 609.31, 2223.245, 7367.96, 5824.6, 805.9, 651.26, 558.46]
+expected_peaks = [2614.533, 511.0, 609.31, 768.36, 1120.29, 1238.11, 1764.494, 2204.21]
 #expected_peaks = [7724.034, 7645.58, 7631.18, 1460.8, 1332.5, 1293.64, 1173.2, 511.0]
 #expected_peaks = [1293.64, 511.0, 374.72, 768.36, 1120.29, 1238.11, 1377.67]
 #expected_peaks = [7724.034, 7645.58, 7631.18, 1460.8, 1332.5, 1293.64, 1173.2, 511.0, 374.72, 768.36, 1120.29, 1238.11, 1377.67]
@@ -39,12 +40,15 @@ def main():
                 calibrate_spectra({"{0}_interval_{1}".format(run, i): spec}, [59.541], db, outdir, True,
                                       True, True, allow_undetermined=True)
     else:
-        rd_data = db.get_rd_files(True, gain_setting=gain_setting)
+        rd_data = db.get_rd_files(True, gain_setting=gain_setting, rxoff_only=True)
         rd_data = populate_data_db(rd_data, db)
         combine_runs(rd_data, max_interval=dt)
         if not exists(outdir):
             os.mkdir(outdir)
         for run in rd_data.keys():
+            print("***************")
+            print("calibrating run {}".format(run))
+            print("***************")
             if isinstance(rd_data[run], SpectrumData):
                 calibrate_spectra(rd_data, expected_peaks, db, outdir, True, True, True)
                 break

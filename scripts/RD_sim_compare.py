@@ -28,22 +28,46 @@ def main():
         os.mkdir(outdir)
     arg = ArgumentParser()
     arg.add_argument("basedir", help="path to directory containing GeRD_# directories", type=str)
+    arg.add_argument("--neutron", "-n", action="store_true", help="neutron sims directory")
     args = arg.parse_args()
-    hist_dict = {"RD_" + str(i): None for i in range(6)}
-    for i in range(6):
-        mydir = join(args.basedir, "GeRD_{}".format(i))
-        nm = "RD_" + str(i)
+    if args.neutron:
+        hist_dict = {"RD_0": None}
+        newdir = os.path.join(outdir, "neutron_sim")
+        if not os.path.exists(newdir):
+            os.mkdir(newdir)
+
+    else:
+        newdir = outdir
+        hist_dict = {"RD_" + str(i): None for i in range(6)}
+    if args.neutron:
+        nm = "RD_0"
+        mydir = args.basedir
         for dirpath in os.listdir(mydir):
-            rootfile = join(join(mydir, dirpath), "GeRD_{}.root".format(i))
+            rootfile = join(join(mydir, dirpath), "GeRD_neutrons.root")
             if os.path.exists(rootfile):
-                hist_en = get_spec_from_root(rootfile, "GeEnergyPlugin/hGeEnergy", "accumulated/runtime", True, 1000.,
-                                             1)
+                hist_en = get_spec_from_root(rootfile, "GeEnergyPlugin/hGeEnergy", "accumulated/runtime", True, 1000.,1)
                 if not hist_dict[nm]:
                     hist_dict[nm] = hist_en
                 else:
                     hist_dict[nm].add(hist_en)
+    else:
+        for i in range(6):
+            mydir = join(args.basedir, "GeRD_{}".format(i))
+            nm = "RD_" + str(i)
+            for dirpath in os.listdir(mydir):
+                rootfile = join(join(mydir, dirpath), "GeRD_{}.root".format(i))
+                if os.path.exists(rootfile):
+                    hist_en = get_spec_from_root(rootfile, "GeEnergyPlugin/hGeEnergy", "accumulated/runtime", True, 1000.,
+                                                 1)
+                    if not hist_dict[nm]:
+                        hist_dict[nm] = hist_en
+                    else:
+                        hist_dict[nm].add(hist_en)
+    print(hist_dict)
+    for key in hist_dict:
+        print(hist_dict[key].data)
     rebin_spectra(hist_dict, full_bins)
-    plot_name = join(outdir, "sim_compare")
+    plot_name = join(newdir, "sim_compare")
     plot_multi_spectra(hist_dict, plot_name)
     for i in range(len(emin)):
         plot_multi_spectra(hist_dict, plot_name + "_{}".format(i), emin=emin[i], emax=emax[i])
@@ -55,16 +79,18 @@ def main():
     rxoff_sub_sim_diff = {}
     for shield_id in rd_data.keys():
         rd_shield_id = shield_id - 2
+        if args.neutron and rd_shield_id > 0:
+            break
         for acq_id in rd_data[shield_id].keys():
             if shield_id in rd_sub and rd_sub[shield_id] and acq_id in rd_sub[shield_id].keys():
                 plot_multi_spectra({"sim_{}".format(rd_shield_id): hist_dict["RD_{}".format(rd_shield_id)],
                                     "RxOff_sub_data_{0}_{1}".format(rd_shield_id, acq_id): rd_sub[shield_id][acq_id]},
-                                   join(outdir, "sim_data_rxoff_sub_comparison_{0}_{1}".format(rd_shield_id, acq_id)),
+                                   join(newdir, "sim_data_rxoff_sub_comparison_{0}_{1}".format(rd_shield_id, acq_id)),
                                    rebin_edges=acq_id_map[acq_id])
 
             plot_multi_spectra({"sim_{}".format(rd_shield_id): hist_dict["RD_{}".format(rd_shield_id)],
                                 "data_{0}_{1}".format(rd_shield_id, acq_id): rd_data[shield_id][acq_id]},
-                               join(outdir, "sim_data_comparison_{0}_{1}".format(rd_shield_id, acq_id)),
+                               join(newdir, "sim_data_comparison_{0}_{1}".format(rd_shield_id, acq_id)),
                                rebin_edges=acq_id_map[acq_id])
             if acq_id == 5:
                 try:
@@ -81,7 +107,7 @@ def main():
                         for i in range(len(emin)):
                             plot_multi_spectra({"sim_{}".format(rd_shield_id): hist_dict["RD_{}".format(rd_shield_id)],
                                                 "data_{0}_{1}".format(rd_shield_id, acq_id): rd_sub[shield_id][acq_id]},
-                                               join(outdir, "sim_scaled_data_rxoff_sub_comparison_{0}_{1}_en{2}".format(rd_shield_id, acq_id, i)),
+                                               join(newdir, "sim_scaled_data_rxoff_sub_comparison_{0}_{1}_en{2}".format(rd_shield_id, acq_id, i)),
                                                emin=emin[i], emax=emax[i], ebars=False)
                     else:
                         rd_data[shield_id][acq_id].rebin(full_bins)
@@ -95,19 +121,19 @@ def main():
                         for i in range(len(emin)):
                             plot_multi_spectra({"sim_{}".format(rd_shield_id): hist_dict["RD_{}".format(rd_shield_id)],
                                                 "data_{0}_{1}".format(rd_shield_id, acq_id): rd_data[shield_id][ acq_id]},
-                                               join(outdir, "sim_scaled_data_comparison_{0}_{1}_en{2}".format(rd_shield_id, acq_id, i)),
+                                               join(newdir, "sim_scaled_data_comparison_{0}_{1}_en{2}".format(rd_shield_id, acq_id, i)),
                                                emin=emin[i], emax=emax[i], ebars=False)
                 except RuntimeError as e:
                     print(e)
                     for i in range(len(emin)):
                         plot_multi_spectra({"sim_{}".format(rd_shield_id): hist_dict["RD_{}".format(rd_shield_id)],
                                             "data_{0}_{1}".format(rd_shield_id, acq_id): rd_data[shield_id][acq_id]},
-                                           join(outdir,
+                                           join(newdir,
                                                 "sim_data_comparison_{0}_{1}_en{2}".format(rd_shield_id, acq_id, i)),
                                            rebin_edges=acq_id_map[acq_id], emin=emin[i], emax=emax[i], ebars=False)
-    plot_multi_spectra(rxoff_sub_sim_diff, join(outdir, "rxoff_sub_data_minus_scaled_sim"))
+    plot_multi_spectra(rxoff_sub_sim_diff, join(newdir, "rxoff_sub_data_minus_scaled_sim"))
     for i in range(len(emin)):
-        plot_multi_spectra(rxoff_sub_sim_diff, join(outdir, "rxoff_sub_data_minus_scaled_sim_en{0}".format(i)),
+        plot_multi_spectra(rxoff_sub_sim_diff, join(newdir, "rxoff_sub_data_minus_scaled_sim_en{0}".format(i)),
                                                     emin=emin[i], emax=emax[i], ebars=False)
 
 
