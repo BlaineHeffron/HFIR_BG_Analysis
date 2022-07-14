@@ -26,26 +26,31 @@ def main():
     arg.add_argument("name", help="name for output plots", type=str)
     arg.add_argument("--path","-p", help="path in root file to spectrum", type=str)
     arg.add_argument("--bg","-b", help="path to background root file", type=str)
+    arg.add_argument("--px", help="use projection x on data root file", action="store_true")
+    arg.add_argument("--nopluginpath", help="dont use SingleSegmentsIoniPlugin/ as a prefix to path", action="store_true")
     arg.add_argument("--sim","-s", help="path to sim root file for comparison", type=str)
     args = arg.parse_args()
     spec_path = "SingleSegmentsIoniPlugin/hSumE"
     if args.path:
-        spec_path = "SingleSegmentsIoniPlugin/{}".format(args.path)
-    spec = get_spec_from_root(args.f, spec_path, "runtime", False)
+        if args.nopluginpath:
+            spec_path = args.path
+        else:
+            spec_path = "SingleSegmentsIoniPlugin/{}".format(args.path)
+    spec = get_spec_from_root(args.f, spec_path, "runtime", False, projectionX=args.px, has_live=not args.nopluginpath)
     if args.bg:
-        bgspec = get_spec_from_root(args.bg, spec_path, "runtime", False)
+        bgspec = get_spec_from_root(args.bg, spec_path, "runtime", False, projectionX=args.px, has_live=not args.nopluginpath)
         spec = SubtractSpectrum(spec, bgspec)
     simspec = None
     if args.sim:
         simspec = get_spec_from_root(args.sim, "SingleSegmentsIoniPlugin/hSumE", "runtime", False)
         start_index, end_index = set_indices(0, 0, 0.1, 10, simspec)
-        sim = simspec.get_normalized_hist()[start_index:end_index]
-        data = spec.get_normalized_hist()[start_index:end_index]
-        data_err = spec.get_normalized_err()[start_index:end_index]
-        scale = minimize_diff(sim, data, data_err)
-        simspec.scale_hist(scale, True)
         simspec.rebin(bin_edges)
         spec.rebin(bin_edges)
+        sim = simspec.get_normalized_hist()[start_index:end_index]
+        data = spec.get_normalized_hist()[start_index:end_index]
+        data_err = spec.get_normalized_err()[start_index:end_index]/100.
+        scale = minimize_diff(sim, data, data_err)
+        simspec.scale_hist(scale, True)
         print("scale is {}".format(scale))
     outpath = join(outdir, args.name)
     if not os.path.exists(outpath):
@@ -78,9 +83,9 @@ def main():
     write_rows_csv(f, mylabels, mydata, delimiter=',')
     if simspec is not None:
         if args.path:
-            plot_multi_spectra({"sim": simspec, "data": spec}, join(outpath, "{}sim_scaled_data_AD1_comparison".format(args.path)), emin=0.1, emax=12)
+            plot_multi_spectra({"sim": simspec, "data": spec}, join(outpath, "{}sim_scaled_data_AD1_comparison".format(args.path)), emin=0.1, emax=12, ebars=False)
         else:
-            plot_multi_spectra({"sim": simspec, "data": spec}, join(outpath, "{}_sim_scaled_data_AD1_comparison".format("hSumE")), emin=0.1, emax=12)
+            plot_multi_spectra({"sim": simspec, "data": spec}, join(outpath, "{}_sim_scaled_data_AD1_comparison".format("hSumE")), emin=0.1, emax=12, ebars=False)
 
 if __name__ == "__main__":
     main()

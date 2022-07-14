@@ -827,18 +827,23 @@ def scale_to_bin_width(hist):
         hist.SetBinContent(i + 1, hist.GetBinContent(i + 1) / bin_width)
 
 
-def get_spec_from_root(fname, spec_path, live_path, isParam=False, xScale=1, rebin=1):
+def get_spec_from_root(fname, spec_path, live_path, isParam=False, xScale=1, rebin=1, projectionX=False, has_live=True):
     myFile = TFile.Open(fname, "READ")
     myHist = myFile.Get(spec_path)
+    if projectionX:
+        myHist = myHist.ProjectionX()
     if rebin != 1:
         myHist.Rebin(rebin)
     data = np.zeros((myHist.GetNbinsX(),))
     for i in range(myHist.GetNbinsX()):
         data[i] = myHist.GetBinContent(i + 1)
-    if isParam:
-        live = abs(myFile.Get(live_path).GetVal())
+    if has_live:
+        if isParam:
+            live = abs(myFile.Get(live_path).GetVal())
+        else:
+            live = abs(myFile.Get(live_path)[0])
     else:
-        live = abs(myFile.Get(live_path)[0])
+        live = 1 #careful, cannot perform any addition or subtraction
     A1 = myHist.GetXaxis().GetBinLowEdge(2) - myHist.GetXaxis().GetBinLowEdge(1)
     A0 = myHist.GetXaxis().GetBinLowEdge(1) - A1 / 2.
     if (xScale != 1):
