@@ -22,6 +22,10 @@ acq_id_map = {5: full_bins, 7: low_range, 17: ninety_range, 16: med_range}
 emin = [1000 * i for i in range(12)]
 emax = [1000 * (i + 1) for i in range(12)]
 
+#neut_en_compare = 558.46
+neut_en_compare = 7367.96
+neut_range = [neut_en_compare - 3, neut_en_compare + 3]
+
 
 def main():
     if not os.path.exists(outdir):
@@ -63,9 +67,6 @@ def main():
                         hist_dict[nm] = hist_en
                     else:
                         hist_dict[nm].add(hist_en)
-    print(hist_dict)
-    for key in hist_dict:
-        print(hist_dict[key].data)
     rebin_spectra(hist_dict, full_bins)
     plot_name = join(newdir, "sim_compare")
     plot_multi_spectra(hist_dict, plot_name)
@@ -95,7 +96,10 @@ def main():
             if acq_id == 5:
                 try:
                     if shield_id in rd_sub and rd_sub[shield_id] and acq_id in rd_sub[shield_id].keys():
-                        start_index, end_index = set_indices(0, 0, 7500, 7800, rd_sub[shield_id][acq_id])
+                        if args.neutron:
+                            start_index, end_index = set_indices(0, 0, neut_range[0], neut_range[1], rd_sub[shield_id][acq_id])
+                        else:
+                            start_index, end_index = set_indices(0, 0, 7500, 7800, rd_sub[shield_id][acq_id])
                         sim = hist_dict["RD_{}".format(rd_shield_id)].get_normalized_hist()[start_index:end_index]
                         data = rd_sub[shield_id][acq_id].get_normalized_hist()[start_index:end_index]
                         data_err = rd_sub[shield_id][acq_id].get_normalized_err()[start_index:end_index]
@@ -111,7 +115,10 @@ def main():
                                                emin=emin[i], emax=emax[i], ebars=False)
                     else:
                         rd_data[shield_id][acq_id].rebin(full_bins)
-                        start_index, end_index = set_indices(0, 0, 7500, 7800, rd_data[shield_id][acq_id])
+                        if args.neutron:
+                            start_index, end_index = set_indices(0, 0, neut_range[0], neut_range[1], rd_data[shield_id][acq_id])
+                        else:
+                            start_index, end_index = set_indices(0, 0, 7500, 7800, rd_data[shield_id][acq_id])
                         sim = hist_dict["RD_{}".format(rd_shield_id)].get_normalized_hist()[start_index:end_index]
                         data = rd_data[shield_id][acq_id].get_normalized_hist()[start_index:end_index]
                         data_err = rd_data[shield_id][acq_id].get_normalized_err()[start_index:end_index]
