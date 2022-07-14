@@ -505,7 +505,8 @@ class MultiPeakFit:
             tot = area - bgtot
             # dtot = sqrt(area + dbgtotsqr)
             dtot = sqrt(area + 1.1 * bgtot)
-            areas.append((tot, dtot))
+            e_width = bounds[1] - bounds[0]
+            areas.append((tot/e_width, dtot/e_width))
             # for x, y in zip(self.xs, self.ys):
             #    if (x > centroid - 3.5 * sigma) and (x < centroid + 3 * sigma):
             #        tot += y - self.parameters[-3] - self.parameters[-2] * x - self.parameters[-1] * x * x
@@ -612,7 +613,8 @@ class PeakFit:
         tot = area - bgtot
         dtot = sqrt(area + .25 * bgtot * bgtot)
         # dtot = sqrt(area + dbgtotsqr)
-        return tot, dtot
+        e_width = bounds[1] - bounds[0]
+        return tot/e_width, dtot/e_width
         # tot = 0.
         # unc = 0.
         # for x, y in zip(self.xs, self.ys):

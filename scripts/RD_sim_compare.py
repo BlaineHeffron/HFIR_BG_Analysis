@@ -6,7 +6,7 @@ from argparse import ArgumentParser
 
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
 from src.utilities.util import get_spec_from_root, plot_multi_spectra, get_bins, populate_rd_data, combine_runs, \
-    rebin_spectra, set_indices, get_rd_data, subtract_rd_data
+    rebin_spectra, set_indices, get_rd_data, subtract_rd_data, write_pyspec, load_pyspec
 from src.database.HFIRBG_DB import HFIRBG_DB
 from src.utilities.FitUtils import minimize_diff
 from src.analysis.Spectrum import SubtractSpectrum
@@ -45,28 +45,37 @@ def main():
         hist_dict = {"RD_" + str(i): None for i in range(6)}
     if args.neutron:
         nm = "RD_0"
-        mydir = args.basedir
-        for dirpath in os.listdir(mydir):
-            rootfile = join(join(mydir, dirpath), "GeRD_neutrons.root")
-            if os.path.exists(rootfile):
-                hist_en = get_spec_from_root(rootfile, "GeEnergyPlugin/hGeEnergy", "accumulated/runtime", True, 1000.,1)
-                if not hist_dict[nm]:
-                    hist_dict[nm] = hist_en
-                else:
-                    hist_dict[nm].add(hist_en)
-    else:
-        for i in range(6):
-            mydir = join(args.basedir, "GeRD_{}".format(i))
-            nm = "RD_" + str(i)
+        if os.path.exists(join(args.basedir,"neutronRD.pyspec")):
+            hist_dict[nm] = load_pyspec(join(args.basedir,"neutronRD.pyspec"))
+        else:
+            mydir = args.basedir
             for dirpath in os.listdir(mydir):
-                rootfile = join(join(mydir, dirpath), "GeRD_{}.root".format(i))
+                rootfile = join(join(mydir, dirpath), "GeRD_neutrons.root")
                 if os.path.exists(rootfile):
-                    hist_en = get_spec_from_root(rootfile, "GeEnergyPlugin/hGeEnergy", "accumulated/runtime", True, 1000.,
-                                                 1)
+                    hist_en = get_spec_from_root(rootfile, "GeEnergyPlugin/hGeEnergy", "accumulated/runtime", True, 1000.,1)
                     if not hist_dict[nm]:
                         hist_dict[nm] = hist_en
                     else:
                         hist_dict[nm].add(hist_en)
+            write_pyspec(join(args.basedir,"neutronRD.pyspec"), hist_dict[nm])
+    else:
+        for i in range(6):
+            mydir = join(args.basedir, "GeRD_{}".format(i))
+            nm = "RD_" + str(i)
+            pname = join(args.basedir, "GeRD_{}.pyspec".format(i))
+            if os.path.exists(pname):
+                hist_dict[nm] = load_pyspec(pname)
+            else:
+                for dirpath in os.listdir(mydir):
+                    rootfile = join(join(mydir, dirpath), "GeRD_{}.root".format(i))
+                    if os.path.exists(rootfile):
+                        hist_en = get_spec_from_root(rootfile, "GeEnergyPlugin/hGeEnergy", "accumulated/runtime", True, 1000.,
+                                                     1)
+                        if not hist_dict[nm]:
+                            hist_dict[nm] = hist_en
+                        else:
+                            hist_dict[nm].add(hist_en)
+                write_pyspec(pname, hist_dict[nm])
     rebin_spectra(hist_dict, full_bins)
     plot_name = join(newdir, "sim_compare")
     plot_multi_spectra(hist_dict, plot_name)

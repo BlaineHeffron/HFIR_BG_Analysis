@@ -1,5 +1,6 @@
 import csv
 import os
+import pickle
 import json
 import re
 from datetime import datetime
@@ -478,6 +479,19 @@ def set_indices(start_index, end_index, emin, emax, spec):
     return start_index, end_index
 
 
+def load_pyspec(fn):
+    try:
+        f = open(fn, 'rb')
+        return pickle.load(f)
+    except Exception as e:
+        print(e)
+        return None
+
+def write_pyspec(fn, spec):
+    f = open(fn, 'wb')
+    pickle.dump(spec, f)
+
+
 def write_spectra(fdict, outdir, db):
     for name in fdict.keys():
         if isinstance(fdict[name], SpectrumData):
@@ -935,6 +949,14 @@ def fit_spectra(data, expected_peaks, plot_dir=None, user_verify=False, plot_fit
         fit_data.update(spec_fitter.fit_values)
     return fit_data
 
+def retrieve_peak_areas(spec, peaks):
+    spec_fitter = SpectrumFitter(peaks)
+    spec_fitter.fit_peaks(spec)
+    areas = {}
+    dareas = {}
+    get_areas(spec_fitter.fit_values, areas, dareas, lt=spec.live)
+    return areas, dareas
+
 
 def calibrate_spectra(data, expected_peaks, db, plot_dir=None, user_verify=False, tolerate_fails=False, plot_fit=False, allow_undetermined=False):
     for name, spec in data.items():
@@ -1018,17 +1040,18 @@ def get_skews(peak_data, skews, dskews, Rs, dRs):
             dRs["{:.2f}".format(p)] = data.R_err
 
 
-def get_areas(peak_data, areas, dareas):
+def get_areas(peak_data, areas, dareas, lt=1):
+    """lt is live time for time normalization"""
     for peak, data in peak_data.items():
         if isinstance(peak, str):
             peak = peak.split(',')
             a = data.area()
             for i, p in enumerate(peak):
                 p = float(p)
-                areas["{:.2f}".format(p)], dareas["{:.2f}".format(p)] = a[i]
+                areas["{:.2f}".format(p)], dareas["{:.2f}".format(p)] = tuple([b/lt for b in a[i]])
         else:
             peak = float(peak)
-            areas["{:.2f}".format(peak)], dareas["{:.2f}".format(peak)] = data.area()
+            areas["{:.2f}".format(peak)], dareas["{:.2f}".format(peak)] = tuple([b/lt for b in data.area()])
 
 
 def get_peak_fit_data(peak_data, d):
