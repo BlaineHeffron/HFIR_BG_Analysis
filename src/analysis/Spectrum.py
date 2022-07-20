@@ -534,6 +534,13 @@ class MultiPeakFit:
         if outname is not None:
             plt.savefig(outname + ".png")
 
+    def fit_energy_string(self):
+        mystr = ""
+        ind = 0
+        while ind + 8 <= len(self.parameters):
+            mystr += " " + str(self.parameters[ind+2])
+        return mystr
+
     def display(self):
         ind = 0
         areas = self.area()
@@ -634,6 +641,10 @@ class PeakFit:
         if outname is not None:
             plt.savefig(outname + ".png")
 
+
+    def fit_energy_string(self):
+        return str(self.parameters[2])
+
     def display(self):
         area = self.area()
         print("H: {0} ~ {1} counts".format(self.parameters[0], self.errors[0]))
@@ -675,6 +686,7 @@ class SpectrumFitter:
         self.fit_values = {}
         self.n_retries = 5
         self.expected_offset_factor = 1
+        self.auto_set_offset_factor = True
         self.name = None
         self.A0 = None
         self.A1 = None
@@ -882,7 +894,7 @@ class SpectrumFitter:
     def fit(self, spec: SpectrumData, peak_x):
         sigma_guess = self.get_sigma_guess(peak_x)
         peak_guess = spec.data_at_x(peak_x * self.expected_offset_factor)
-        if self.expected_offset_factor == 1:
+        if self.expected_offset_factor == 1 and self.auto_set_offset_factor:
             # use a larger window at first to get the expected offset
             num_samples = int(round(3 * self.window_factor * sigma_guess / spec.A1))
         else:
@@ -895,7 +907,7 @@ class SpectrumFitter:
             max_ind = int(round(np.average(indice) + start_ind))
         else:
             max_ind = start_ind + indice[0]
-        if self.expected_offset_factor == 1:
+        if self.expected_offset_factor == 1 and self.auto_set_offset_factor:
             self.expected_offset_factor = max_ind / peak_guess
             print(
                 "setting expected offset factor to {} for subsequent peak searches".format(self.expected_offset_factor))

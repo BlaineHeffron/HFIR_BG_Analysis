@@ -934,10 +934,11 @@ def fix_table(fpath):
                 write_rows_new_file(f, cur_header, cur_rows, n_csv)
 
 
-def fit_spectra(data, expected_peaks, plot_dir=None, user_verify=False, plot_fit=False):
+def fit_spectra(data, expected_peaks, plot_dir=None, user_verify=False, plot_fit=False, auto_set_offset=True):
     fit_data = {}
     for name, spec in data.items():
         spec_fitter = SpectrumFitter(expected_peaks, name=name)
+        spec_fitter.auto_set_offset_factor = auto_set_offset
         spec_fitter.fit_peaks(spec)
         if plot_dir is not None:
             plot_dir = join(plot_dir, name)
