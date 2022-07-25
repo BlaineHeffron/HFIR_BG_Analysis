@@ -539,6 +539,7 @@ class MultiPeakFit:
         ind = 0
         while ind + 8 <= len(self.parameters):
             mystr += " " + str(self.parameters[ind+2])
+            ind += 5
         return mystr
 
     def display(self):
