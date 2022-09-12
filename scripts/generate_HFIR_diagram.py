@@ -46,7 +46,7 @@ def HFIR_diagram():
     # ax1.plot([a[0] + 4 for a in drline], [a[1] for a in drline], linestyle='dashed', color='grey')
     # next lets plot the monolith, passes through z = 141.5, x = 111, .1293 x/z
     monolith_line1 = [(141.5 + a, 111 - a * .1293) for a in [-44.7, 67.1]]
-    monolith_line2 = [(monolith_line1[0][0] - a, monolith_line1[0][1] - a * .43) for a in [0, 100]]
+    monolith_line2 = [(monolith_line1[0][0] - a, monolith_line1[0][1] - a * .50) for a in [0, 100]]
     monolith_line3 = [(monolith_line1[1][0] + a, monolith_line1[1][1] - a * .58) for a in [0, 150]]
     ax1.plot([a[0] for a in monolith_line1], [a[1] for a in monolith_line1], linestyle='solid', color='grey')
     ax1.plot([a[0] for a in monolith_line2], [a[1] for a in monolith_line2], linestyle='solid', color='grey')

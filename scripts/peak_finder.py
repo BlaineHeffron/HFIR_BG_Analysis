@@ -34,10 +34,12 @@ energy_guesses = [5824.6, 805.9, 651.26, 558.46] # cd-113 (n, gamma)
 energy_guesses = [7367.96, 7368-511] #lead 207 n, gamma
 energy_guesses = [558]
 energy_guesses = [1280.96, 1377.67]
+energy_guesses = [474,478,484]
+energy_guesses = [1293,8469]
 verify = True
-#config = {"runs": {"name": "Cycle493_RD_low_gain"}}
+config = {"runs": {"name": "Cycle493_RD_low_gain"}}
 #config = {"runs": {"name": "Cycle494_RD_low_gain_lead"}}
-config = {"runs": {"name": "PreCycle494_RD_low_gain"}}
+#config = {"runs": {"name": "PreCycle494_RD_low_gain"}}
 #config = None
 
 #rundata= {"NFACE": "CYCLE461_DOWN_FACING_OVERNIGHT.txt"}

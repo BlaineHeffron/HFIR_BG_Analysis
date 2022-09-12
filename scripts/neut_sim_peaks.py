@@ -9,7 +9,7 @@ from src.utilities.util import get_data_dir, populate_data, fit_spectra, combine
 
 def read_md_file(path):
     d = {}
-    thresh = 10
+    thresh = 5
     with open(path, 'r') as f:
         cur_name = None
         for line in f.readlines():
