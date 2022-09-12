@@ -45,6 +45,9 @@ def main():
         all_energies = mydata[key][0]
         peak_data = fit_spectra({"neut_sim": hist}, all_energies, args.basedir, verify, True, False)
         for e, d in peak_data.items():
+            if isinstance(e, str) and ',' in e:
+                print( "{0} {1} area {2}".format(key, d.fit_energy_string(), d.area()))
+                continue
             for en, freq in zip(*mydata[key]):
                 if en == e:
                     try:
@@ -57,7 +60,7 @@ def main():
                                 for myen in mydata[mykey][0]:
                                     if abs(myen - en) < 4:
                                         nearby_peaks.append(myen)
-                            print("other nearby peaks are {}".format(nearby_peaks))
+                            #print("other nearby peaks are {}".format(nearby_peaks))
                         else:
                             print("{0} {1} {2:.2f} {3:.2f} area {4:.2f}".format(key, freq, en, float(d.fit_energy_string()), d.area()[0]))
                     except Exception as e:
