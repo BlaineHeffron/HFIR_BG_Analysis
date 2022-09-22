@@ -1099,6 +1099,7 @@ class SubtractSpectrum(SpectrumData):
         self.nbins = spec.nbins
         self.hist = spec.live*(spec.hist/spec.live - subspec.hist/subspec.live)
         self.err = np.sqrt(np.abs(spec.hist) + np.square(spec.live/subspec.live)*np.abs(subspec.hist))
+        self.hist_err = copy(self.err)
         self.data = self.hist[1:-1]
         self.start = spec.start
         self.substart = subspec.start
@@ -1109,11 +1110,12 @@ class SubtractSpectrum(SpectrumData):
         self.subfname = subspec.fname
 
     def get_normalized_err(self):
-        return (self.err[1:-1] / (self.bin_edges[1:] - self.bin_edges[:-1]))/self.live
+        return (self.hist_err[1:-1] / (self.bin_edges[1:] - self.bin_edges[:-1]))/self.live
 
     def rebin(self, bin_edges=None):
         super().rebin(bin_edges)
-        numba_rebin(self.err[1:-1], self.err, self.A0, self.A1, self.bin_edges)
+        self.hist_err = np.zeros((bin_edges.shape[0] + 1,), dtype=np.float32)
+        numba_rebin(self.err[1:-1], self.hist_err, self.A0, self.A1, self.bin_edges)
 
     def add(self, s):
         super().add(s)

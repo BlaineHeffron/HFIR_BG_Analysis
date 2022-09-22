@@ -17,7 +17,7 @@ en = [5, 6.5, 8.5, 10, 12]
 
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "AD1_fit")
 bin_edges = get_bins(0.1, 14, 14*5)
-range_check = (0.1, 12)
+range_check = (0.1, 13)
 #range_check = (10., 14.)
 
 def get_fits(args, spec, outpath):
@@ -92,7 +92,10 @@ def main():
         print("scale is {}".format(scale))
 
     outpath = join(outdir, args.name)
-    get_fits(args, spec, outpath)
+    try:
+        get_fits(args, spec, outpath)
+    except Exception as e:
+        print(e)
     if simspec is not None:
         print("sim fits:")
         simargs = copy(args)
@@ -111,6 +114,7 @@ def check_segs():
     arg.add_argument("f", help="path to root file containing AD1 hist", type=str)
     arg.add_argument("name", help="name for output plots", type=str)
     arg.add_argument("sim", help="path to sim root file for comparison", type=str)
+    arg.add_argument("--bg","-b", help="path to background root file", type=str)
     args = arg.parse_args()
     spec_path = "SingleSegmentsIoniPlugin/hSegEnergy_"
     simspec = get_spec_from_root(args.sim, "SingleSegmentsIoniPlugin/hSumE", "runtime", False)
@@ -121,6 +125,9 @@ def check_segs():
     for i in range(14*11):
         try:
             spec = get_spec_from_root(args.f, spec_path + str(i), "runtime", False)
+            if args.bg:
+                bgspec = get_spec_from_root(args.bg, spec_path + str(i), "runtime", False)
+                spec = SubtractSpectrum(spec, bgspec)
             spec.rebin(bin_edges)
             data = spec.get_normalized_hist()[start_index:end_index]
             data_err = spec.get_normalized_err()[start_index:end_index]
@@ -143,5 +150,5 @@ def check_segs():
     print("minimum chisqr is seg {} with chisqr {}".format(minname, minchisqr))
 
 if __name__ == "__main__":
-    check_segs()
-    #main()
+    #check_segs()
+    main()
