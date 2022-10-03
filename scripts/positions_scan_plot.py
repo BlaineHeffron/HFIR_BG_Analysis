@@ -9,7 +9,7 @@ from src.database.HFIRBG_DB import HFIRBG_DB
 from src.utilities.PlotUtils import scatter_plot, HFIR_scatter_plot
 from src.utilities.util import retrieve_position_scans, get_bins, get_data_dir, \
     retrieve_spectra, retrieve_file_extension
-from src.database.CartScanFiles import CartScanFiles, parse_orientation_key
+from src.database.CartScanFiles import CartScanFiles, parse_orientation_key, convert_cart_coord_to_det_coord
 
 # energy_cutoffs = [50, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11400]
 energy_cutoffs = [50, 11400]
@@ -169,9 +169,12 @@ def plot_top_down_rates(scan_spec, energy_ranges, labels):
         if len(rates[i]) < 3:
             continue
         # fig = scatter_plot(x, y, rates[i], "z", "x", "rate [hz/keV]", "det angle = {0}, cart angle = {1}, {2}".format(angle, phi, labels[i]), xmin=40, ymin=0, xmax=420, ymax=160, invert_y=True)
+        #star_point = convert_cart_coord_to_det_coord(30.5, 216.5, 30.5, 199.5, 0.0)
+        #star_point = convert_cart_coord_to_det_coord(27, 178, 27, 160.5, 0.0)
+        star_point = None
         fig = HFIR_scatter_plot(x, y, rates[i], "rate [hz]",
                                 "down facing, {}".format(labels[i]),
-                                invert_y=True, use_contour=True)
+                                invert_y=True, use_contour=True, star_point=star_point)
         plot_name = "down_facing_{0}_to_{1}.png".format(energy_ranges[i][0], energy_ranges[i][1])
         plt.savefig(join(outdir, plot_name), bbox_inches='tight')
         plt.close(fig)

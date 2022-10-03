@@ -13,6 +13,7 @@ rundata = {"Reactor Spectrum": 2915}
 #rundata = {n : n for n in names}
 #rundata = {"SE_TEST_2": "SE_TEST_2"}
 rundata = {"PROSPECT_DOWN_OVERNIGHT": "PROSPECT_DOWN_OVERNIGHT"}
+#rundata = {"north_face": "CYCLE461_DOWN_FACING_OVERNIGHT"}
 
 def main():
     db = HFIRBG_DB()

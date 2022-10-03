@@ -17,6 +17,7 @@ from collections import OrderedDict
 #from util import safe_divide, write_x_y_csv
 
 #mpl.use('Agg')
+
 plt.rcParams['font.size'] = '14'
 TITLE_SIZE = 16
 
@@ -1013,14 +1014,14 @@ def scatter_plot(x, y, c, xlabel, ylabel, zlabel, title, ymin=None, ymax=None, x
     return fig
 
 
-def HFIR_scatter_plot(x, y, c, zlabel, title, invert_y=False, invert_x=False, xdates=False, use_contour=False, phi=None):
+def HFIR_scatter_plot(x, y, c, zlabel, title, invert_y=False, invert_x=False, xdates=False, use_contour=False, phi=None, star_point=None):
     xmin = 40
     ymin = 0
     xmax = 420
     ymax = 180
     #rcParams.update({'font.size': 14})
     ratio = abs((ymax - ymin) / (xmax - xmin))*4./5
-    fig = plt.figure(figsize=(7, 7*ratio))
+    fig = plt.figure(figsize=(14, 14*ratio))
     ax1 = fig.add_subplot(111)
     ax1.set_xlabel("z [in]")
     ax1.set_ylabel("x [in]")
@@ -1108,10 +1109,10 @@ def HFIR_scatter_plot(x, y, c, zlabel, title, invert_y=False, invert_x=False, xd
                             fill=True,
                             lw=1))
     # russian doll
-    ax1.add_patch(Circle((200, 21.5+12), 12,
-                         edgecolor='green',
-                         fill=False,
-                         lw=2))
+    #ax1.add_patch(Circle((200, 21.5+12), 12,
+    #                     edgecolor='green',
+    #                     fill=False,
+    #                     lw=2))
     #ax1.set_title(title)
     ax1.xaxis.set_minor_locator(AutoMinorLocator())
     ax1.yaxis.set_minor_locator(AutoMinorLocator())
@@ -1119,6 +1120,11 @@ def HFIR_scatter_plot(x, y, c, zlabel, title, invert_y=False, invert_x=False, xd
     ax1.tick_params(axis="y", direction="in", length=16, width=1)
     ax1.tick_params(axis="x", which="minor", direction="in", length=8, width=1)
     ax1.tick_params(axis="y", which="minor", direction="in", length=8, width=1)
+    if star_point is not None:
+        x = [star_point[0]]
+        y = [star_point[1]]
+        print("star point is at {0} {1}".format(x,y))
+        ax1.scatter(y,x,marker='*',s=300,c='r')
     if h:
         cb = plt.colorbar(h)
         cb.set_label(zlabel, rotation=270, labelpad=20)
