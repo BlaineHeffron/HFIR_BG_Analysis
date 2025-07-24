@@ -221,7 +221,11 @@ class SQLiteBase:
             else:
                 where += "{0} = '{1}' AND ".format(key, dict[key])
         where = where[0:-5]
-        return self.fetchall("SELECT * FROM {0} {1}".format(table, where))
+        result = self.fetchall("SELECT * FROM {0} {1}".format(table, where))
+        if not result:
+            raise ValueError(f"No records found in table '{table}' with the specified criteria: '{where}'")
+        
+        return result
 
     def set_row_mode_dict(self):
         self.__db_connection.row_factory = sqlite3.Row

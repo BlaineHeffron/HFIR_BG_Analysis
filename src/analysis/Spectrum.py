@@ -683,7 +683,8 @@ class SpectrumFitter:
         self.up_bound_bkg_scale = 30.0
         self.sigma_guess_offset = 0.59  # keV
         self.sigma_guess_slope = 0.00015  # keV
-        self.window_factor = 20
+        self.window_factor = 3 
+        self.window_offset = 10
         self.fit_values = {}
         self.n_retries = 5
         self.expected_offset_factor = 1
@@ -714,14 +715,14 @@ class SpectrumFitter:
                 continue
             sigma_guess = self.get_sigma_guess(peak_x)
             peak_guess = spec.data_at_x(peak_x)
-            num_samples = int(round(self.window_factor * sigma_guess / spec.A1))
+            num_samples = self._calculate_window_width(sigma_guess, spec.A1)
             start_ind = peak_guess - int(floor(num_samples / 2))
             stop_ind = peak_guess + int(floor(num_samples / 2)) + 1
             peak_groups[current_group].append(peak_x)
             for j, peak_x_2 in enumerate(self.expected_peaks[i + 1:]):
                 sigma_guess_2 = self.get_sigma_guess(peak_x_2)
                 peak_guess_2 = spec.data_at_x(peak_x_2)
-                num_samples_2 = int(round(self.window_factor * sigma_guess_2 / spec.A1))
+                num_samples_2 = self._calculate_window_width(sigma_guess_2, spec.A1)
                 start_ind_2 = peak_guess_2 - int(floor(num_samples_2 / 2))
                 stop_ind_2 = peak_guess_2 + int(floor(num_samples_2 / 2)) + 1
                 if (start_ind_2 < stop_ind and start_ind_2 > start_ind) or (
@@ -812,10 +813,18 @@ class SpectrumFitter:
             for peak in peaks:
                 sigma_guesses.append(self.get_sigma_guess(peak))
                 centroid_guesses.append(spec.data_at_x(peak * self.expected_offset_factor))
-            num_samples_first = int(round(self.window_factor * sigma_guesses[0] / spec.A1))
-            start_ind = centroid_guesses[0] - int(floor(num_samples_first / 2))
-            num_samples_last = int(round(self.window_factor * sigma_guesses[-1] / spec.A1))
-            stop_ind = centroid_guesses[-1] + int(floor(num_samples_last / 2)) + 1
+                print("sigma guess for peak {0} is {1}".format(sigma_guesses[-1], centroid_guesses[-1]))
+            # Calculate bounds for each peak
+            peak_bounds = []
+            for i, (centroid, sigma) in enumerate(zip(centroid_guesses, sigma_guesses)):
+                num_samples = self._calculate_window_width(sigma, spec.A1)
+                peak_start = centroid - int(floor(num_samples / 2))
+                peak_stop = centroid + int(floor(num_samples / 2)) + 1
+                peak_bounds.append((peak_start, peak_stop))
+
+            # Find the overall bounds considering all peaks
+            start_ind = min(bound[0] for bound in peak_bounds)
+            stop_ind = max(bound[1] for bound in peak_bounds)
             # find_peaks(spec.data[start_ind:stop_ind], maxlocs, smallest_sep)
             # maxlocs = maxlocs + start_ind
             # maxlocs.sort()
@@ -882,6 +891,7 @@ class SpectrumFitter:
                     break
             if not fit_ready:
                 return
+            print("fitting {0} with lower bounds {1} upper bounds {2}".format(peaks, lower_bounds, upper_bounds))
             parameters, covariance = curve_fit(ge_multi_peak_function, xs, ys, p0=guesses,  # sigma=sigma,
                                                bounds=(lower_bounds, upper_bounds), sigma=sigma,
                                                # absolute_sigma=True,  maxfev=100000,
@@ -892,14 +902,16 @@ class SpectrumFitter:
             peak_str = ','.join(peak_str)
             self.fit_values[peak_str] = MultiPeakFit(parameters, errs, covariance, xs, ys)
 
+    def _calculate_window_width(self, sigma, spec_A1, use_large_window=False):
+        """Calculate window width in samples for a given sigma."""
+        factor = 3 * self.window_factor if use_large_window else self.window_factor
+        return int(round(factor * sigma / spec_A1)) + self.window_offset
+
     def fit(self, spec: SpectrumData, peak_x):
         sigma_guess = self.get_sigma_guess(peak_x)
         peak_guess = spec.data_at_x(peak_x * self.expected_offset_factor)
-        if self.expected_offset_factor == 1 and self.auto_set_offset_factor:
-            # use a larger window at first to get the expected offset
-            num_samples = int(round(3 * self.window_factor * sigma_guess / spec.A1))
-        else:
-            num_samples = int(round(self.window_factor * sigma_guess / spec.A1))
+        use_large_window = self.expected_offset_factor == 1 and self.auto_set_offset_factor
+        num_samples = self._calculate_window_width(sigma_guess, spec.A1, use_large_window)
         start_ind = peak_guess - int(floor(num_samples / 2))
         stop_ind = peak_guess + int(floor(num_samples / 2)) + 1
         max_val = np.amax(spec.data[start_ind:stop_ind])
@@ -1120,3 +1132,26 @@ class SubtractSpectrum(SpectrumData):
     def add(self, s):
         super().add(s)
         self.err = np.sqrt(self.err + s.err)
+
+class CustomSigmaSpectrumFitter(SpectrumFitter):
+    """
+    SpectrumFitter that allows the user to override the sigma-guess (and the
+    search / fit window that depends on it) for selected peak energies.
+    """
+    def __init__(self, expected_peaks, custom_sigmas=None, name=None):
+        """
+        custom_sigmas : dict  {energy_keV : sigma_guess_keV}
+
+        Example:
+            custom_sigmas = {478.0 : 5.1}      # FWHM≈12 keV  →  σ≈12/2.355 ≃ 5.1 keV
+        """
+        super().__init__(expected_peaks, name=name)
+        self.custom_sigmas = custom_sigmas or {}
+
+    # ------------------------------------------------------------------
+    # overwrite only one method – everything else stays unchanged
+    # ------------------------------------------------------------------
+    def get_sigma_guess(self, energy):
+        if energy in self.custom_sigmas:
+            return self.custom_sigmas[energy]
+        return super().get_sigma_guess(energy)

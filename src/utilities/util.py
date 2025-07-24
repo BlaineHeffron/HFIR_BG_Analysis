@@ -147,8 +147,11 @@ def retrieve_data(myf, db=None):
 
 
 def dt_to_string(t):
-    dt = datetime.fromtimestamp(t)
-    return dt.strftime("%Y-%m-%d, %H:%M:%S")
+    try:
+        dt = datetime.fromtimestamp(t)
+        return dt.strftime("%Y-%m-%d, %H:%M:%S")
+    except (ValueError, OverflowError, OSError):
+        return "Invalid date"
 
 
 def safe_divide(a, b):
