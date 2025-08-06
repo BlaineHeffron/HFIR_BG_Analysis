@@ -939,6 +939,8 @@ def fix_table(fpath):
 
 def fit_spectra(data, expected_peaks, plot_dir=None, user_verify=False, plot_fit=False, auto_set_offset=True):
     fit_data = {}
+    print(data)
+    print(expected_peaks)
     for name, spec in data.items():
         spec_fitter = SpectrumFitter(expected_peaks, name=name)
         spec_fitter.auto_set_offset_factor = auto_set_offset

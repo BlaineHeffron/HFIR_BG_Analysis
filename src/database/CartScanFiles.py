@@ -119,6 +119,8 @@ def test():
     print("coords: {0}, phi: {1}".format(coords, convert_coord_to_phi(*coords)))
     coords = [0, 20, 0, 10]  # Rx, Rz, Lx, Lz,
     print("coords: {0}, phi: {1}".format(coords, convert_coord_to_phi(*coords)))
+    coords = [0, 20, 0, 10, 90]
+    print("coords: {0}, detector coords: {1}".format(coords, convert_cart_coord_to_det_coord(*coords)))
     coords = [21.0, 94.5, 38.0, 90.5]
     print("coords: {0}, phi: {1}".format(coords, convert_coord_to_phi(*coords)))
     coords = [0, 17.5, 0, 0, 90]

@@ -911,7 +911,9 @@ class SpectrumFitter:
         sigma_guess = self.get_sigma_guess(peak_x)
         peak_guess = spec.data_at_x(peak_x * self.expected_offset_factor)
         use_large_window = self.expected_offset_factor == 1 and self.auto_set_offset_factor
+        print('sigma guess {}'.format(sigma_guess))
         num_samples = self._calculate_window_width(sigma_guess, spec.A1, use_large_window)
+        print('num samples {}'.format(num_samples))
         start_ind = peak_guess - int(floor(num_samples / 2))
         stop_ind = peak_guess + int(floor(num_samples / 2)) + 1
         max_val = np.amax(spec.data[start_ind:stop_ind])
@@ -924,9 +926,6 @@ class SpectrumFitter:
             self.expected_offset_factor = max_ind / peak_guess
             print(
                 "setting expected offset factor to {} for subsequent peak searches".format(self.expected_offset_factor))
-        num_samples = int(round(self.window_factor * sigma_guess / spec.A1))
-        start_ind = max_ind - int(floor(num_samples / 2))
-        stop_ind = max_ind + int(floor(num_samples / 2)) + 1
         xs = spec.get_data_x()[start_ind:stop_ind]
         centroid_guess = (max_ind + 1) * spec.A1 + spec.A0
         beta_guess = sigma_guess
