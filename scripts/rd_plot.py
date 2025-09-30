@@ -88,10 +88,10 @@ def main():
         med_e_data_off = {}
         for shield_id in rd_data.keys():
             rd_shield_id = shield_id - 2
-            #if rd_shield_id in shield_names.keys():
-            #    rd_shield_id = shield_names[rd_shield_id]
-            #else:
-            #    continue
+            if rd_shield_id in shield_names.keys():
+                rd_shield_id = shield_names[rd_shield_id]
+            else:
+                continue
             for acq_id in rd_data[shield_id].keys():
                 if acq_id == 7 or acq_id == 17:
                     low_e_data[rd_shield_id] = rd_data[shield_id][acq_id]
@@ -109,7 +109,7 @@ def main():
                         if acq_id in rd_data_off[shield_id].keys():
                             med_e_data_off[rd_shield_id] = rd_data_off[shield_id][acq_id]
         plot_multi_spectra(high_e_data, join(outdir, "rd_high_en_shield_comparison"), rebin_edges=full_bins)
-        plot_multi_spectra(low_e_data, join(outdir, "rd_low_en_shield_comparison"), rebin_edges=ninety_range, ylog=False, emin=ninety_range[0])
+        plot_multi_spectra(low_e_data, join(outdir, "rd_low_en_shield_comparison"), rebin_edges=ninety_range, ylog=False, emin=ninety_range[0], ymin=0)
         plot_multi_spectra(med_e_data, join(outdir, "rd_med_en_shield_comparison"), rebin_edges=med_range)
         plot_multi_spectra(high_e_data_off, join(outdir, "rd_RxOff_high_en_shield_comparison"), rebin_edges=full_bins)
         plot_multi_spectra(low_e_data_off, join(outdir, "rd_RxOff_low_en_shield_comparison"), rebin_edges=ninety_range, ylog=False, emin=ninety_range[0])

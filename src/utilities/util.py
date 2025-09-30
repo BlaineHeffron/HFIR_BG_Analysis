@@ -516,13 +516,16 @@ def write_spectra(fdict, outdir, db):
         f.close()
 
 
-def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None, loc="upper right", rebin_edges=None, ebars=True, figsize=(14,8), ylog=True):
+def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None, loc="upper right", rebin_edges=None, ebars=True, figsize=(14,8), ylog=True, ymin=None):
     ys = []
     names = []
     x = []
     end_index = 0
     start_index = 0
-    ymin = 9e10
+    auto_ymin = False
+    if ymin is None:
+        auto_ymin = True
+        ymin = 9e10
     yerrs = []
     for name in fdict.keys():
         if isinstance(fdict[name], SpectrumData):
@@ -540,13 +543,14 @@ def plot_multi_spectra(fdict, n, rebin=1, emin=20, emax=None, loc="upper right",
         x = spec.bin_midpoints[start_index:end_index]
         ys.append(y[start_index:end_index])
         yerrs.append(spec.get_normalized_err()[start_index:end_index])
-        minval = 9e10
-        for i in range(len(ys)):
-            mval = np.min(ys[i][ys[i] > 0])
-            if mval < minval:
-                minval = mval
-        if ymin > minval:
-            ymin = minval
+        if auto_ymin:
+            minval = 9e10
+            for i in range(len(ys)):
+                mval = np.min(ys[i][ys[i] > 0])
+                if mval < minval:
+                    minval = mval
+            if ymin > minval:
+                ymin = minval
         names.append(name)
         # err = [d / live / A1 for d in errs]
         # MultiScatterPlot(x, [y], [err], [name], "Energy [keV]", "Rate [hz/keV]")
