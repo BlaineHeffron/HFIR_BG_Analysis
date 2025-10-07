@@ -23,7 +23,7 @@ plot_name = "rxon_vs_off"
 compare_to = "rxoff"
 
 #rundata = {"MIF": "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","HB4":"HB4_DOWN_OVERNIGHT_1.txt","SHIELD_CENTER":"CYCLE461_DOWN_FACING_OVERNIGHT.txt"}
-rundata = {"MIF": "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","HB4":"HB4_DOWN_OVERNIGHT_1.txt"}
+rundata = {"MIF": "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","HB4":"hb4_down_overnight_1.txt"}
 plot_name = "HB4_vs_MIF"
 compare_to = "MIF"
 bins = get_bins(100, 11500, 11400)
@@ -218,22 +218,24 @@ compare_to = "1"
 bins = get_bins(0, 88,180)
 #bins = None
 
-rundata = {"rxon":"EAST_FACE_18.txt","rxoff":"MIF_BOX_AT_REACTOR_RXOFF"}
-plot_name = "rxon_vs_off"
+rundata = {"East":"EAST_FACE_18.txt","rxoff":"MIF_BOX_AT_REACTOR_RXOFF", "NE":"CYCLE461_DOWN_FACING_OVERNIGHT.txt"}
+plot_name = "NE_vs_E"
 compare_to = "rxoff"
 bins = get_bins(500, 2800, 2300)
 
-rundata = {"RD_494_ON": [4395 + i for i in range(5)], "RD_494_OFF": [4011 + i for i in range(5)]}
-plot_name = "RD_ON_VS_OFF_COMPARISON"
-compare_to = "RD_494_OFF"
-bins = get_bins(100, 520, 420)
+rundata = {"rxon":"MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt","rxoff":"MIF_BOX_AT_REACTOR_RXOFF"}
+plot_name = "rxon_vs_off"
+compare_to = "rxoff"
+
+#rundata = {"RD_494_ON": [4395 + i for i in range(5)], "RD_494_OFF": [4011 + i for i in range(5)]}
+#plot_name = "RD_ON_VS_OFF_COMPARISON"
+#compare_to = "RD_494_OFF"
+#bins = get_bins(100, 520, 420)
 
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "spectrum_plots")
 
 emin = [1000 * i for i in range(12)]
 emax = [1000 * (i + 1) for i in range(12)]
-emin = [12]
-emax = [88]
 
 emin_plot = 0
 rebin = 1

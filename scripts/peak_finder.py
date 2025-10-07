@@ -38,12 +38,14 @@ energy_guesses = [474,478,484]
 energy_guesses = [1293,8469]
 #energy_guesses = [1460.8, 1460.8 - 511, 1460.8 - 511*2, 482, 478]
 energy_guesses = [478]
+energy_guesses = [2614.3, 1332.5, 1173.2, 2754]
+energy_guesses = [1293]
 #energy_guesses = [1368, 2754]
 verify = True
 #config = {"runs": {"name": "Cycle493_RD_low_gain"}}
 #config = {"runs": {"name": "Cycle494_RD_low_gain_lead"}}
-config = {"runs": {"name": "PreCycle494_RD_low_gain"}}
-#config = {"runs": {"name": "PostCycle490C_MIF"}}
+#config = {"runs": {"name": "PreCycle494_RD_low_gain"}}
+config = {"runs": {"name": "PostCycle490C_MIF"}}
 #config = None
 
 #rundata= {"NFACE": "CYCLE461_DOWN_FACING_OVERNIGHT.txt"}

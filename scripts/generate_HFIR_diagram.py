@@ -89,11 +89,11 @@ def HFIR_diagram():
     ax1.text(145, 18, 'Pb Wall', color='black', fontsize=15)
     ax1.text(20, 18, 'Pb Wall', color='black', fontsize=15)
     # russian doll
-    ax1.add_patch(Circle((200, 21.5 + 12), 12,
-                         edgecolor='green',
-                         fill=False,
-                         lw=2))
-    ax1.text(72, 38, 'Russian Doll Shield', fontsize=15, color='black')
+    #ax1.add_patch(Circle((200, 21.5 + 12), 12,
+    #                     edgecolor='green',
+    #                     fill=False,
+    #                     lw=2))
+    #ax1.text(72, 38, 'Russian Doll Shield', fontsize=15, color='black')
     # ax1.set_title(title)
     ax1.xaxis.set_minor_locator(AutoMinorLocator())
     ax1.yaxis.set_minor_locator(AutoMinorLocator())
@@ -175,10 +175,10 @@ def HFIR_diagram_with_detectors():
                             lw=1))
     
     # russian doll (no text)
-    ax1.add_patch(Circle((200, 21.5 + 12), 12,
-                         edgecolor='green',
-                         fill=False,
-                         lw=2))
+    #ax1.add_patch(Circle((200, 21.5 + 12), 12,
+    #                     edgecolor='green',
+    #                     fill=False,
+    #                     lw=2))
     
     ax1.xaxis.set_minor_locator(AutoMinorLocator())
     ax1.yaxis.set_minor_locator(AutoMinorLocator())
@@ -192,20 +192,23 @@ def HFIR_diagram_with_detectors():
     
     # Define key measurement positions and their labels
     key_positions = {
-        "HB4_DOWN_OVERNIGHT_1.txt": {"label": "HB4 Hotspot", "color": "red"},
-        "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt": {"label": "MIF", "color": "blue"}, 
-        "CYCLE461_DOWN_FACING_OVERNIGHT.txt": {"label": "Shield Center", "color": "brown"},
-        #"SW_1": {"label": "SW 1", "color": "orange"},
-        #"EAST_FACE_2": {"label": "EAST 2", "color": "brown"},
+        #"HB4_DOWN_OVERNIGHT_1.txt": {"label": "HB4 Hotspot", "color": "red"},
+        #"MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt": {"label": "MIF", "color": "blue"}, 
+        #"CYCLE461_DOWN_FACING_OVERNIGHT.txt": {"label": "Shield Center", "color": "brown"},
+        #"PROSPECT_DOWN_OVERNIGHT.txt": {"label": "NW corner", "color": "orange"},
+        "EAST_FACE_16": {"label": "EAST", "color": "blue"},
+        "CYCLE461_DOWN_FACING_OVERNIGHT": {"label": "NE", "color": "red"},
     }
     
-    arrow_length = 20  # Length of arrows in plot units
+    arrow_length = 12  # Length of arrows in plot units
     legend_handles = []
     legend_labels = []
     color_map = {
         "red": (1.0, 0.0, 0.0, 1.0),    # For HB4 Hotspot
         "blue": (0.0, 0.0, 1.0, 1.0),   # For MIF
-        "brown": (0.647, 0.165, 0.165, 1.0)  # For Shield Center
+        "brown": (0.647, 0.165, 0.165, 1.0),  # For Shield Center
+        "orange": (1.0, 0.647, 0.0, 1.0),
+        "purple": (0.6, 0.2, 0.8, 1.0) 
     }
 
     for filename, info in key_positions.items():
@@ -240,17 +243,15 @@ def HFIR_diagram_with_detectors():
                     dz = arrow_length * cos(phi_rad)  # West is negative z
                     dx = -arrow_length * sin(phi_rad)  # North is negative x
                     
-                    # Create arrow with explicit facecolor and edgecolor (no 'color' parameter to avoid conflicts)
-                    arrow = FancyArrowPatch((z_pos, x_pos), 
-                                            (z_pos + dz, x_pos + dx),
-                                            arrowstyle='->', 
-                                            facecolor=rgba,
-                                            edgecolor=rgba,
-                                            fill=True,  # Explicitly ensure the arrowhead is filled
-                                            linewidth=2,
-                                            mutation_scale=15,
-                                            zorder=10)
-                    ax1.add_patch(arrow)
+                    # Create arrow using ax.arrow() instead of FancyArrowPatch
+                    ax1.arrow(z_pos, x_pos,  # start point
+                             dz, dx,  # direction
+                             width=2,  # width of arrow
+                             head_width=8,  # width of arrow head
+                             head_length=5,  # length of arrow head
+                             fc=rgba, # facecolor
+                             ec=rgba,  # edgecolor
+                             zorder=10)
                     
                     # Add a scatter point for the legend using RGBA
                     scatter = ax1.scatter(z_pos, x_pos, marker='o', s=50, c=[rgba], 

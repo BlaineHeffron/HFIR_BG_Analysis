@@ -16,15 +16,22 @@ rundata = {"original_1": 54, "original_2": 55, "original_cart_xzrot_90": 56,
 rundata = {"PROSPECT_NW": "PROSPECT_DOWN_OVERNIGHT",
            "PROSPECT_NE": "CYCLE461_DOWN_FACING_OVERNIGHT"}
 
-compare_to = "PROSPECT_NE"
-compare_name = "NE_vs_NW_corner"
+rundata = {"East":"EAST_FACE_16.txt","NE":"CYCLE461_DOWN_FACING_OVERNIGHT.txt"}
+compare_to = "NE"
+compare_name = "E_vs_NE_corner"
+
+outdir = join(os.environ["HFIRBG_ANALYSIS"], "spectrum_plots")
+
 def main():
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+    pname = join(outdir, compare_name)
     datadir = get_data_dir()
     db = HFIRBG_DB()
     data = populate_data(rundata, datadir, db)
     combine_runs(data)
-    plot_multi_spectra(data, compare_name, rebin=10)
-    plot_subtract_spectra(data, compare_to, compare_name + "_sub", rebin=100)
+    plot_multi_spectra(data, pname, rebin=40)
+    plot_subtract_spectra(data, compare_to, pname + "_sub", rebin=100)
 
 
 if __name__ == "__main__":

@@ -86,7 +86,7 @@ def main():
     print("\\centering")
     print("\\begin{tabular}{|l|c|c|}")
     print("\\hline")
-    print("Location & Rx On (cts/s/keV/kg) & Rx Off (cts/s/keV/kg) \\\\ \\hline")
+    print("Location & Rx On (hz/keV/kg) & Rx Off (hz/keV/kg) \\\\ \\hline")
     for loc in results:
         on_val, on_err = results[loc]["on"]
         off_val, off_err = results[loc]["off"]
