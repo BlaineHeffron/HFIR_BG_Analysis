@@ -2,13 +2,23 @@ import sys
 from os.path import dirname, realpath
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
 from argparse import ArgumentParser
-from ROOT import TFile, TCanvas, TLegend, kRed, kBlue, kRed, gPad, TGaxis
-
-from src.utilities.ROOT_style import ROOT_style
+from ROOT import TFile
+import matplotlib
+matplotlib.use('Agg')  # Set backend before importing pyplot
+import matplotlib.pyplot as plt
+import numpy as np
 import os
-from src.utilities.util import scale_to_bin_width
 
 nIncrements = 10
+
+def hist_to_arrays(hist):
+    """Convert ROOT histogram to numpy arrays"""
+    n_bins = hist.GetNbinsX()
+    x = np.array([hist.GetBinCenter(i+1) for i in range(n_bins)])
+    y = np.array([hist.GetBinContent(i+1) for i in range(n_bins)])
+    yerr = np.array([hist.GetBinError(i+1) for i in range(n_bins)])
+    edges = np.array([hist.GetBinLowEdge(i+1) for i in range(n_bins+1)])
+    return x, y, yerr, edges
 
 def chisqr(obs_hist, exp_hist):
     chisqr = 0
@@ -19,78 +29,103 @@ def chisqr(obs_hist, exp_hist):
             chisqr += exp_hist.GetBinContent(i+1)
         else:
             chisqr += (obs_hist.GetBinContent(bin_num) - exp_hist.GetBinContent(i+1))**2 / obs_hist.GetBinError(bin_num)**2
-        #print("observed is {0} expected is {1} diff is {2}".format(obs_hist.GetBinContent(bin_num), exp_hist.GetBinContent(i+1), obs_hist.GetBinContent(bin_num) - exp_hist.GetBinContent(i+1)))
     return chisqr
 
 def main():
     arg = ArgumentParser()
-    ROOT_style()
     arg.add_argument("f",help="path to root file containing reconstructed histogram", type=str)
     arg.add_argument("foriginal",help="path to root file containing original histogram", type=str)
     arg.add_argument("outpath",help="path to output graphs", type=str)
     args = arg.parse_args()
+    
     f = TFile(args.f,"READ")
     hist_recon = f.Get("FoldedBack")
-    #f2 = TFile(args.foriginal,"READ")
-    #hist_measure = f2.Get("GeDataHist")
-    #hist_live = f2.Get("LiveTime")[0]
     hist_measure = f.Get("Measured")
     hist_en = f.Get("UnfoldedEnergy")
     hist_unf = f.Get("Unfolded")
     n_vectors = hist_unf.GetNbinsX()
-    #hist_measure.Scale(1./hist_live)
-    #scale_to_bin_width(hist_measure)
-    #hist_copy = hist_measure.Clone()
-    #hist_copy.Add(hist_recon,-1)
+    
+    # Convert to numpy arrays
+    x_recon, y_recon, yerr_recon, edges_recon = hist_to_arrays(hist_recon)
+    x_measure, y_measure, yerr_measure, edges_measure = hist_to_arrays(hist_measure)
+    x_en, y_en, yerr_en, edges_en = hist_to_arrays(hist_en)
+    
     print("chisqr is {}".format(chisqr(hist_measure, hist_recon)))
-    print("ndf = {}".format(hist_measure.GetNbinsX() -n_vectors))
-    canvas = TCanvas("canvas")
-    canvas.cd()
-    canvas.SetLogy(True)
-    canvas.Print(os.path.join(args.outpath, "unfoldplots.pdf["))
-    xlow = hist_recon.GetXaxis().GetBinLowEdge(1)
-    xhigh = hist_recon.GetXaxis().GetBinLowEdge(hist_recon.GetNbinsX()+1)
-    xlow2 = hist_measure.GetXaxis().GetBinLowEdge(1)
-    xhigh2 = hist_measure.GetXaxis().GetBinLowEdge(hist_measure.GetNbinsX()+1)
-    if xhigh > xhigh2:
-        xhigh = xhigh2
-    if xlow < xlow2:
-        xlow = xlow2
-    #hist_recon.Rebin(3)
-    #hist_measure.Rebin(3)
-    #hist_en.Rebin(3)
-    hist_recon.GetXaxis().SetRangeUser(xlow, xhigh)
-    hist_measure.GetXaxis().SetRangeUser(xlow, xhigh)
-    hist_en.GetXaxis().SetRangeUser(xlow, xhigh)
-    #hist_en.Rebin(2)
-    #hist_measure.SetLineColor(kBlack)
-    hist_measure.Draw("L")
-    hist_recon.SetLineColor(kBlue)
-    hist_recon.Draw("L SAME")
-    hist_en.SetLineColor(kRed)
-    rightmax = 1.1*hist_en.GetMaximum()
-    legend = TLegend(0.7, 0.85, .9, 0.95)
-    legend.AddEntry(hist_measure, "Measured", "f")
-    legend.AddEntry(hist_recon, "reconstructed", "f")
-    legend.Draw()
-    canvas.Print(os.path.join(args.outpath, "unfoldplots.pdf"))
-    hist_en.Draw("HIST")
-    canvas.Print(os.path.join(args.outpath, "unfoldplots.pdf"))
-    width = (xhigh - xlow) / nIncrements
-    for i in range(nIncrements):
-        hist_recon.GetXaxis().SetRangeUser(xlow + i*width, xlow + (i+1)*width)
-        hist_measure.GetXaxis().SetRangeUser(xlow + i*width, xlow + (i+1)*width)
-        hist_en.GetXaxis().SetRangeUser(xlow + i*width, xlow + (i+1)*width)
-        hist_measure.Draw("HIST C")
-        hist_recon.Draw("HIST SAME C")
-        legend.Draw()
-        canvas.Print(os.path.join(args.outpath, "unfoldplots.pdf"))
-        hist_en.Draw("HIST C")
-        canvas.Print(os.path.join(args.outpath, "unfoldplots.pdf"))
-
-    #canvas.Print(os.path.join(args.outpath, "unfoldplots.pdf"))
-    #hist_copy.Draw()
-    canvas.Print(os.path.join(args.outpath, "unfoldplots.pdf]"))
+    print("ndf = {}".format(hist_measure.GetNbinsX() - n_vectors))
+    
+    # Determine x-axis range
+    xlow = max(edges_recon[0], edges_measure[0])
+    xhigh = min(edges_recon[-1], edges_measure[-1])
+    
+    # Create PDF
+    from matplotlib.backends.backend_pdf import PdfPages
+    pdf_path = os.path.join(args.outpath, "unfoldplots.pdf")
+    
+    with PdfPages(pdf_path) as pdf:
+        # Main plot with measured and reconstructed
+        fig, ax = plt.subplots(figsize=(10, 8))
+        # Use very distinct colors with RGB values
+        ax.step(x_measure, y_measure, where='mid', label='Measured',
+                color='#FF0000', linewidth=3, linestyle='-')  # Red
+        ax.step(x_recon, y_recon, where='mid', label='Reconstructed',
+                color='#00FF00', linewidth=3, linestyle='--')  # Green
+        ax.set_xlim(xlow, xhigh)
+        ax.set_yscale('log')
+        ax.set_xlabel('Energy', fontsize=14)
+        ax.set_ylabel('Counts', fontsize=14)
+        ax.legend(loc='upper right', fontsize=12)
+        ax.grid(True, alpha=0.3)
+        pdf.savefig(fig, dpi=150)
+        plt.close()
+        
+        # Unfolded energy plot
+        fig, ax = plt.subplots(figsize=(10, 8))
+        ax.step(x_en, y_en, where='mid', label='Unfolded Energy',
+                color='#0000FF', linewidth=3)  # Blue
+        ax.set_xlim(xlow, xhigh)
+        ax.set_yscale('log')
+        ax.set_xlabel('Energy', fontsize=14)
+        ax.set_ylabel('Counts', fontsize=14)
+        ax.legend(loc='upper right', fontsize=12)
+        ax.grid(True, alpha=0.3)
+        pdf.savefig(fig, dpi=150)
+        plt.close()
+        
+        # Zoomed plots
+        width = (xhigh - xlow) / nIncrements
+        for i in range(nIncrements):
+            xlow_zoom = xlow + i*width
+            xhigh_zoom = xlow + (i+1)*width
+            
+            # Measured vs reconstructed zoomed
+            fig, ax = plt.subplots(figsize=(10, 8))
+            ax.step(x_measure, y_measure, where='mid', label='Measured',
+                    color='#FF0000', linewidth=3, linestyle='-')  # Red
+            ax.step(x_recon, y_recon, where='mid', label='Reconstructed',
+                    color='#00FF00', linewidth=3, linestyle='--')  # Green
+            ax.set_xlim(xlow_zoom, xhigh_zoom)
+            ax.set_yscale('log')
+            ax.set_xlabel('Energy', fontsize=14)
+            ax.set_ylabel('Counts', fontsize=14)
+            ax.legend(loc='upper right', fontsize=12)
+            ax.grid(True, alpha=0.3)
+            pdf.savefig(fig, dpi=150)
+            plt.close()
+            
+            # Unfolded energy zoomed
+            fig, ax = plt.subplots(figsize=(10, 8))
+            ax.step(x_en, y_en, where='mid', label='Unfolded Energy',
+                    color='#0000FF', linewidth=3)  # Blue
+            ax.set_xlim(xlow_zoom, xhigh_zoom)
+            ax.set_yscale('log')
+            ax.set_xlabel('Energy', fontsize=14)
+            ax.set_ylabel('Counts', fontsize=14)
+            ax.legend(loc='upper right', fontsize=12)
+            ax.grid(True, alpha=0.3)
+            pdf.savefig(fig, dpi=150)
+            plt.close()
+    
+    print(f"Saved plots to {pdf_path}")
 
 if __name__ == "__main__":
     main()

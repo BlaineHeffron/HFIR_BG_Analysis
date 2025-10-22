@@ -17,6 +17,7 @@ def linfit(x, y, sigma, plot=None, xlabel="channel #", ylabel="Peak Energy [keV]
         ScatterLinePlot(x, y, sigma, linex, liney, fit_y_errs,
                         ["best fit", r'1 $\sigma$ error', "data"], xlabel, ylabel,
                         ylog=False, legend_loc='best', xmin=xmin, xmax=xmax)
+        plt.tight_layout()
         plt.savefig(plot + ".png")
         plt.close()
     fity = lin_func(x, *coeff)

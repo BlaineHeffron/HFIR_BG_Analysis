@@ -19,6 +19,7 @@ from src.analysis.Spectrum import SpectrumData, SpectrumFitter, SubtractSpectrum
 from src.utilities.PlotUtils import MultiLinePlot, MultiScatterPlot, ScatterLinePlot, ScatterDifferencePlot, \
     MultiXScatterPlot
 from src.utilities.FitUtils import linfit, sqrtfit
+from src.utilities.FitUtils import chisqr as chi_squared 
 from copy import copy
 from ROOT import TFile, TVectorF
 
@@ -130,11 +131,12 @@ def retrieve_data(myf, db=None):
             f.close()
             raise IOError("{0} is not a valid .cnf formatted file. Error: {1}".format(myf, e))
     if db is not None:
+        print("getting calibration for " + fname)
         row = db.retrieve_calibration(fname)
         if row:
-            # print(
-            #    "found calibration for file {0} in database, using values A0 = {1}, A1 = {2} instead of A0 = {3}, A1 = {4}".format(
-            #        fname, row[0], row[1], A0, A1))
+            print(
+               "found calibration for file {0} in database, using values A0 = {1}, A1 = {2} instead of A0 = {3}, A1 = {4}".format(
+                   fname, row[0], row[1], A0, A1))
             A0 = row[0]
             A1 = row[1]
         row = db.retrieve_file_time(fname)
@@ -1111,6 +1113,44 @@ def fit_peak_sigmas(data, expected_peaks, plot_dir=None, user_verify=False,
     dRs = {}
     get_sigmas(peak_data, sigmas, dsigmas)
     get_skews(peak_data, skews, dskews, Rs, dRs)
+
+    # Collect data for LaTeX table
+    table_data = []
+    for peak, peak_fit in peak_data.items():
+        observed = peak_fit.ys
+        fitted = peak_fit.get_y()
+        sigma = np.sqrt(observed)
+        sigma[sigma == 0] = 1  # Avoid division by zero
+        chi2 = chi_squared(observed, fitted, sigma)
+        ndf = len(observed) - len(peak_fit.parameters)
+
+        if isinstance(peak, str):
+            peaks = peak.split(',')
+            for i, p in enumerate(peaks):
+                p = float(p)
+                sigma_val = peak_fit.sigmas[i]
+                dsigma = peak_fit.sigma_errs[i]
+                table_data.append((p, sigma_val, dsigma, chi2, ndf))
+        else:
+            p = float(peak)
+            sigma_val = peak_fit.sigma
+            dsigma = peak_fit.sigma_err
+            table_data.append((p, sigma_val, dsigma, chi2, ndf))
+
+    # Sort by energy
+    table_data.sort(key=lambda x: x[0])
+
+    # Print LaTeX table
+    print("\\begin{table}[h]")
+    print("\\centering")
+    print("\\begin{tabular}{ccccc}")
+    print("Energy & $\\sigma$ & $\\Delta \\sigma$ & $\\chi^2$ & ndf \\\\ ")
+    for row in table_data:
+        print(f"{row[0]:.2f} & {row[1]:.2f} & {row[2]:.2f} & {row[3]:.2f} & {row[4]} \\\\ ")
+    print("\\end{tabular}")
+    print("\\caption{Peak fit results}")
+    print("\\end{table}")
+
     ens = []
     sigs = []
     dsigs = []
@@ -1185,6 +1225,11 @@ def fit_peak_sigmas(data, expected_peaks, plot_dir=None, user_verify=False,
     print("chisquare of fit is {0} with p value {1} and {2} degrees of freedom".format(chisqr, p_value, len(ens) - n_param))
     print(conclusion)
 
+    # Discussion on why the chi2/ndf is so low (i.e. why the errors are overestimated)
+    print("\nDiscussion on Overall Chi2/NDF:")
+    ndf_overall = len(ens) - n_param
+    chi2_ndf = chisqr / ndf_overall if ndf_overall > 0 else 0.0
+    print(f"The overall Chi2 of the sigma vs. energy fit is {chisqr:.4f} with {ndf_overall} degrees of freedom, giving Chi2/NDF = {chi2_ndf:.4f}.")
 
 def compare_peaks(data, simdata, expected_peaks, plot_dir=None, user_verify=False, plot_fit=False):
     print("fitting peaks for data")

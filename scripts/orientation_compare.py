@@ -232,6 +232,14 @@ compare_to = "rxoff"
 #compare_to = "RD_494_OFF"
 #bins = get_bins(100, 520, 420)
 
+rundata =  {"Russian Doll - RxOn": [i for i in range(3051, 3055)], "Russian Doll - RxOff": [i for i in range(4012, 4018)]}
+plot_name = "full_energy_range_RD"
+compare_to = "Russian Doll - RxOff"
+bins = get_bins(100, 3000, 2900)
+
+
+
+
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "spectrum_plots")
 
 emin = [1000 * i for i in range(12)]
@@ -253,7 +261,7 @@ def main():
         rebin_spectra(data, bins)
     #data = background_subtract(data, "Rxoff", get_bins(100, 9400, 3100))
     #write_spectra(data, datadir, db)
-    plot_multi_spectra(data, pname, rebin=rebin, emin=emin_plot)
+    plot_multi_spectra(data, pname, rebin=rebin, emin=emin_plot, ebars=False)
     plot_subtract_spectra(data, compare_to, pname + "_subtract", rebin=rebin, emin=emin_plot)
     #for i in range(len(emin)):
     #    plot_multi_spectra(data, pname + "_{}".format(i), emin=emin[i], emax=emax[i])

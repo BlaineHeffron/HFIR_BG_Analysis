@@ -10,9 +10,10 @@ import os
 #1293 is Ar-41 decay to K-41
 #1274.4 is Eu-154 decay
 #1408.006 is Eu-152 decay
+#rundata = {"Reactor Spectrum":"MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt"}
 rundata = {"Reactor Spectrum": "MIF_BOX_REACTOR_OPTIMIZED_OVERNIGHT_LOWEST_GAIN.txt"}
-energies = ["11386.5", "8998.63", "7724.034",  "7645.58", "7631.18", "6809.61", "1274.4",
-            "1293.64", "1408.006", "1460.8", "1332.5", "1173.2"]#, "964.082","1112.08", "1085.841"]#, "778.9006"]
+energies = ["11386.5", "8998.63", "7724.034", "6809.61", "1274.4",
+            "1293.64", "1408.006", "1460.8", "1332.5", "1173.2",]# "964.082","1112.08", "1085.841", "511.0"]#, "778.9006"]
 #"511.0"]
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "peak_sigma_fits")
 verify = False
