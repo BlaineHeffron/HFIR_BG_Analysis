@@ -1,0 +1,56 @@
+\subsection{Unfolded Gamma Flux Spectra at Key Locations}
+\label{sec:unfolded_spectra}
+
+The Richardson-Lucy unfolding procedure described in Section~\ref{sec:detector_response} was applied to measurements at various locations throughout the HFIR reactor pool area. A total of 6 measurement positions were analyzed, with detector orientations ranging from downward-facing (vertical) to horizontally-directed toward specific background sources. Figure~\ref{fig:measurement_locations} shows the spatial distribution of all measurement positions, numbered sequentially for reference.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\linewidth]{figures/measurement_locations.png}
+\caption{Top-down view of the HFIR reactor area showing all measurement locations analyzed in this study. Each numbered circle indicates a measurement position. Arrows indicate the pointing direction for collimated measurements where the detector was not oriented vertically downward. The PROSPECT detector position, reactor core, beam lines (HB3 and HB4), lead shielding walls, and pool boundary are shown for reference.}
+\label{fig:measurement_locations}
+\end{figure}
+
+Each measurement location provides insight into different background components and their spatial distribution. The unfolded gamma flux spectra quantify the incident gamma-ray field as a function of energy, enabling direct comparison between locations and validation of radiation transport simulations. Complete unfolded spectra and calibrated measured spectra for all measurement positions are provided in supplemental CSV files accompanying this manuscript, following the numbering scheme shown in Figure~\ref{fig:measurement_locations}. The data format is described in detail in the supplemental README file.
+
+\subsubsection{Unfolding Procedure Validation}
+
+Figure~\ref{fig:unfold_comparison_example} shows a representative example of the unfolding procedure's performance by comparing the measured detector response (folded spectrum) with the reconstructed detector response obtained by re-folding the unfolded incident spectrum through the detector response matrix. The close agreement between measured and reconstructed spectra across the full energy range validates the unfolding procedure and demonstrates that the Richardson-Lucy algorithm successfully deconvolves the detector response effects.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/comparison_01.png}
+\caption{Comparison of measured detector response (red, solid) and reconstructed response (blue, dashed) for an example measurement position. The reconstructed spectrum is obtained by applying the detector response matrix to the unfolded incident gamma flux. Good agreement indicates successful deconvolution and validates the unfolding procedure. Similar agreement was observed for all measurement locations.}
+\label{fig:unfold_comparison_example}
+\end{figure}
+
+\subsubsection{Unfolded Gamma Flux Spectra}
+
+The unfolded incident gamma flux spectra for all six measurement locations are shown in Figure~\ref{fig:all_unfolded_spectra}. These spectra reveal the true incident gamma-ray field after correcting for detector response effects such as Compton scattering, escape peaks, and energy-dependent efficiency. The spectra show significant variation between locations, reflecting differences in proximity to radiation sources, shielding configurations, and detector pointing directions.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\linewidth]{figures/pdf/all_unfolded.pdf}
+\caption{Unfolded incident gamma flux spectra for all measurement locations. The vertical axis shows the incident gamma flux in units of Hz/cm$^2$. Measurement numbers correspond to the numbered positions in Figure~\ref{fig:measurement_locations}. The spectra exhibit distinct characteristics depending on the measurement location and detector orientation, with flux magnitudes varying by several orders of magnitude between positions. The energy range extends from 50~keV to 11.5~MeV, capturing both low-energy scattered radiation and high-energy neutron capture gamma rays.}
+\label{fig:all_unfolded_spectra}
+\end{figure}
+
+The unfolded spectra reveal key features of the HFIR radiation environment:
+
+\begin{itemize}
+\item Measurements near active sources (MIF box with reactor on, PROSPECT detector) exhibit significantly higher flux levels across all energies compared to shielded or reactor-off positions
+\item The spectral shape varies substantially with location, indicating different dominant background sources in different regions
+\item High-energy features above 5~MeV are present in all spectra, consistent with neutron capture reactions on structural materials
+\item Low-energy portions of the spectra (below 500~keV) show the greatest relative variation between locations, reflecting differences in scattering conditions and local shielding
+\end{itemize}
+
+\subsubsection{Quantitative Source Terms for Simulations}
+
+The unfolded flux spectra provide quantitative source terms suitable for use in radiation transport simulations of future experiments. For a given detector location and geometry, the expected count rate can be estimated by:
+
+\begin{equation}
+R = \int_0^{E_{\max}} \Phi(E) \cdot \epsilon(E) \cdot A_{\text{eff}}(E) \, dE
+\end{equation}
+
+where $\Phi(E)$ is the unfolded incident flux spectrum (in Hz/cm$^2$), $\epsilon(E)$ is the detector efficiency, and $A_{\text{eff}}(E)$ is the effective detector area as a function of energy. The CSV data files provide $\Phi(E)$ at 1~keV intervals from 40~keV to 11.4~MeV for all six measurement positions, enabling straightforward integration with Monte Carlo simulation packages such as Geant4 or MCNP.
+
+These quantitative flux measurements serve as validation benchmarks for computational models of the HFIR radiation environment and can be used to optimize detector placement and shielding designs for future experiments in similar reactor facilities.

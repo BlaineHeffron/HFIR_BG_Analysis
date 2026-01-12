@@ -21,7 +21,9 @@ sdist/
 var/
 analysis/
 data/
+sim/
 wheels/
+scripts/private/*
 pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/

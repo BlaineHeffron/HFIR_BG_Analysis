@@ -196,8 +196,9 @@ def HFIR_diagram_with_detectors():
         #"MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.txt": {"label": "MIF", "color": "blue"}, 
         #"CYCLE461_DOWN_FACING_OVERNIGHT.txt": {"label": "Shield Center", "color": "brown"},
         #"PROSPECT_DOWN_OVERNIGHT.txt": {"label": "NW corner", "color": "orange"},
-        "EAST_FACE_16": {"label": "EAST", "color": "blue"},
-        "CYCLE461_DOWN_FACING_OVERNIGHT": {"label": "NE", "color": "red"},
+        "EAST_FACE_18": {"label": "East 1", "color": "blue"},
+        "EAST_FACE_1": {"label": "East 2", "color": "red"},
+        "CYCLE461_DOWN_FACING_OVERNIGHT": {"label": "Shield Center", "color": "brown"},
     }
     
     arrow_length = 12  # Length of arrows in plot units

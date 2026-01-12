@@ -16,8 +16,8 @@ rundata = {"original_1": 54, "original_2": 55, "original_cart_xzrot_90": 56,
 rundata = {"PROSPECT_NW": "PROSPECT_DOWN_OVERNIGHT",
            "PROSPECT_NE": "CYCLE461_DOWN_FACING_OVERNIGHT"}
 
-rundata = {"East":"EAST_FACE_16.txt","NE":"CYCLE461_DOWN_FACING_OVERNIGHT.txt"}
-compare_to = "NE"
+rundata = {"East 1": "EAST_FACE_18.txt", "East 2":"EAST_FACE_1.txt", "Shield Center":"CYCLE461_DOWN_FACING_OVERNIGHT.txt"}
+compare_to = "Shield Center"
 compare_name = "E_vs_NE_corner"
 
 outdir = join(os.environ["HFIRBG_ANALYSIS"], "spectrum_plots")
