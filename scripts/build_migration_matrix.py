@@ -175,15 +175,18 @@ def normalize_histogram(values: np.ndarray, runtime: float, bin_width: float = 1
     return normalized
 
 
-def get_physics_warp(centers: np.ndarray, source_E_keV: float, target_E_keV: float) -> np.ndarray:
+def get_inverse_warp(target_centers: np.ndarray, source_E_keV: float, target_E_keV: float) -> np.ndarray:
     """
-    Creates a non-linear mapping for energy bin centers.
+    For each position in target space, find the corresponding position in source space.
+    This allows us to sample the source spectrum at the right positions.
+
     Maps physics features (511 keV, DEP, SEP, FEP) correctly between energies.
     """
     s_mev = source_E_keV / 1000.0
     t_mev = target_E_keV / 1000.0
 
-    # Define anchor points: [0, 511 keV, DEP, SEP, FEP]
+    # Define anchor points in MeV: [0, 511 keV, DEP, SEP, FEP]
+    # These are positions where features appear in each spectrum
     anchors_src = [0.0, 0.511, s_mev - 1.022, s_mev - 0.511, s_mev]
     anchors_tgt = [0.0, 0.511, t_mev - 1.022, t_mev - 0.511, t_mev]
 
@@ -192,18 +195,27 @@ def get_physics_warp(centers: np.ndarray, source_E_keV: float, target_E_keV: flo
     valid_tgt = [anchors_tgt[0]]
 
     for i in range(1, len(anchors_src)):
-        if anchors_src[i] > valid_src[-1] + 1e-6:
+        if anchors_src[i] > valid_src[-1] + 1e-6 and anchors_tgt[i] > valid_tgt[-1] + 1e-6:
             valid_src.append(anchors_src[i])
             valid_tgt.append(anchors_tgt[i])
 
-    warp_func = interp1d(valid_src, valid_tgt, kind='linear', fill_value="extrapolate")
-    return warp_func(centers)
+    # Map from TARGET space to SOURCE space (inverse mapping)
+    # Given a position in the target spectrum, where should we sample in the source?
+    inverse_warp = interp1d(valid_tgt, valid_src, kind='linear', fill_value="extrapolate")
+
+    # Convert target_centers from keV to MeV, apply warp, convert back
+    target_mev = target_centers / 1000.0
+    source_mev = inverse_warp(target_mev)
+    return source_mev * 1000.0  # Back to keV
 
 
 def warp_and_resample(values: np.ndarray, edges: np.ndarray,
                       source_E: float, target_E: float) -> np.ndarray:
     """
-    Warps the spectrum using physics-based anchors and resamples to original grid.
+    Warps the spectrum using physics-based anchors and resamples to target grid.
+
+    For each bin in the target spectrum, finds the corresponding position in
+    the source spectrum and samples there.
 
     Args:
         values: Histogram bin values (without under/overflow)
@@ -212,18 +224,21 @@ def warp_and_resample(values: np.ndarray, edges: np.ndarray,
         target_E: Target energy in keV
     """
     centers = (edges[:-1] + edges[1:]) / 2.0
-    warped_centers = get_physics_warp(centers, source_E, target_E)
 
-    # Use log-space for values to preserve peak shapes
+    # For each target bin position, find where to sample in source spectrum
+    source_positions = get_inverse_warp(centers, source_E, target_E)
+
+    # Create interpolator for source spectrum
     safe_vals = np.maximum(values, 1e-10)
     try:
-        interp_vals = interp1d(warped_centers, np.log(safe_vals), kind='cubic',
-                               bounds_error=False, fill_value=-23)
-        new_values = np.exp(interp_vals(centers))
+        source_interp = interp1d(centers, np.log(safe_vals), kind='cubic',
+                                 bounds_error=False, fill_value=-23)
     except ValueError:
-        interp_vals = interp1d(warped_centers, np.log(safe_vals), kind='linear',
-                               bounds_error=False, fill_value=-23)
-        new_values = np.exp(interp_vals(centers))
+        source_interp = interp1d(centers, np.log(safe_vals), kind='linear',
+                                 bounds_error=False, fill_value=-23)
+
+    # Sample source spectrum at the mapped positions
+    new_values = np.exp(source_interp(source_positions))
 
     return new_values
 
@@ -378,34 +393,54 @@ def build_migration_matrix(input_dir: Path, elow: int, ehigh: int,
     if verbose:
         print(f"  Simulated: {n_sim}, Interpolated: {n_interp}")
 
-    # Write output ROOT file
+    # Write output ROOT file using PyROOT for proper format
     if verbose:
         print(f"\nWriting to {output_path}...")
 
-    with uproot.recreate(output_path) as f:
-        # Create TH2F-compatible structure
-        # X-axis: detected energy (n_bins bins)
-        # Y-axis: generated energy index (n_energies)
+    import ROOT
 
-        # Store the 2D histogram (excluding under/overflow for ROOT TH2)
-        det_edges = np.linspace(bin_low, bin_high, n_bins + 1)
-        gen_edges = np.arange(n_energies + 1) - 0.5  # 0-indexed energy bins
+    # Use compression to reduce file size
+    f = ROOT.TFile.Open(str(output_path), "RECREATE")
+    f.SetCompressionLevel(4)
 
-        f["MdetgenMC"] = (migration_data[1:-1, :], det_edges, gen_edges)
+    # Create 2D migration histogram using TH2F (float) instead of TH2D (double)
+    # to stay under ROOT's 1GB object limit
+    h2 = ROOT.TH2F("MdetgenMC", ";energy(det);energy(gen)",
+                   n_bins, bin_low, bin_high,
+                   n_energies, -0.5, n_energies - 0.5)
 
-        # Store metadata as 1D histograms (uproot-compatible)
-        # ELow and EHigh as single-bin histograms
-        f["hELow"] = (np.array([elow]), np.array([0, 1]))
-        f["hEHigh"] = (np.array([ehigh]), np.array([0, 1]))
+    # Fill the histogram (excluding under/overflow which are in indices 0 and -1)
+    for iDet in range(n_bins):
+        for iGen in range(n_energies):
+            val = float(migration_data[iDet + 1, iGen])  # +1 to skip underflow
+            h2.SetBinContent(iDet + 1, iGen + 1, val)
 
-        # Store energies as a 1D histogram
-        energy_edges = np.arange(n_energies + 1) - 0.5
-        f["hEnergies"] = (np.array(target_energies, dtype=np.float64), energy_edges)
+    h2.Write()
 
-        # Store which energies are simulated (1) vs interpolated (0)
-        sim_mask = np.array([1 if energy_source.get(e) == 'simulated' else 0
-                            for e in target_energies], dtype=np.float64)
-        f["hSimulatedMask"] = (sim_mask, energy_edges)
+    # Store energies as a 1D histogram (use TH1F for consistency)
+    h_energies = ROOT.TH1F("hEnergies", "Generated energies",
+                           n_energies, -0.5, n_energies - 0.5)
+    for i, e in enumerate(target_energies):
+        h_energies.SetBinContent(i + 1, float(e))
+    h_energies.Write()
+
+    # Store simulated mask
+    h_mask = ROOT.TH1F("hSimulatedMask", "Simulated (1) vs interpolated (0)",
+                       n_energies, -0.5, n_energies - 0.5)
+    for i, e in enumerate(target_energies):
+        h_mask.SetBinContent(i + 1, 1.0 if energy_source.get(e) == 'simulated' else 0.0)
+    h_mask.Write()
+
+    # Store energy bounds
+    h_elow = ROOT.TH1F("hELow", "Lower energy bound", 1, 0, 1)
+    h_elow.SetBinContent(1, float(elow))
+    h_elow.Write()
+
+    h_ehigh = ROOT.TH1F("hEHigh", "Upper energy bound", 1, 0, 1)
+    h_ehigh.SetBinContent(1, float(ehigh))
+    h_ehigh.Write()
+
+    f.Close()
 
     if verbose:
         print("Done!")
