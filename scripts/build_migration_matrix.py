@@ -405,9 +405,11 @@ def build_migration_matrix(input_dir: Path, elow: int, ehigh: int,
 
     # Create 2D migration histogram using TH2F (float) instead of TH2D (double)
     # to stay under ROOT's 1GB object limit
+    # X-axis: detected energy in keV, Y-axis: generated energy index (0 to n_energies)
+    # This matches the format used by fillMigrationHist in GeSpecUnfold.cc
     h2 = ROOT.TH2F("MdetgenMC", ";energy(det);energy(gen)",
                    n_bins, bin_low, bin_high,
-                   n_energies, -0.5, n_energies - 0.5)
+                   n_energies, 0, n_energies)
 
     # Fill the histogram (excluding under/overflow which are in indices 0 and -1)
     for iDet in range(n_bins):
@@ -418,15 +420,16 @@ def build_migration_matrix(input_dir: Path, elow: int, ehigh: int,
     h2.Write()
 
     # Store energies as a 1D histogram (use TH1F for consistency)
+    # Index-based axis (0 to n_energies), bin contents hold actual keV values
     h_energies = ROOT.TH1F("hEnergies", "Generated energies",
-                           n_energies, -0.5, n_energies - 0.5)
+                           n_energies, 0, n_energies)
     for i, e in enumerate(target_energies):
         h_energies.SetBinContent(i + 1, float(e))
     h_energies.Write()
 
-    # Store simulated mask
+    # Store simulated mask (index-based axis)
     h_mask = ROOT.TH1F("hSimulatedMask", "Simulated (1) vs interpolated (0)",
-                       n_energies, -0.5, n_energies - 0.5)
+                       n_energies, 0, n_energies)
     for i, e in enumerate(target_energies):
         h_mask.SetBinContent(i + 1, 1.0 if energy_source.get(e) == 'simulated' else 0.0)
     h_mask.Write()
