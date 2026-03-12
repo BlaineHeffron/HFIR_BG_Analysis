@@ -10,9 +10,10 @@ MAX_EVENTS_PER_RUN_NEW = int(1e6)  # Chunk size to use
 
 # Energies to be simulated
 energies = []
-energies.extend(range(40, 1101, 20))
+energies.extend(range(40, 1000, 20))
+energies.append(1000)
 energies.extend([1021, 1022, 1023])
-energies.extend(range(1200, 12001, 100))
+energies.extend(range(2000, 12001, 1000))
 energies = sorted(set(energies))
 
 # Measured efficiency ratios (front_events_needed / iso_events_needed)
