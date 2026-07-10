@@ -39,9 +39,81 @@ Set these before running the scripts:
   - Example (bash):
     export HFIRBGDATA=/path/to/your/spectra
 - HFIRBG_CALDB
-  - Path to the SQLite calibration/database file (contains run metadata, calibration groups, etc.).
+  - Optional path override for the SQLite calibration/database file (contains run metadata, calibration groups, detector configurations, and run-to-calibration assignments).
+  - If unset, the code looks for `db/HFIRBG.db` and then for `HFIRBG.db` beside the `HFIRBGDATA` directory (the public release layout).
   - Example (bash):
     export HFIRBG_CALDB=/path/to/calibration.db
+
+Paths may contain spaces; quote them when exporting, for example:
+
+```bash
+export HFIRBGDATA="$HOME/data/HFIR gamma spectra"
+export HFIRBG_CALDB="$HOME/data/HFIRBG.db"  # only if not using db/HFIRBG.db
+```
+
+### Public data + canonical database setup
+
+The versioned public bundle contains 1,802 calibrated text spectra and the pre-populated canonical SQLite database. Download it from the [`data-v1.0.0` GitHub Release](https://github.com/BlaineHeffron/HFIR_BG_Analysis/releases/tag/data-v1.0.0):
+
+```bash
+curl -L -o HFIRBG_public_data_v1.0.0.tar.gz \
+  https://github.com/BlaineHeffron/HFIR_BG_Analysis/releases/download/data-v1.0.0/HFIRBG_public_data_v1.0.0.tar.gz
+
+echo "037dfce3383a7b86d40772a45253423c0e63f1d803eba246279cccb124c9b2c4  HFIRBG_public_data_v1.0.0.tar.gz" | sha256sum -c -
+tar -xzf HFIRBG_public_data_v1.0.0.tar.gz
+```
+
+The extracted layout is:
+
+```text
+HFIRBG_public_data_v1.0.0/
+├── HFIRBG.db
+└── spectra/
+    └── 1,802 calibrated .txt spectra
+```
+
+You do **not** need to build, re-index, or recalibrate this database. It may retain the absolute directory from the machine on which it was created; `HFIRBGDATA` overrides that machine-specific path.
+
+1. Clone the analysis repository and download/extract the bundle as shown above.
+2. Set the absolute path to its `spectra` directory:
+
+```bash
+git clone https://github.com/BlaineHeffron/HFIR_BG_Analysis.git
+cd HFIR_BG_Analysis
+
+export HFIRBGDATA="/absolute/path/to/HFIRBG_public_data_v1.0.0/spectra"
+export HFIRBG_ANALYSIS="$PWD/analysis"  # optional plotting-output location
+```
+
+That is the complete configuration for the standard public bundle: the code finds `HFIRBG.db` beside `spectra/`. If the database is moved elsewhere, additionally set `HFIRBG_CALDB="/absolute/path/to/HFIRBG.db"`.
+
+You can instead copy [`.env.example`](.env.example), edit its paths, and source it. Environment variables set this way last only for the current shell unless you add them to `~/.bashrc`, `~/.zshrc`, or another shell startup file.
+
+Verify the download and database mapping without installing ROOT:
+
+```bash
+python3 scripts/check_public_data_setup.py
+```
+
+Then perform a database-backed smoke test (requires the dependencies listed above, including PyROOT):
+
+```bash
+python3 - <<'PY'
+from src.database.HFIRBG_DB import HFIRBG_DB
+from src.utilities.util import retrieve_data
+
+db = HFIRBG_DB()
+file_id = db.retrieve_file_ids(["PROSPECT_DOWN_19"])[0]
+path = db.get_file_paths_from_ids([file_id])[0]
+spectrum = retrieve_data(path, db)
+print(path)
+print(f"live time: {spectrum.live:.2f} s")
+PY
+```
+
+Do not run `db.sync_files()` for the canonical public database: its file, run, coordinate, and calibration relationships are already populated. `HFIRBGDATA` provides the portable path override.
+
+Repository maintainers: the uncompressed `.txt` collection is roughly 682 MB, so it is distributed as a versioned GitHub Release asset rather than committed through ordinary Git history. The current `.gitignore` intentionally ignores `data/`.
 
 If you don’t have a database yet:
 - You can still load and analyze individual .txt spectra (A0/A1 and times are read from the file).
@@ -109,7 +181,12 @@ from src.utilities.util import write_spe
 write_spe("/tmp/output.spe", spec.data.astype(float))
 
 # Working with the database
-## Index your current files into the DB (adds start/live times and file locations):
+
+## Building or updating a non-canonical database
+
+The following indexing workflow is for maintainers or users creating their own database. It is not required for the canonical public database.
+
+Index your current files into the DB (adds start/live times and file locations):
 from src.database.HFIRBG_DB import HFIRBG_DB
 db = HFIRBG_DB()  # uses HFIRBG_CALDB
 db.sync_files()   # scans HFIRBGDATA and adds entries

@@ -22,14 +22,34 @@ def is_rxoff_name(name):
 class HFIRBG_DB(SQLiteBase):
     def __init__(self, path=None):
         if path is None:
-            if "HFIRBG_CALDB" not in os.environ:
+            path = os.environ.get("HFIRBG_CALDB")
+            default_paths = [os.path.join(get_db_dir(), "HFIRBG.db")]
+            data_root = os.environ.get("HFIRBGDATA")
+            if data_root:
+                default_paths.append(os.path.join(os.path.dirname(os.path.expanduser(data_root)), "HFIRBG.db"))
+            if path is None:
+                path = next((candidate for candidate in default_paths if os.path.isfile(candidate)), None)
+            if path is None:
                 raise RuntimeError(
-                    "Please set environment variable HFIRBG_CALDB to the path of your calibration sqlite database")
-            path = os.environ["HFIRBG_CALDB"]
+                    "Set HFIRBG_CALDB, place HFIRBG.db at db/HFIRBG.db, or keep it beside the HFIRBGDATA directory")
         super().__init__(path)
 
     def retrieve_datafiles(self):
         return self.fetchall("SELECT * FROM datafile")
+
+    @staticmethod
+    def _resolve_data_path(stored_directory, filename, extension=".txt"):
+        """Resolve a database file entry against an optional portable data root.
+
+        The canonical database records the directory used when it was created.
+        Public-data users can set HFIRBGDATA to override that machine-specific
+        directory without modifying the database or rebuilding its file table.
+        """
+        data_root = os.environ.get("HFIRBGDATA")
+        directory = os.path.expanduser(data_root) if data_root else stored_directory
+        if extension and not filename.endswith(extension):
+            filename += extension
+        return os.path.join(directory, filename)
 
     def sync_files(self, base_path=None):
         cur_files = self.retrieve_datafiles()
@@ -354,7 +374,9 @@ class HFIRBG_DB(SQLiteBase):
             "SELECT f.directory_id, d.path from datafile f join directory d on f.directory_id = d.id where f.name = '{}'".format(
                 fname))
         if data:
-            return os.path.join(data[1], fname)
+            # This method historically returns an extensionless path because it
+            # is also used as the output stem for generated ROOT files.
+            return self._resolve_data_path(data[1], fname, extension="")
         else:
             print("file name {} not in database!".format(fname))
             return None
@@ -366,7 +388,7 @@ class HFIRBG_DB(SQLiteBase):
         fs = []
         if data:
             for row in data:
-                fs.append(os.path.join(row[1], row[2] + ".txt"))
+                fs.append(self._resolve_data_path(row[1], row[2]))
         return fs
 
     def get_file_paths_from_ids(self, fids):
@@ -376,7 +398,7 @@ class HFIRBG_DB(SQLiteBase):
         fs = []
         if data:
             for row in data:
-                fs.append(os.path.join(row[1], row[2] + ".txt"))
+                fs.append(self._resolve_data_path(row[1], row[2]))
         return fs
 
     def retrieve_file_ids_from_detector_config(self, detector_config_id, coord=None):
