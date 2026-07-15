@@ -9,4 +9,10 @@ if [[ ! -x "${python_bin}" ]]; then
 fi
 
 cd "${repo_root}"
+if [[ -f .env ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
 exec "${python_bin}" -m streamlit run webapp/app.py "$@"

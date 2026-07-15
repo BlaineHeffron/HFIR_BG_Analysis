@@ -1,1 +1,4 @@
--r ../requirements.txt
+numpy>=1.24,<3
+pandas>=2,<3
+plotly>=6,<7
+streamlit>=1.50,<2
