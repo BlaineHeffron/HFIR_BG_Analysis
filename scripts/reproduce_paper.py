@@ -107,7 +107,7 @@ def process_figure(figure, args, output_dir: Path):
     )
     command = formatted_command(figure, args, output_dir)
     if not command:
-        print(f"  No supported regeneration command. {figure['notes']}")
+        print(f"  No supported recalculation/replot command. {figure['notes']}")
         return "copied"
     if figure["status"] not in RUNNABLE_STATUSES:
         raise ValueError(
@@ -142,7 +142,7 @@ def main(argv=None):
         result = process_figure(figure, args, output_dir)
         results[result] += 1
     print(
-        f"Processed {len(figures)} figure(s): {results['ran']} regeneration command(s), "
+        f"Processed {len(figures)} figure(s): {results['ran']} recalculation/replot command(s), "
         f"{results['copied']} published/source artifact(s) only."
     )
     return 0

@@ -2,11 +2,14 @@
 
 `hfir_cycle_calendar.csv` is a durable, machine-readable record of the actual
 HFIR operating-cycle dates that overlap the public background-data campaign.
-It was transcribed from Appendix A of **ORNL/TM-2023/3207**, published August
-2024:
+It was transcribed from the cycle-history table in Appendix A, printed page
+A-3, of **ORNL/TM-2023/3207**, *Post-Irradiation Examination on Absorber
+Material Specimens Irradiated in the High Flux Isotope Reactor*, published
+August 2024:
 
 - Report: <https://info.ornl.gov/sites/publications/Files/Pub206395.pdf>
 - DOI: <https://doi.org/10.2172/2439884>
+- Report PDF SHA-256: `c56411b22c869029fc0d522bd8e1e9a4f0a130bdb79c9f3cc3ac700797c66cba`
 - Retrieved: 2026-07-15
 
 The source reports dates, not transition times. The calendar therefore has

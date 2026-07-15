@@ -1,9 +1,9 @@
 # Unfolding results data format
 
-This is the repository copy of the supplemental README accompanying
+This is an adapted and expanded repository guide to the supplemental files accompanying
 *Gamma Backgrounds for Experiments at the High Flux Isotope Reactor*
 ([arXiv:2607.05834](https://arxiv.org/abs/2607.05834)). The official ancillary
-copy and all files it describes can be downloaded with
+README unchanged, and all files it describes, can be downloaded with
 `scripts/setup_analysis.sh` and are placed in
 `data/arxiv_2607.05834/anc/`.
 

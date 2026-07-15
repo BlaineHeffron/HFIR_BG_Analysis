@@ -129,7 +129,6 @@ if ! .venv/bin/python -m pip --version >/dev/null 2>&1; then
     .venv/bin/python "$GET_PIP"
 fi
 
-.venv/bin/python -m pip install --upgrade pip setuptools wheel
 REQUIREMENTS_FILE="requirements.txt"
 if [[ "$MODE" == "browser" ]]; then
     REQUIREMENTS_FILE="webapp/requirements.txt"

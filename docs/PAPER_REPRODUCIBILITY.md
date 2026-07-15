@@ -1,7 +1,11 @@
 # Paper figure reproducibility
 
 The paper contains 28 numbered figures. The project does **not** claim that all
-28 can currently be recalculated from the public HFIR spectrum bundle. The
+28 can currently be recalculated from the public HFIR spectrum bundle. At this
+release checkpoint, Figure 14 is recalculated from public measurements and the
+requested three-location portion of Figure 19 is replotted from published
+ancillary CSVs; neither `--all` nor copying a publication artifact changes that
+scope. The
 machine-readable inventory at [`config/paper_figures.json`](../config/paper_figures.json)
 records the status, inputs, published artifact, supported command, and known
 limitations for every figure.
@@ -22,7 +26,7 @@ source .env
 
 For every figure, the command copies the publication artifact downloaded from
 the official arXiv source into `analysis/paper_figures/published/`. It also runs
-a regeneration command where one is supported. This makes the distinction
+a supported recalculation or ancillary replot where one exists. This makes the distinction
 between the paper's image and a newly calculated result visible in the output
 tree rather than silently substituting one for the other.
 

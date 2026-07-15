@@ -4,7 +4,7 @@ This guide covers the public-data analyses most directly associated with
 *Gamma Backgrounds for Experiments at the High Flux Isotope Reactor*
 ([arXiv:2607.05834](https://arxiv.org/abs/2607.05834)).
 
-## One-command setup
+## Automated setup
 
 On Linux x86-64, from the repository root:
 
@@ -15,11 +15,12 @@ source .env
 
 The setup downloads and verifies the calibrated spectrum/database bundle,
 creates `.venv`, installs the analysis packages and PyROOT, downloads the
-official arXiv v1 source/ancillary results, removes the legacy absolute path
-from the extracted SQLite database, and runs import/database checks. Downloads,
-the environment, and generated outputs are ignored by Git.
+official arXiv v1 source/ancillary results, replaces the creator-machine path
+in the downloaded SQLite database with the bundle-relative `spectra` path, and
+runs import/database checks. `HFIRBGDATA` remains the authoritative path
+override. Downloads, the environment, and generated outputs are ignored by Git.
 
-The full setup needs roughly 2 GB of disk space. The PyPI ROOT package is
+The full setup needs approximately 3 GB of disk space. The PyPI ROOT package is
 currently an alpha Linux x86-64 distribution. On macOS the same setup command
 downloads/configures the data and then directs you to use conda. When a
 production ROOT build is preferred, conda can also be used on Linux:
@@ -31,6 +32,17 @@ conda activate hfir-bg-analysis
 source .env
 python scripts/check_public_data_setup.py --sanitize-database-path
 ```
+
+For browsing, filtering, plotting, and CSV export without ROOT or the paper
+ancillary download, use the lightweight setup instead:
+
+```bash
+./scripts/setup_analysis.sh --browser-only
+./scripts/run_data_browser.sh
+```
+
+The browser opens at <http://localhost:8501>. The equivalent command-line CSV
+interface is `scripts/export_public_data.py`; examples are in the root README.
 
 ## Generate the requested products
 
@@ -93,10 +105,24 @@ combines qualifying reactor-on/off runs, applies the canonical calibration,
 normalizes by live time and energy-bin width, and exports mHz/kg/keV. The HPGe
 active mass is approximately 1 kg, matching the paper normalization.
 
+## Reactor-cycle classification
+
+The run catalog includes two distinct pairs of fields. `reactor_cycle` and
+`reactor_state` are conservative labels parsed from the original run metadata.
+`calendar_cycle` and `calendar_reactor_state` are assigned from the official
+historical dates stored in `reference_data/hfir_cycle_calendar.csv`.
+
+The official source provides day-level dates, not transition times. The code
+uses local dates in `America/New_York`, labels runs spanning classifications as
+`mixed`, and leaves malformed timestamps or dates outside the source coverage
+as `unknown`. See `reference_data/README.md` for the cited source and limits.
+
 ## Supplemental README and complete paper products
 
-The repository copy is [UNFOLDING_RESULTS_README.md](UNFOLDING_RESULTS_README.md).
-The setup also downloads the official arXiv copy alongside all scenario CSVs,
-per-location plots, metadata, validation plots, and the paper source. The
+The adapted repository guide is
+[UNFOLDING_RESULTS_README.md](UNFOLDING_RESULTS_README.md). The full setup also
+downloads the official supplemental README unchanged to
+`data/arxiv_2607.05834/anc/UNFOLDING_RESULTS_README.md`, alongside all scenario
+CSVs, per-location plots, metadata, validation plots, and the paper source. The
 official arXiv ancillary list is available from the
 [paper page](https://arxiv.org/abs/2607.05834).
