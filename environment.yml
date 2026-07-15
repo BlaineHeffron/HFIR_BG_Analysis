@@ -11,3 +11,5 @@ dependencies:
   - pandas
   - uproot
   - python-pptx
+  - streamlit>=1.50,<2
+  - plotly>=6,<7
