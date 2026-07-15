@@ -30,7 +30,7 @@ The unfolded incident gamma flux spectra for all six measurement locations are s
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.95\linewidth]{figures/pdf/all_unfolded.pdf}
-\caption{Unfolded incident gamma flux spectra for all measurement locations. The vertical axis shows the incident gamma flux in units of Hz/cm$^2$. Measurement numbers correspond to the numbered positions in Figure~\ref{fig:measurement_locations}. The spectra exhibit distinct characteristics depending on the measurement location and detector orientation, with flux magnitudes varying by several orders of magnitude between positions. The energy range extends from 50~keV to 11.5~MeV, capturing both low-energy scattered radiation and high-energy neutron capture gamma rays.}
+\caption{Unfolded incident gamma flux spectra for all measurement locations. The vertical axis shows the incident gamma flux in units of Hz/mm$^2$/keV. Measurement numbers correspond to the numbered positions in Figure~\ref{fig:measurement_locations}. The spectra exhibit distinct characteristics depending on the measurement location and detector orientation, with flux magnitudes varying by several orders of magnitude between positions. The energy range extends from 40~keV to 12~MeV, capturing both low-energy scattered radiation and high-energy neutron capture gamma rays.}
 \label{fig:all_unfolded_spectra}
 \end{figure}
 
@@ -51,6 +51,6 @@ The unfolded flux spectra provide quantitative source terms suitable for use in 
 R = \int_0^{E_{\max}} \Phi(E) \cdot \epsilon(E) \cdot A_{\text{eff}}(E) \, dE
 \end{equation}
 
-where $\Phi(E)$ is the unfolded incident flux spectrum (in Hz/cm$^2$), $\epsilon(E)$ is the detector efficiency, and $A_{\text{eff}}(E)$ is the effective detector area as a function of energy. The CSV data files provide $\Phi(E)$ at 1~keV intervals from 40~keV to 11.4~MeV for all six measurement positions, enabling straightforward integration with Monte Carlo simulation packages such as Geant4 or MCNP.
+where $\Phi(E)$ is the unfolded incident differential flux spectrum (in Hz/mm$^2$/keV), $\epsilon(E)$ is the detector efficiency, and $A_{\text{eff}}(E)$ is the effective detector area as a function of energy. The CSV data files provide $\Phi(E)$ at 1~keV intervals from 40~keV to 12~MeV for all six measurement positions, enabling straightforward integration with Monte Carlo simulation packages such as Geant4 or MCNP.
 
 These quantitative flux measurements serve as validation benchmarks for computational models of the HFIR radiation environment and can be used to optimize detector placement and shielding designs for future experiments in similar reactor facilities.

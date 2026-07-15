@@ -3,9 +3,10 @@
 
 set -euo pipefail
 
-REPO_ROOT="/home/blaine/projects/HFIR_BG_Analysis"
-DATA_DIR="/home/blaine/projects/HFIRBG/data"
-P2X_BIN="/home/blaine/src/P2x/bin/P2x_Analyze"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="${HFIRBG_REPO_ROOT:-$(dirname "$SCRIPT_DIR")}"
+DATA_DIR="${HFIRBG_UNFOLD_DATA:-${REPO_ROOT}/data}"
+P2X_BIN="${P2X_BIN:-}"
 CASE_NAME="isotropic"
 OVERWRITE=0
 
@@ -119,7 +120,7 @@ FNAMES=(
 mkdir -p "$OUT_DIR" "$CFG_DIR" "$INPUT_LINK_DIR"
 
 if [[ ! -x "$P2X_BIN" ]]; then
-    echo "ERROR: P2x_Analyze not found or not executable: $P2X_BIN" >&2
+    echo "ERROR: set P2X_BIN or pass --p2x-bin with an executable P2x_Analyze path." >&2
     exit 1
 fi
 

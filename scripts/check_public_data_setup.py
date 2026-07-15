@@ -7,10 +7,11 @@ download before the optional ROOT/PyROOT analysis dependency is installed.
 
 from __future__ import annotations
 
+import argparse
 import os
 import sqlite3
 import sys
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 
 def fail(message):
@@ -18,7 +19,21 @@ def fail(message):
     return 1
 
 
-def main():
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--sanitize-database-path",
+        action="store_true",
+        help=(
+            "replace directory paths stored in the canonical database with the "
+            "bundle-relative spectra directory"
+        ),
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
     data_value = os.environ.get("HFIRBGDATA")
     db_value = os.environ.get("HFIRBG_CALDB")
     if not data_value:
@@ -40,8 +55,14 @@ def main():
     if not db_path.is_file():
         return fail(f"SQLite database does not exist: {db_path}")
 
+    txt_names = {path.stem for path in data_dir.glob("*.txt")}
+
     try:
-        connection = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        mode = "rw" if args.sanitize_database_path else "ro"
+        connection = sqlite3.connect(f"file:{db_path}?mode={mode}", uri=True)
+        integrity = connection.execute("PRAGMA integrity_check").fetchone()[0]
+        if integrity != "ok":
+            return fail(f"database integrity check failed: {integrity}")
         tables = {
             row[0]
             for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
@@ -51,7 +72,25 @@ def main():
         if missing_tables:
             return fail("database is missing tables: " + ", ".join(sorted(missing_tables)))
 
+        stored_directories = [row[0] for row in connection.execute("SELECT path FROM directory")]
         db_names = [row[0] for row in connection.execute("SELECT name FROM datafile")]
+        missing_files = [name for name in db_names if name not in txt_names]
+        if args.sanitize_database_path:
+            if missing_files:
+                return fail(
+                    "refusing to change database paths while file records are missing "
+                    "from HFIRBGDATA"
+                )
+            relative_data_dir = os.path.relpath(data_dir, db_path.parent)
+            if relative_data_dir == os.pardir or relative_data_dir.startswith(os.pardir + os.sep):
+                return fail(
+                    "refusing to store a path outside the database bundle; "
+                    "place the database beside the spectra directory"
+                )
+            connection.execute("UPDATE directory SET path = ?", (relative_data_dir,))
+            connection.commit()
+            stored_directories = [relative_data_dir]
+
         calibration_links = connection.execute(
             "SELECT COUNT(DISTINCT file_id) FROM file_calibration_group"
         ).fetchone()[0]
@@ -61,14 +100,23 @@ def main():
         if "connection" in locals():
             connection.close()
 
-    txt_names = {path.stem for path in data_dir.glob("*.txt")}
-    missing_files = [name for name in db_names if name not in txt_names]
-
     print(f"HFIRBGDATA:   {data_dir}")
     print(f"HFIRBG_CALDB: {db_path}")
     print(f"Spectrum files found: {len(txt_names)}")
     print(f"Database file records: {len(db_names)}")
     print(f"Files with calibration assignments: {calibration_links}")
+    print("Stored spectrum directories: " + ", ".join(stored_directories))
+    absolute_directories = [
+        path
+        for path in stored_directories
+        if Path(path).is_absolute() or PureWindowsPath(path).is_absolute()
+    ]
+    if absolute_directories:
+        print(
+            "WARNING: database contains machine-specific absolute paths; "
+            "HFIRBGDATA overrides them. Run again with --sanitize-database-path "
+            "to make the database itself portable."
+        )
     if missing_files:
         print(f"WARNING: {len(missing_files)} database records have no matching .txt file")
         print("First missing names: " + ", ".join(missing_files[:10]))

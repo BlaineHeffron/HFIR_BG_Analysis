@@ -26,7 +26,8 @@ class HFIRBG_DB(SQLiteBase):
             default_paths = [os.path.join(get_db_dir(), "HFIRBG.db")]
             data_root = os.environ.get("HFIRBGDATA")
             if data_root:
-                default_paths.append(os.path.join(os.path.dirname(os.path.expanduser(data_root)), "HFIRBG.db"))
+                data_root = os.path.expandvars(os.path.expanduser(data_root))
+                default_paths.append(os.path.join(os.path.dirname(data_root), "HFIRBG.db"))
             if path is None:
                 path = next((candidate for candidate in default_paths if os.path.isfile(candidate)), None)
             if path is None:
@@ -37,16 +38,20 @@ class HFIRBG_DB(SQLiteBase):
     def retrieve_datafiles(self):
         return self.fetchall("SELECT * FROM datafile")
 
-    @staticmethod
-    def _resolve_data_path(stored_directory, filename, extension=".txt"):
-        """Resolve a database file entry against an optional portable data root.
+    def _resolve_data_path(self, stored_directory, filename, extension=".txt"):
+        """Resolve a database file entry against the portable data root.
 
-        The canonical database records the directory used when it was created.
-        Public-data users can set HFIRBGDATA to override that machine-specific
-        directory without modifying the database or rebuilding its file table.
+        HFIRBGDATA is authoritative when set. Otherwise, relative directories
+        stored in a portable database are resolved from the database location.
+        Absolute entries remain supported for older and private databases.
         """
         data_root = os.environ.get("HFIRBGDATA")
-        directory = os.path.expanduser(data_root) if data_root else stored_directory
+        if data_root:
+            directory = os.path.expandvars(os.path.expanduser(data_root))
+        else:
+            directory = os.path.expandvars(os.path.expanduser(stored_directory))
+            if not os.path.isabs(directory):
+                directory = os.path.join(os.path.dirname(os.path.abspath(self.path)), directory)
         if extension and not filename.endswith(extension):
             filename += extension
         return os.path.join(directory, filename)

@@ -451,12 +451,12 @@ def main():
     parser.add_argument(
         "--outdir",
         default=None,
-        help="Output directory (default: $HFIRBG_ANALYSIS/analysis/unfold/paper_files)",
+        help="Output directory (default: $HFIRBG_ANALYSIS/unfold/paper_files)",
     )
     parser.add_argument(
         "--paper-fig-dir",
-        default="/home/blaine/projects/HFIRBG/paper/figures/pdf",
-        help="Directory for paper-ready PDF figures",
+        default=os.environ.get("HFIRBG_PAPER_FIG_DIR"),
+        help="Optional destination for paper-ready PDFs (default: $HFIRBG_PAPER_FIG_DIR)",
     )
     parser.add_argument(
         "--cases",
@@ -468,7 +468,8 @@ def main():
 
     repo_root = dirname(realpath(dirname(__file__)))
     if args.outdir is None:
-        outdir = join(repo_root, "analysis", "unfold", "paper_files")
+        analysis_root = os.environ.get("HFIRBG_ANALYSIS", join(repo_root, "analysis"))
+        outdir = join(analysis_root, "unfold", "paper_files")
     else:
         outdir = args.outdir
     ensure_dir(outdir)
@@ -498,7 +499,8 @@ def main():
 
     write_case_metadata(outdir, case_data, requested_cases, repo_root)
     plot_bounds(outdir, case_data.get("isotropic", []), case_data.get("front", []))
-    copy_paper_figures(outdir, args.paper_fig_dir)
+    if args.paper_fig_dir:
+        copy_paper_figures(outdir, args.paper_fig_dir)
 
     print(f"Processed cases: {', '.join(case_data.keys())}")
     print(f"Results saved to: {outdir}")

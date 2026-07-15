@@ -1,0 +1,9 @@
+# Core analysis stack. The ROOT PyPI wheel is currently Linux x86-64 only.
+numpy>=1.24,<3
+scipy>=1.10,<2
+matplotlib>=3.7,<4
+numba>=0.57,<1
+pandas>=2,<3
+uproot>=5,<6
+python-pptx>=1,<2
+root==0.1a12; platform_system == "Linux" and platform_machine == "x86_64"

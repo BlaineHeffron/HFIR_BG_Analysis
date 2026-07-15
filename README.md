@@ -9,8 +9,25 @@ HFIR_BG_Analysis contains utilities to read, process, calibrate, and plot HPGe g
 - Querying files and metadata from a SQLite calibration database
 - Coordinate utilities for cart scans
 
+### Fastest complete setup
+
+On Linux x86-64, the setup can be performed from the repository root with:
+
+```bash
+./scripts/setup_analysis.sh
+source .env
+.venv/bin/python scripts/public_analysis.py all
+```
+
+This downloads the calibrated public spectra/database and the official paper
+ancillary results, creates an isolated environment with PyROOT, validates the
+database, and generates the key unfolded-flux and Figure 14 shield-comparison
+products. See the [public analysis guide](docs/PUBLIC_ANALYSIS_GUIDE.md) for
+output descriptions, individual commands, conda/macOS setup, and the distinction
+between measured spectra and published unfolded flux.
+
 ### Prerequisites
-- Python 3.8+ recommended
+- Python 3.10+ recommended
 - CERN ROOT with PyROOT (import ROOT must work in Python)
   - Conda: conda install -c conda-forge root
   - Homebrew (macOS): brew install root
@@ -20,14 +37,23 @@ HFIR_BG_Analysis contains utilities to read, process, calibrate, and plot HPGe g
   - Linux: gcc/clang
 - OS support: Linux/macOS are supported; Windows is partially supported (ROOT and write_spe build may require changes)
 
-### Python packages (install with pip)
-- numpy
-- scipy
-- matplotlib
-- numba
+### Python packages
 
-Example:
-pip install numpy scipy matplotlib numba
+The complete package set is recorded in [`requirements.txt`](requirements.txt)
+and [`environment.yml`](environment.yml). For a manual Linux installation:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+```
+
+The PyPI ROOT wheel is currently alpha and Linux x86-64 only. Conda is the
+recommended portable alternative:
+
+```bash
+conda env create -f environment.yml
+conda activate hfir-bg-analysis
+```
 
 Optional (headless plotting): set environment variable MPLBACKEND=Agg to avoid display issues on servers.
 
@@ -43,6 +69,12 @@ Set these before running the scripts:
   - If unset, the code looks for `db/HFIRBG.db` and then for `HFIRBG.db` beside the `HFIRBGDATA` directory (the public release layout).
   - Example (bash):
     export HFIRBG_CALDB=/path/to/calibration.db
+- HFIRBG_ANALYSIS
+  - Optional output root for generated plots and CSVs.
+  - The portable environment defaults to the repository's ignored `analysis/` directory.
+- HFIRBG_PAPER_DATA
+  - Optional location of the official arXiv ancillary CSVs and plots.
+  - The portable environment defaults to `data/arxiv_2607.05834/anc/`.
 
 Paths may contain spaces; quote them when exporting, for example:
 
@@ -53,52 +85,61 @@ export HFIRBG_CALDB="$HOME/data/HFIRBG.db"  # only if not using db/HFIRBG.db
 
 ### Public data + canonical database setup
 
-The versioned public bundle contains 1,802 calibrated text spectra and the pre-populated canonical SQLite database. Download it from the [`data-v1.0.0` GitHub Release](https://github.com/BlaineHeffron/HFIR_BG_Analysis/releases/tag/data-v1.0.0):
+The versioned public bundle contains 1,802 calibrated text spectra and the pre-populated canonical SQLite database. The setup below keeps it in the repository's ignored `data/` directory.
+
+1. Clone and enter the analysis repository:
 
 ```bash
-curl -L -o HFIRBG_public_data_v1.0.0.tar.gz \
+git clone https://github.com/BlaineHeffron/HFIR_BG_Analysis.git
+cd HFIR_BG_Analysis
+```
+
+2. Download, verify, and extract the bundle from the [`data-v1.0.0` GitHub Release](https://github.com/BlaineHeffron/HFIR_BG_Analysis/releases/tag/data-v1.0.0):
+
+```bash
+mkdir -p data
+curl -L -o data/HFIRBG_public_data_v1.0.0.tar.gz \
   https://github.com/BlaineHeffron/HFIR_BG_Analysis/releases/download/data-v1.0.0/HFIRBG_public_data_v1.0.0.tar.gz
 
-echo "037dfce3383a7b86d40772a45253423c0e63f1d803eba246279cccb124c9b2c4  HFIRBG_public_data_v1.0.0.tar.gz" | sha256sum -c -
-tar -xzf HFIRBG_public_data_v1.0.0.tar.gz
+echo "037dfce3383a7b86d40772a45253423c0e63f1d803eba246279cccb124c9b2c4  data/HFIRBG_public_data_v1.0.0.tar.gz" | sha256sum -c -
+tar -xzf data/HFIRBG_public_data_v1.0.0.tar.gz -C data
 ```
 
 The extracted layout is:
 
 ```text
-HFIRBG_public_data_v1.0.0/
-├── HFIRBG.db
-└── spectra/
-    └── 1,802 calibrated .txt spectra
+data/
+└── HFIRBG_public_data_v1.0.0/
+    ├── HFIRBG.db
+    └── spectra/
+        └── 1,802 calibrated .txt spectra
 ```
 
-You do **not** need to build, re-index, or recalibrate this database. It may retain the absolute directory from the machine on which it was created; `HFIRBGDATA` overrides that machine-specific path.
+You do **not** need to build, re-index, or recalibrate this database. The v1.0.0 database contains a legacy absolute directory from the machine on which it was created. `HFIRBGDATA` always overrides stored directory values, and the setup check below can replace the legacy value with the portable, bundle-relative `spectra` path.
 
-1. Clone the analysis repository and download/extract the bundle as shown above.
-2. Set the absolute path to its `spectra` directory:
+3. Load the repository-relative environment defaults:
 
 ```bash
-git clone https://github.com/BlaineHeffron/HFIR_BG_Analysis.git
-cd HFIR_BG_Analysis
-
-export HFIRBGDATA="/absolute/path/to/HFIRBG_public_data_v1.0.0/spectra"
-export HFIRBG_ANALYSIS="$PWD/analysis"  # optional plotting-output location
+cp .env.example .env
+source .env
 ```
 
-That is the complete configuration for the standard public bundle: the code finds `HFIRBG.db` beside `spectra/`. If the database is moved elsewhere, additionally set `HFIRBG_CALDB="/absolute/path/to/HFIRBG.db"`.
+That is the complete configuration for the standard public bundle. If the data or database is moved elsewhere, set `HFIRBGDATA` and `HFIRBG_CALDB` before sourcing `.env`; existing values take precedence over its defaults.
 
-You can instead copy [`.env.example`](.env.example), edit its paths, and source it. Environment variables set this way last only for the current shell unless you add them to `~/.bashrc`, `~/.zshrc`, or another shell startup file.
+Environment variables set this way last only for the current shell unless you source `.env` from `~/.bashrc`, `~/.zshrc`, or another shell startup file. `.env` is intentionally ignored by Git.
 
 Verify the download and database mapping without installing ROOT:
 
 ```bash
-python3 scripts/check_public_data_setup.py
+python3 scripts/check_public_data_setup.py --sanitize-database-path
 ```
+
+The sanitizing option is safe to run repeatedly. It removes the creator's absolute path from the extracted SQLite file; future checks can omit the option.
 
 Then perform a database-backed smoke test (requires the dependencies listed above, including PyROOT):
 
 ```bash
-python3 - <<'PY'
+.venv/bin/python - <<'PY'
 from src.database.HFIRBG_DB import HFIRBG_DB
 from src.utilities.util import retrieve_data
 
@@ -111,7 +152,7 @@ print(f"live time: {spectrum.live:.2f} s")
 PY
 ```
 
-Do not run `db.sync_files()` for the canonical public database: its file, run, coordinate, and calibration relationships are already populated. `HFIRBGDATA` provides the portable path override.
+Do not run `db.sync_files()` for the canonical public database: its file, run, coordinate, and calibration relationships are already populated. `HFIRBGDATA` remains the authoritative path override even after the stored path is sanitized.
 
 Repository maintainers: the uncompressed `.txt` collection is roughly 682 MB, so it is distributed as a versioned GitHub Release asset rather than committed through ordinary Git history. The current `.gitignore` intentionally ignores `data/`.
 

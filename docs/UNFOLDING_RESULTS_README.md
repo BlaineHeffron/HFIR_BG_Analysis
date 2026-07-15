@@ -1,160 +1,126 @@
-# Unfolding Results Data Format
+# Unfolding results data format
 
-This document describes the format and organization of the detector response unfolding results.
+This is the repository copy of the supplemental README accompanying
+*Gamma Backgrounds for Experiments at the High Flux Isotope Reactor*
+([arXiv:2607.05834](https://arxiv.org/abs/2607.05834)). The official ancillary
+copy and all files it describes can be downloaded with
+`scripts/setup_analysis.sh` and are placed in
+`data/arxiv_2607.05834/anc/`.
 
-## Directory Structure
+## Response scenarios
 
-```
-unfolding_results/
-├── comparison_01.png              # Measured vs reconstructed spectrum plots
-├── comparison_02.png
-├── ...
-├── unfolded_spectrum_01.csv       # Unfolded gamma flux spectra
-├── unfolded_spectrum_02.csv
-├── ...
-├── measured_spectrum_01.csv       # Calibrated measured detector spectra
-├── measured_spectrum_02.csv
-├── ...
-├── measurement_metadata.csv       # Measurement position metadata
-└── measurement_locations.png      # Diagram showing all measurement locations
-```
+The paper-facing unfolding outputs contain two detector-response scenarios:
 
-## CSV File Format: Unfolded Spectra
+- `isotropic`: uniform flux over the outer surface of the
+  collimator-detector system.
+- `front`: uniform directional flux incident on the collimator front face.
 
-Each `unfolded_spectrum_##.csv` file contains the unfolded gamma flux spectrum for measurement number ##.
+Together these are limiting cases for the incident gamma-flux normalization.
+The region between them is a response-model bracket, not a statistical
+uncertainty interval or a full reconstruction of the room's angular field.
 
-### Column Descriptions
+## Key files
 
-| Column Name | Units | Description |
-|------------|-------|-------------|
-| `Energy_keV` | keV | Gamma-ray energy bin center |
-| `Flux_Hz_per_cm2_per_keV` | Hz/cm²/keV | Unfolded incident gamma flux at this energy |
+Scenario-tagged unfolded spectra:
 
-### Data Format
+- `unfolded_spectrum_isotropic_##_<LOCATION>.csv`
+- `unfolded_spectrum_front_##_<LOCATION>.csv`
 
-- **File format**: CSV (comma-separated values)
-- **Header**: First row contains column names
-- **Energy range**: Typically 40-11400 keV in 1 keV bin widths
-- **Flux normalization**: Flux values represent incident gamma flux per unit area assuming isotropic emission from the detector's perspective
-- **Scientific notation**: Flux values are written in exponential format (e.g., `1.234567e-05`)
+Measured spectra shared by both scenarios:
 
-## CSV File Format: Measured Spectra
+- `measured_spectrum_##_<LOCATION>.csv`
 
-Each `measured_spectrum_##.csv` file contains the calibrated measured detector spectrum for measurement number ##.
+Summary products:
 
-### Column Descriptions
+- `all_unfolded_spectra_{isotropic,front}.{png,pdf}`
+- `measured_vs_unfolded_comparison_{isotropic,front}.{png,pdf}`
+- `unfolded_spectrum_bounds.{png,pdf}`
+- `measurement_locations.png`
 
-| Column Name | Units | Description |
-|------------|-------|-------------|
-| `Energy_keV` | keV | Calibrated gamma-ray energy bin center |
-| `Rate` | Hz/keV | Measured detector counts in this energy bin |
+Per-location unfolded plots are supplied for MIF Rx On, MIF Rx Off, Shield
+Center, HB4, PROSPECT East 1, and PROSPECT East 2 under both scenarios.
 
-### Data Format
+Metadata and simulation diagnostics:
 
-- **File format**: CSV (comma-separated values)
-- **Header**: First row contains column names
-- **Energy range**: Typically 40-11400 keV in 1 keV bin widths
-- **Calibration**: Energy scale calibrated using known gamma lines
-- **Scientific notation**: Count values are written in exponential format (e.g., `1.234567e+03`)
+- `measurement_metadata.csv`
+- `measurement_case_files.csv`
+- `unfolding_scenarios.csv`
+- `migration_matrix_stats_comparison.{csv,pdf,png}`
+- `migration_matrix_support_comparison.{txt,pdf,png}`
+- `raw_sim_efficiency_comparison.{csv,pdf,png}`
 
-## Measurement Numbering Scheme
+## Measurement locations
 
-Measurements are numbered sequentially (01, 02, 03, ...) in the order they were processed. The numbering is arbitrary and does not indicate any temporal or spatial ordering. 
+| Number | Filename | Alias |
+|---|---|---|
+| 01 | `MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN` | MIF (Rx On) |
+| 02 | `MIF_BOX_AT_REACTOR_RXOFF` | MIF (Rx Off) |
+| 03 | `CYCLE461_DOWN_FACING_OVERNIGHT` | Shield Center |
+| 04 | `HB4_DOWN_OVERNIGHT_1` | HB4 |
+| 05 | `EAST_FACE_18` | PROSPECT East 1 |
+| 06 | `EAST_FACE_1` | PROSPECT East 2 |
 
-### Metadata File: `measurement_metadata.csv`
+## CSV columns
 
-This file provides the mapping between measurement numbers and physical locations.
+Unfolded spectra contain:
 
-| Column Name | Units | Description |
-|------------|-------|-------------|
-| `number` | - | Sequential measurement identifier |
-| `filename` | - | Original data file name (without extension) |
-| `z_pos` | inches | Detector position along z-axis (HFIR coordinate system) |
-| `x_pos` | inches | Detector position along x-axis (HFIR coordinate system) |
-| `angle` | degrees | Detector tilt angle (0° = pointing straight down) |
-| `phi_deg` | degrees | Azimuthal angle of detector pointing direction |
+| Column | Units | Description |
+|---|---|---|
+| `Energy_keV` | keV | Gamma-ray energy-bin center |
+| `Flux_Hz_per_mm2_per_keV` | Hz/mm²/keV | Unfolded incident gamma flux |
 
-### HFIR Coordinate System
+Measured spectra contain:
 
-- **Origin**: Experiment hall NW corner
-- **x-axis**: Positive direction is away from the reactor core (North to South)
-- **z-axis**: Increases from West to East (i.e. left to right)
-- **Angles**: 
-  - `angle = 0°`: Detector pointing straight down (into the page / vertical)
-  - `angle > 0°`: Detector tilted from vertical
-  - `phi_deg`: Direction of tilt in x-z plane (0° = pointing in +z direction, 90° = pointing in -x direction)
+| Column | Units | Description |
+|---|---|---|
+| `Energy_keV` | keV | Calibrated energy-bin center |
+| `Rate_Hz_per_keV` | Hz/keV | Measured detector count rate |
 
-## Location Diagram
+The files cover 40–12000 keV at 1 keV spacing. Values use scientific notation.
 
-The file `measurement_locations.png` shows a top-down view of the HFIR reactor area with:
+## Response-matrix support
 
-- **Numbered circles**: Each measurement location, with the number corresponding to the data files
-- **Arrows**: For measurements where the detector was not pointing straight down, an arrow shows the pointing direction
-- **Reference features**: Reactor core, PROSPECT detector, beam lines (HB3, HB4), lead shields, pool walls
+`unfolding_scenarios.csv` records the migration matrix used for each scenario
+and its direct simulated-energy support. Both current matrices use 166 directly
+simulated energies spanning 40–12000 keV. Detailed error/runtime comparisons
+are in `migration_matrix_stats_comparison.csv`.
 
-## Unfolding Method
-
-The flux spectra were obtained using the Richardson-Lucy deconvolution algorithm applied to the measured detector response. The detector response matrix was generated using Geant4 simulations with:
-
-- Monochromatic gamma rays from 40-11400 keV in 1 keV steps
-- Isotropic flux of 1 Hz/cm²/keV at the detector surface
-- Full detector geometry including dead layers
-- Energy-dependent resolution: σ(E) = A + B×E, where A = 0.98 keV, B = 0.00018
-
-## Usage Examples
-
-### Loading Data in Python
+## Python example
 
 ```python
-import pandas as pd
+from pathlib import Path
+
 import matplotlib.pyplot as plt
+import pandas as pd
 
-# Load unfolded spectrum
-df_unfolded = pd.read_csv('unfolded_spectrum_01.csv')
+paper_data = Path("data/arxiv_2607.05834/anc")
+isotropic = pd.read_csv(
+    paper_data
+    / "unfolded_spectrum_isotropic_01_"
+      "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.csv"
+)
+front = pd.read_csv(
+    paper_data
+    / "unfolded_spectrum_front_01_"
+      "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN.csv"
+)
 
-# Load measured spectrum
-df_measured = pd.read_csv('measured_spectrum_01.csv')
-
-# Plot both
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
-
-# Plot unfolded spectrum
-ax1.step(df_unfolded['Energy_keV'], df_unfolded['Flux_Hz_per_cm2_per_keV'], 
-         where='mid', color='blue')
-ax1.set_xlabel('Energy [keV]')
-ax1.set_ylabel('Flux [Hz/cm²/keV]')
-ax1.set_yscale('log')
-ax1.set_title('Unfolded Gamma Flux')
-ax1.grid(True, alpha=0.3)
-
-# Plot measured spectrum
-ax2.step(df_measured['Energy_keV'], df_measured['Counts'], 
-         where='mid', color='red')
-ax2.set_xlabel('Energy [keV]')
-ax2.set_ylabel('Counts')
-ax2.set_yscale('log')
-ax2.set_title('Measured Detector Spectrum')
-ax2.grid(True, alpha=0.3)
-
-plt.tight_layout()
+for label, frame in (("Isotropic", isotropic), ("Front face", front)):
+    plt.step(
+        frame["Energy_keV"],
+        frame["Flux_Hz_per_mm2_per_keV"],
+        where="mid",
+        label=label,
+    )
+plt.yscale("log")
+plt.xlabel("Energy [keV]")
+plt.ylabel("Flux [Hz/mm²/keV]")
+plt.legend()
 plt.show()
 ```
 
-### Loading Metadata
+For ready-made MIF Rx On/Off and Shield Center plots, run:
 
-```python
-import pandas as pd
-
-# Load measurement locations
-metadata = pd.read_csv('measurement_metadata.csv')
-
-# Find measurements at specific locations
-mif_measurements = metadata[metadata['filename'].str.contains('MIF')]
-print(mif_measurements)
+```bash
+.venv/bin/python scripts/public_analysis.py unfolded
 ```
-
-## Contact
-
-For questions about this data, contact:
-Blaine Heffron
-baheffron@gmail.com

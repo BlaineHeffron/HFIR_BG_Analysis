@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 from pathlib import Path
 
 import matplotlib
@@ -12,9 +13,10 @@ from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE
 
 
-REPO = Path("/home/blaine/projects/HFIR_BG_Analysis")
-PAPER_FILES = REPO / "analysis/unfold/paper_files"
-OUTDIR = REPO / "analysis/unfold/slides"
+REPO = Path(__file__).resolve().parents[1]
+ANALYSIS_ROOT = Path(os.environ.get("HFIRBG_ANALYSIS", REPO / "analysis")).expanduser()
+PAPER_FILES = ANALYSIS_ROOT / "unfold/paper_files"
+OUTDIR = ANALYSIS_ROOT / "unfold/slides"
 OUTDIR.mkdir(parents=True, exist_ok=True)
 
 
