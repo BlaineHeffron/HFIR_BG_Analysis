@@ -60,7 +60,7 @@ def base_slide(title: str, subtitle: str | None, number: int, total: int) -> Ima
     if subtitle:
         draw.text((62, 104), subtitle, font=font(20), fill=MUTED)
     draw.rectangle((55, 855, 1545, 857), fill=BLUE)
-    draw.text((60, 865), "HFIR gamma-background public data | collaboration review", font=font(14), fill=MUTED)
+    draw.text((60, 865), "HFIR gamma-background public data | analysis overview", font=font(14), fill=MUTED)
     label = f"{number}/{total}"
     box = draw.textbbox((0, 0), label, font=font(14))
     draw.text((1540 - (box[2] - box[0]), 865), label, font=font(14), fill=MUTED)
@@ -157,10 +157,10 @@ def save_slides(slides: list[Image.Image], output_dir: Path) -> tuple[Path, Path
     for path in paths:
         slide = presentation.slides.add_slide(blank)
         slide.shapes.add_picture(str(path), 0, 0, width=presentation.slide_width, height=presentation.slide_height)
-    pptx_path = output_dir / "HFIR_public_data_collaboration_review.pptx"
+    pptx_path = output_dir / "HFIR_public_data_analysis_overview.pptx"
     presentation.save(pptx_path)
 
-    pdf_path = output_dir / "HFIR_public_data_collaboration_review_preview.pdf"
+    pdf_path = output_dir / "HFIR_public_data_analysis_overview_preview.pdf"
     slides[0].save(pdf_path, "PDF", resolution=150, save_all=True, append_images=slides[1:])
     return pptx_path, pdf_path
 
@@ -212,7 +212,7 @@ Read `analysis/floor_scan_statistics/README.md`. The output contains the point m
   --output analysis/student/HB4_DOWN_2_native.csv
 ```
 
-## 5. Generate the requested paper-facing products (Linux x86-64)
+## 5. Generate the paper-facing products (Linux x86-64)
 
 ```bash
 ./scripts/setup_analysis.sh
@@ -221,7 +221,7 @@ source .env
 .venv/bin/python scripts/reproduce_paper.py --list
 ```
 
-Outputs appear in `analysis/public_analysis/`. Figure 14 is recalculated from released measurements. The requested Figure 19 subset is replotted from official ancillary unfolded CSVs; it is not a new unfolding.
+Outputs appear in `analysis/public_analysis/`. Figure 14 is recalculated from released measurements. The three-location Figure 19 subset is replotted from official ancillary unfolded CSVs; it is not a new unfolding.
 
 ## Interpretation checklist
 
@@ -265,7 +265,7 @@ Outputs appear in `analysis/public_analysis/`. Figure 14 is recalculated from re
             [
                 ("What the data mean", "Text spectra are HPGe detector counts. Unfolded flux is a separate ancillary result. Figure 7 measures the downward-collimated component."),
                 ("Binning", "Preserve native counts. Suggested Figure 7 display widths: 2 keV (50–1000), 10 keV (1–3 MeV), 50 keV (3–7 MeV), 200 keV (7–11.4 MeV). Keep Poisson errors."),
-                ("Reproducibility boundary", "Figure 14 is recalculated. The requested Figure 19 subset is an ancillary-data replot. Use reproduce_paper.py --list for every figure's exact status."),
+                ("Reproducibility boundary", "Figure 14 is recalculated. The three-location Figure 19 subset is an ancillary-data replot. Use reproduce_paper.py --list for every figure's exact status."),
                 ("Safety", "The public database is canonical and read-only for these tools. Do not run legacy synchronization or calibration-writing commands against it."),
             ],
         ),
@@ -304,10 +304,10 @@ def build_deck(output_dir: Path, browser_screenshot: Path) -> list[Image.Image]:
     validation = json.loads(validation_path.read_text()) if validation_path.is_file() else None
 
     slide_specs: list[tuple[str, str | None]] = [
-        ("Requested products and student workflow", None),
-        ("What the collaboration asked for", "From paper figures to reusable public data"),
+        ("Public data products and student workflow", None),
+        ("Available analysis products", "From paper figures to reusable public data"),
         ("Public release at a glance", "A read-only analysis layer over the canonical release"),
-        ("Requested unfolded gamma-flux spectra", "MIF reactor-on/off and Shield Center"),
+        ("Unfolded gamma-flux spectra", "MIF reactor-on/off and Shield Center"),
         ("Shield configurations corresponding to Figure 14", "No added water/lead through seven layers plus floor lead"),
         ("Figure 7: recover the original scan population", "Avoid mixing later monitoring at the same coordinates"),
         ("What does an ‘average’ scan point look like?", "Routine acquisitions only: 100–400 s live time"),
@@ -317,10 +317,10 @@ def build_deck(output_dir: Path, browser_screenshot: Path) -> list[Image.Image]:
         ("What can be shared immediately", "Point manifest, all individual histograms, plots, and provenance"),
         ("Live browser demonstration", "Read-only exploration; no ROOT required"),
         ("Student quickstart", "Three commands to data exploration"),
-        ("Student reproduction exercise", "Requested products plus an independent native-channel export"),
+        ("Student reproduction exercise", "Paper-facing products plus an independent native-channel export"),
         ("Paper reproducibility boundary", "Clear status for all 28 numbered figures"),
         ("Clean-clone validation", "The handout is tested, not aspirational"),
-        ("Suggested collaboration decisions", "What should become supplemental material?"),
+        ("Supplemental-release options", "Data products and metadata choices"),
     ]
     total = len(slide_specs)
     slides: list[Image.Image] = []
@@ -328,18 +328,18 @@ def build_deck(output_dir: Path, browser_screenshot: Path) -> list[Image.Image]:
     slides.append(
         title_slide(
             "HFIR gamma-background\npublic data",
-            "Requested products, Figure 7 point statistics,\nand a student-ready analysis workflow",
-            "Collaboration discussion | July 2026",
+            "Paper-facing products, Figure 7 point statistics,\nand a student-ready analysis workflow",
+            "Data and analysis overview | July 2026",
         )
     )
 
     image = base_slide(*slide_specs[1], 2, total)
     draw = ImageDraw.Draw(image)
     bullets(draw, [
-        "Show individual HPGe spectra underlying the downward-facing floor scan in Figure 7.",
-        "Quantify statistics for a typical scan point before choosing supplemental histogram binning.",
-        "Provide unfolded flux at MIF reactor-on/off and Shield Center, plus Figure 14-like shield comparisons.",
-        "Make the complete released data easy for collaborators and students to browse, filter, and export.",
+        "Individual HPGe spectra underlie the downward-facing floor scan in Figure 7.",
+        "Typical-point statistics guide the choice of supplemental histogram binning.",
+        "Unfolded flux is available for MIF reactor-on/off and Shield Center, alongside Figure 14-like shield comparisons.",
+        "The complete released data can be browsed, filtered, and exported by researchers and students.",
     ], (90, 165, 1470, 780), size=29)
     slides.append(image)
 
@@ -478,7 +478,7 @@ def build_deck(output_dir: Path, browser_screenshot: Path) -> list[Image.Image]:
     image = base_slide(*slide_specs[14], 15, total)
     draw = ImageDraw.Draw(image)
     metric_card(draw, (100, 180, 570, 390), "Figure 14", "recalculated from public measurements", GREEN)
-    metric_card(draw, (650, 180, 1120, 390), "Figure 19", "requested subset replotted from ancillary CSVs", BLUE)
+    metric_card(draw, (650, 180, 1120, 390), "Figure 19", "three-location subset replotted from ancillary CSVs", BLUE)
     metric_card(draw, (1200, 180, 1510, 390), "26", "tracked; not recalculated at this checkpoint", GOLD)
     bullets(draw, [
         "Every numbered figure has a machine-readable status, inputs, publication artifact, and limitation.",
@@ -504,7 +504,7 @@ def build_deck(output_dir: Path, browser_screenshot: Path) -> list[Image.Image]:
         "Share native channels only, or native channels plus the 2/10/50/200-keV convenience product?",
         "Include all 122 original acquisitions, or highlight the 104 routine four-minute points and flag extended follow-ups?",
         "Adopt explicit downward-collimated wording in the supplemental caption and metadata?",
-        "Who should do one final scan-point manifest/location review before release?",
+        "Complete one final scan-point manifest and location review before release.",
         "Students can begin analysis immediately using the tested handout and browser.",
     ], (100, 170, 1490, 800), size=29)
     slides.append(image)
