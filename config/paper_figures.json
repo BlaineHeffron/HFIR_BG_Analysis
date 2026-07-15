@@ -95,7 +95,7 @@
       "inputs": ["Public calibrated spectra", "HFIRBG.db"],
       "command": null,
       "outputs": [],
-      "notes": "Candidate legacy entry points: scripts/positions_scan_plot.py and scripts/plot_all_position_scans.py."
+      "notes": "The paper-exact contour remains in legacy plotting code. The supported ROOT-free scripts/analyze_floor_scan_statistics.py command exports the Figure 7 point inventory, individual binned spectra, typical statistics, and binning diagnostics."
     },
     {
       "number": 8,

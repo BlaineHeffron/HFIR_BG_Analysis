@@ -107,6 +107,19 @@ Outputs are written to `analysis/public_analysis/`:
 Generate either group separately with `public_analysis.py unfolded` or
 `public_analysis.py shields`.
 
+For the Figure 7 floor-scan supplemental-data review—including typical
+per-point counts, a representative spectrum, quantile spectra, and a bin-width
+occupancy study—run:
+
+```bash
+.venv/bin/python scripts/analyze_floor_scan_statistics.py
+```
+
+The method and exact selection are documented in
+[Figure 7 floor-scan point statistics](docs/FLOOR_SCAN_STATISTICS.md). A
+[generated review package](reports/floor_scan_statistics/README.md) is included
+for immediate inspection.
+
 The text spectra are measured detector counts, not unfolded incident flux.
 Recalculating the unfolds requires Geant4 response matrices and the external
 unfolder, which are not included in the public bundle. The full setup therefore

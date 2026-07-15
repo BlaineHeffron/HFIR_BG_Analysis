@@ -50,5 +50,8 @@ Use `--dry-run` to inspect all planned actions without creating files:
 Figure 14 is presently the paper-exact public-data regeneration checkpoint.
 Figure 19 also has a supported ancillary-data command for the three requested
 locations, while the copied paper artifact contains the full six-location view.
+Figure 7 remains `not-yet-ported` for paper-exact contour styling, but its
+underlying point selection, individual spectra, and binning statistics now have
+a supported ROOT-free workflow in `scripts/analyze_floor_scan_statistics.py`.
 The manifest should be updated whenever another legacy analysis becomes a
 supported, tested entry point.
