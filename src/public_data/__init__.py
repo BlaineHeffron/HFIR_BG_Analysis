@@ -10,6 +10,15 @@ from .catalog import (
     load_cycle_calendar,
     load_run_catalog,
 )
+from .browser import (
+    BrowserPaths,
+    PublicSpectrum,
+    load_spectrum,
+    query_file_metadata,
+    rebin_by_factor,
+    resolve_browser_paths,
+    spectrum_dataframe,
+)
 
 __all__ = [
     "CALENDAR_TIMEZONE",
@@ -20,4 +29,11 @@ __all__ = [
     "derive_reactor_state",
     "load_cycle_calendar",
     "load_run_catalog",
+    "BrowserPaths",
+    "PublicSpectrum",
+    "load_spectrum",
+    "query_file_metadata",
+    "rebin_by_factor",
+    "resolve_browser_paths",
+    "spectrum_dataframe",
 ]
