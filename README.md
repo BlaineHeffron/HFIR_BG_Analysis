@@ -26,6 +26,11 @@ products. See the [public analysis guide](docs/PUBLIC_ANALYSIS_GUIDE.md) for
 output descriptions, individual commands, conda/macOS setup, and the distinction
 between measured spectra and published unfolded flux.
 
+The [paper figure reproducibility inventory](docs/PAPER_REPRODUCIBILITY.md)
+tracks all 28 numbered figures without implying that figures needing external
+simulation or PROSPECT inputs can be rebuilt from this data release. List it
+with `.venv/bin/python scripts/reproduce_paper.py --list`.
+
 ### Prerequisites
 - Python 3.10+ recommended
 - CERN ROOT with PyROOT (import ROOT must work in Python)
