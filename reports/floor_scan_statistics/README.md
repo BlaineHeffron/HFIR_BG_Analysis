@@ -12,6 +12,7 @@ Generated with:
 - Median routine 50–11400 keV counts: 37446.
 - Median routine rate: 178.09 counts/s.
 - Representative point: `HB4_DOWN_2` (file 1729), 216.25 s and 38393 counts.
+- These spectra measure the downward-collimated component and should not be interpreted as an orientation-independent ambient flux.
 
 Suggested display binning for a typical point:
 

@@ -406,6 +406,7 @@ def write_summary(
         f"- Median routine rate: {routine['rate_50_11400_counts_per_s'].median():.2f} counts/s.",
         f"- Representative point: `{representative['file_name']}` (file {int(representative['file_id'])}), "
         f"{representative['live_time_s']:.2f} s and {representative['counts_50_11400_keV']:.0f} counts.",
+        "- These spectra measure the downward-collimated component and should not be interpreted as an orientation-independent ambient flux.",
         "", "Suggested display binning for a typical point:", "",
         "| Energy range | Bin width | Median mean counts/bin | Median nonzero fraction |",
         "|---|---:|---:|---:|",

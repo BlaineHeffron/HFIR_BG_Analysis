@@ -4,6 +4,10 @@ This workflow answers the supplemental-data question: how many counts are in a
 typical individual floor-scan acquisition, and what energy binning is supported
 by those statistics?
 
+These spectra measure the downward-collimated component at each point. They do
+not by themselves represent the orientation-independent ambient gamma flux,
+especially where the field is strongly directional.
+
 The repository includes a generated
 [review package](../reports/floor_scan_statistics/README.md) from the current
 public release. Regenerate it rather than hand-editing its tables or plots.
