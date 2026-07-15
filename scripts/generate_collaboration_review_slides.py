@@ -479,7 +479,7 @@ def build_deck(output_dir: Path, browser_screenshot: Path) -> list[Image.Image]:
     draw = ImageDraw.Draw(image)
     metric_card(draw, (100, 180, 570, 390), "Figure 14", "recalculated from public measurements", GREEN)
     metric_card(draw, (650, 180, 1120, 390), "Figure 19", "requested subset replotted from ancillary CSVs", BLUE)
-    metric_card(draw, (1200, 180, 1510, 390), "26", "artifact-only at this checkpoint", GOLD)
+    metric_card(draw, (1200, 180, 1510, 390), "26", "tracked; not recalculated at this checkpoint", GOLD)
     bullets(draw, [
         "Every numbered figure has a machine-readable status, inputs, publication artifact, and limitation.",
         "Figure 7 point spectra/statistics now have a supported workflow, while paper-exact contour styling remains legacy.",
