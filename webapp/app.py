@@ -63,19 +63,28 @@ def schematic(locations: pd.DataFrame) -> go.Figure:
     ]
     fig.update_layout(shapes=shapes)
     if not locations.empty:
-        # Released right/left cart corners show orientation independently of tilt.
+        # Released right/left cart references show azimuth independently of tilt.
         line_x, line_y = [], []
         for row in locations.itertuples():
             line_x += [row.coordinate_Rz, row.coordinate_Lz, None]
             line_y += [row.coordinate_Rx, row.coordinate_Lx, None]
-        fig.add_trace(go.Scatter(x=line_x, y=line_y, mode="lines", line=dict(color="#9b2f2f", width=1), hoverinfo="skip", showlegend=False))
+        fig.add_trace(go.Scatter(
+            x=line_x,
+            y=line_y,
+            mode="lines",
+            name="Right↔left cart reference baseline",
+            line=dict(color="#587384", width=2),
+            hoverinfo="skip",
+            showlegend=True,
+        ))
         custom = locations[["detector_coordinates_id", "orientation_angle", "cart_azimuth", "run_count", "file_count"]].to_numpy()
         fig.add_trace(go.Scatter(
             x=locations["map_z"], y=locations["map_x"], mode="markers",
+            name="Calculated detector-face center",
             marker=dict(size=14, color="#a51c30", line=dict(color="white", width=1)),
             customdata=custom,
-            hovertemplate="Coordinate %{customdata[0]}<br>z=%{x:.1f} in, x=%{y:.1f} in<br>detector tilt=%{customdata[1]:.1f}°<br>cart azimuth=%{customdata[2]:.1f}°<br>%{customdata[3]} runs, %{customdata[4]} files<extra></extra>",
-            showlegend=False,
+            hovertemplate="<b>Detector-face center</b><br>Coordinate %{customdata[0]}<br>z=%{x:.1f} in, x=%{y:.1f} in<br>detector tilt=%{customdata[1]:.1f}°<br>cart azimuth from R↔L baseline=%{customdata[2]:.1f}°<br>%{customdata[3]} runs, %{customdata[4]} files<extra></extra>",
+            showlegend=True,
         ))
     fig.add_annotation(x=188, y=100, text="PROSPECT", showarrow=False, font=dict(color="cornflowerblue"))
     fig.add_annotation(x=85, y=5, text="MIF", showarrow=False, font=dict(color="red"))
@@ -85,6 +94,23 @@ def schematic(locations: pd.DataFrame) -> go.Figure:
         margin=dict(l=20, r=20, t=30, b=20),
         dragmode="select",
         clickmode="event+select",
+        legend=dict(
+            orientation="h",
+            x=0.0,
+            y=1.02,
+            xanchor="left",
+            yanchor="bottom",
+            bgcolor="rgba(255,255,255,0.9)",
+            bordercolor="#c8d2d9",
+            borderwidth=1,
+            font=dict(size=14),
+        ),
+        hoverlabel=dict(
+            bgcolor="white",
+            font_size=15,
+            font_family="DejaVu Sans",
+            align="left",
+        ),
     )
     fig.update_xaxes(title="z [in]", range=list(z_range), constrain="domain")
     fig.update_yaxes(
@@ -124,6 +150,12 @@ explore, timeline, paper, about = st.tabs(["Explore", "Cycle timeline", "Paper f
 
 with explore:
     st.warning("Official cycle boundaries have day precision; do not interpret a boundary date as an exact startup or shutdown time. The map is cropped to the released measurement region and omits the reactor area, where this release has no measurements.")
+    st.markdown(
+        "**How to read the map:** **red circles** are calculated detector-face "
+        "centers. Each **gray-blue segment** connects the recorded right and left "
+        "cart reference points and determines cart azimuth—it is **not identified "
+        "as the cart's front edge**. Detector tilt is a separate value shown on hover."
+    )
     selected_coordinate = None
     event = st.plotly_chart(schematic(locations), width="stretch", on_select="rerun", selection_mode="points", key="location_map")
     try:
@@ -208,5 +240,5 @@ This browser reads the canonical SQLite database in read-only mode and resolves 
 
 **Cycle calendar:** [{source['source_title']}]({source['source_url']}) · DOI `{source['source_doi']}` · retrieved `{source['retrieved_date']}`. Dates have **day precision**.
 
-The top-down map reproduces only geometry and coordinate conventions already released with this repository. Detector tilt and cart orientation are separate quantities and both are shown in point hover text.
+The top-down map reproduces only geometry and coordinate conventions already released with this repository. Red circles are calculated detector-face centers. Gray-blue segments join the recorded right and left cart reference points; they determine cart azimuth and are not identified as a front edge. Detector tilt is a separate quantity shown in point hover text.
 """)

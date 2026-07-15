@@ -24,7 +24,9 @@ Open <http://localhost:8501>. The browser supports:
 
 - filtering by official HFIR cycle, operating/outage classification, shield,
   run text, and recorded location;
-- a selectable HFIR location map with cart and detector orientation;
+- a selectable, cropped HFIR location map where red circles are calculated
+  detector-face centers and gray-blue right-to-left cart reference baselines
+  determine azimuth (the baselines are not identified as front edges);
 - a run timeline in the `America/New_York` timezone;
 - overlays of up to six calibrated spectra with energy range, rebinning,
   normalization, logarithmic scale, and Poisson errors; and
