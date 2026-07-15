@@ -19,7 +19,9 @@ from src.public_data.browser import (  # noqa: E402
     spectrum_dataframe,
 )
 from src.public_data.catalog import build_run_catalog, load_cycle_calendar  # noqa: E402
-from webapp.helpers import filter_catalog, location_catalog  # noqa: E402
+from webapp.helpers import (  # noqa: E402
+    filter_catalog, location_catalog, measurement_map_ranges,
+)
 
 
 st.set_page_config(page_title="HFIR Background Data", page_icon="📈", layout="wide")
@@ -50,13 +52,10 @@ def cached_spectrum(file_id: int, db_path: str, data_root: str | None, factor: i
 
 
 def schematic(locations: pd.DataFrame) -> go.Figure:
-    """Top-down view copied from the public geometry in plot_measurement_locations.py."""
+    """Top-down view cropped to the region containing released measurements."""
     fig = go.Figure()
-    core_z, core_x, core_r = 141.15, -148.5, 8.66
     shapes = [
-        dict(type="circle", x0=core_z-core_r, x1=core_z+core_r, y0=core_x-core_r, y1=core_x+core_r, line=dict(color="black", width=2)),
-        dict(type="line", x0=0, x1=320, y0=0, y1=0, line=dict(color="black", width=2)),
-        dict(type="line", x0=0, x1=0, y0=0, y1=-160, line=dict(color="black", width=2)),
+        dict(type="line", x0=0, x1=420, y0=0, y1=0, line=dict(color="black", width=2)),
         dict(type="rect", x0=165, x1=211.25, y0=44.6, y1=128, line=dict(color="cornflowerblue", width=2)),
         dict(type="rect", x0=125, x1=256.5, y0=7.5, y1=21.5, line=dict(color="gray"), fillcolor="lightgray"),
         dict(type="rect", x0=10, x1=64, y0=7.5, y1=21.5, line=dict(color="gray"), fillcolor="lightgray"),
@@ -73,17 +72,25 @@ def schematic(locations: pd.DataFrame) -> go.Figure:
         custom = locations[["detector_coordinates_id", "orientation_angle", "cart_azimuth", "run_count", "file_count"]].to_numpy()
         fig.add_trace(go.Scatter(
             x=locations["map_z"], y=locations["map_x"], mode="markers",
-            marker=dict(size=10, color="#a51c30", line=dict(color="white", width=1)),
+            marker=dict(size=14, color="#a51c30", line=dict(color="white", width=1)),
             customdata=custom,
             hovertemplate="Coordinate %{customdata[0]}<br>z=%{x:.1f} in, x=%{y:.1f} in<br>detector tilt=%{customdata[1]:.1f}°<br>cart azimuth=%{customdata[2]:.1f}°<br>%{customdata[3]} runs, %{customdata[4]} files<extra></extra>",
             showlegend=False,
         ))
-    fig.add_annotation(x=141.15, y=-148.5, text="Reactor core", showarrow=False)
     fig.add_annotation(x=188, y=100, text="PROSPECT", showarrow=False, font=dict(color="cornflowerblue"))
     fig.add_annotation(x=85, y=5, text="MIF", showarrow=False, font=dict(color="red"))
-    fig.update_layout(height=650, margin=dict(l=20, r=20, t=30, b=20), dragmode="select")
-    fig.update_xaxes(title="z [in]", range=[-5, 320], constrain="domain")
-    fig.update_yaxes(title="x [in]", range=[150, -160], scaleanchor="x", scaleratio=1)
+    z_range, x_range = measurement_map_ranges(locations)
+    fig.update_layout(
+        height=650,
+        margin=dict(l=20, r=20, t=30, b=20),
+        dragmode="select",
+        clickmode="event+select",
+    )
+    fig.update_xaxes(title="z [in]", range=list(z_range), constrain="domain")
+    fig.update_yaxes(
+        title="x [in]", range=list(x_range), scaleanchor="x", scaleratio=1,
+        constrain="domain",
+    )
     return fig
 
 
@@ -116,24 +123,26 @@ locations = location_catalog(filtered)
 explore, timeline, paper, about = st.tabs(["Explore", "Cycle timeline", "Paper figures", "About / provenance"])
 
 with explore:
-    st.warning("Official cycle boundaries have day precision; do not interpret a boundary date as an exact startup or shutdown time. The map uses only released schematic geometry and coordinates.")
-    left, right = st.columns([2, 1])
+    st.warning("Official cycle boundaries have day precision; do not interpret a boundary date as an exact startup or shutdown time. The map is cropped to the released measurement region and omits the reactor area, where this release has no measurements.")
     selected_coordinate = None
-    with left:
-        event = st.plotly_chart(schematic(locations), width="stretch", on_select="rerun", selection_mode="points", key="location_map")
-        try:
-            points = event.selection.points
-            if points:
-                selected_coordinate = int(points[0]["customdata"][0])
-        except (AttributeError, KeyError, IndexError, TypeError, ValueError):
-            pass
-    with right:
+    event = st.plotly_chart(schematic(locations), width="stretch", on_select="rerun", selection_mode="points", key="location_map")
+    try:
+        points = event.selection.points
+        if points:
+            selected_coordinate = int(points[0]["customdata"][0])
+    except (AttributeError, KeyError, IndexError, TypeError, ValueError):
+        pass
+    selector_column, runs_column, locations_column, files_column = st.columns([2, 1, 1, 1])
+    with selector_column:
         coordinate_options = [int(value) for value in locations.get("detector_coordinates_id", pd.Series(dtype=int)).tolist()]
         fallback = st.selectbox("Location fallback selector", [None] + coordinate_options, format_func=lambda value: "All mapped locations" if value is None else f"Coordinate {value}")
         if selected_coordinate is None:
             selected_coordinate = fallback
+    with runs_column:
         st.metric("Filtered runs", len(filtered))
+    with locations_column:
         st.metric("Mapped locations", len(locations))
+    with files_column:
         st.metric("Spectrum files", int(filtered["file_count"].sum()))
 
     selected_runs = filter_catalog(filtered, coordinate_id=selected_coordinate)

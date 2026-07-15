@@ -5,7 +5,9 @@ import unittest
 import pandas as pd
 
 from webapp.helpers import (
-    cart_azimuth_degrees, detector_face_position, filter_catalog, location_catalog,
+    DEFAULT_MAP_X_RANGE, DEFAULT_MAP_Z_RANGE, cart_azimuth_degrees,
+    detector_face_position, filter_catalog, location_catalog,
+    measurement_map_ranges,
 )
 
 
@@ -32,6 +34,21 @@ class WebappHelperTests(unittest.TestCase):
         self.assertEqual(len(locations), 2)
         self.assertEqual(int(locations["file_count"].sum()), 5)
         self.assertIn("cart_azimuth", locations)
+
+    def test_measurement_map_ranges_include_faces_and_cart_corners(self):
+        locations = location_catalog(self.catalog)
+        z_range, x_range = measurement_map_ranges(locations)
+        self.assertLess(z_range[0], locations[["map_z", "coordinate_Rz", "coordinate_Lz"]].min().min())
+        self.assertGreater(z_range[1], locations[["map_z", "coordinate_Rz", "coordinate_Lz"]].max().max())
+        self.assertGreater(x_range[0], locations[["map_x", "coordinate_Rx", "coordinate_Lx"]].max().max())
+        self.assertLess(x_range[1], locations[["map_x", "coordinate_Rx", "coordinate_Lx"]].min().min())
+        self.assertGreater(x_range[1], -50.0)
+
+    def test_empty_measurement_map_uses_released_region_default(self):
+        self.assertEqual(
+            measurement_map_ranges(pd.DataFrame()),
+            (DEFAULT_MAP_Z_RANGE, DEFAULT_MAP_X_RANGE),
+        )
 
 
 if __name__ == "__main__":

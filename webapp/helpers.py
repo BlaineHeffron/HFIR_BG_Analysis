@@ -7,6 +7,10 @@ from math import atan2, cos, degrees, pi, sin
 import pandas as pd
 
 
+DEFAULT_MAP_Z_RANGE = (-25.0, 425.0)
+DEFAULT_MAP_X_RANGE = (180.0, -5.0)
+
+
 def filter_catalog(
     catalog: pd.DataFrame,
     *,
@@ -86,3 +90,44 @@ def location_catalog(catalog: pd.DataFrame) -> pd.DataFrame:
     rows["map_z"] = [position[0] for position in positions]
     rows["map_x"] = [position[1] for position in positions]
     return rows
+
+
+def measurement_map_ranges(
+    locations: pd.DataFrame,
+    *,
+    minimum_z_span: float = 100.0,
+    minimum_x_span: float = 80.0,
+) -> tuple[tuple[float, float], tuple[float, float]]:
+    """Return padded Plotly ranges focused on the currently mapped locations.
+
+    Both detector-face positions and released cart corners are included so the
+    orientation lines remain visible. The x range is reversed to preserve the
+    orientation of the published hall schematic.
+    """
+
+    required = {
+        "map_z", "map_x", "coordinate_Rz", "coordinate_Rx",
+        "coordinate_Lz", "coordinate_Lx",
+    }
+    if locations.empty or not required.issubset(locations.columns):
+        return DEFAULT_MAP_Z_RANGE, DEFAULT_MAP_X_RANGE
+
+    def limits(columns: tuple[str, ...], minimum_span: float) -> tuple[float, float]:
+        values = pd.concat(
+            [pd.to_numeric(locations[column], errors="coerce") for column in columns],
+            ignore_index=True,
+        ).dropna()
+        if values.empty:
+            raise ValueError("No finite map coordinates")
+        low, high = float(values.min()), float(values.max())
+        span = high - low
+        center = (low + high) / 2.0
+        half_span = max(minimum_span / 2.0, span * 0.56)
+        return center - half_span, center + half_span
+
+    try:
+        z_low, z_high = limits(("map_z", "coordinate_Rz", "coordinate_Lz"), minimum_z_span)
+        x_low, x_high = limits(("map_x", "coordinate_Rx", "coordinate_Lx"), minimum_x_span)
+    except ValueError:
+        return DEFAULT_MAP_Z_RANGE, DEFAULT_MAP_X_RANGE
+    return (z_low, z_high), (x_high, x_low)
