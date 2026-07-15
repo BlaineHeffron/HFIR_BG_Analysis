@@ -144,6 +144,8 @@ def simple_table(draw: ImageDraw.ImageDraw, headers: list[str], rows: list[list[
 def save_slides(slides: list[Image.Image], output_dir: Path) -> tuple[Path, Path]:
     slide_dir = output_dir / "slide_images"
     slide_dir.mkdir(parents=True, exist_ok=True)
+    for stale_slide in slide_dir.glob("slide_*.png"):
+        stale_slide.unlink()
     paths: list[Path] = []
     for index, slide in enumerate(slides, start=1):
         path = slide_dir / f"slide_{index:02d}.png"
@@ -297,7 +299,7 @@ Outputs appear in `analysis/public_analysis/`. Figure 14 is recalculated from re
     return md_path, pdf_path
 
 
-def build_deck(output_dir: Path, browser_screenshot: Path) -> list[Image.Image]:
+def build_full_deck(output_dir: Path, browser_screenshot: Path) -> list[Image.Image]:
     public = REPO_ROOT / "analysis" / "public_analysis"
     report = REPO_ROOT / "reports" / "floor_scan_statistics"
     validation_path = output_dir / "e2e_validation.json"
@@ -511,14 +513,127 @@ def build_deck(output_dir: Path, browser_screenshot: Path) -> list[Image.Image]:
     return slides
 
 
+def build_deck(output_dir: Path, browser_screenshot: Path) -> list[Image.Image]:
+    """Build the concise Figure 7 and public-data presentation."""
+    del output_dir
+    report = REPO_ROOT / "reports" / "floor_scan_statistics"
+    slide_specs: list[tuple[str, str | None]] = [
+        ("Figure 7 scan spectra and public data access", None),
+        ("Public release at a glance", "A read-only path from run metadata to calibrated spectra"),
+        ("Selecting the Figure 7 scan population", "Keep the original floor scan separate from later monitoring"),
+        ("Statistics for a typical scan point", "Routine acquisitions only: 100–400 s live time"),
+        ("Representative spectrum", "HB4_DOWN_2: 216.25 s and 38,393 counts"),
+        ("Practical histogram binning", "Preserve native channels; add a convenient display product"),
+        ("Browse and select spectra interactively", "Filter, inspect, compare, and export without ROOT"),
+        ("Start using the data", "Browser, command-line exports, and a reproducible Figure 7 package"),
+    ]
+    total = len(slide_specs)
+    slides: list[Image.Image] = [
+        title_slide(
+            "Figure 7 scan spectra\nand public data access",
+            "Typical-point statistics, practical binning,\nand tools for selecting and exporting spectra",
+            "HFIR gamma-background public data | July 2026",
+        )
+    ]
+
+    image = base_slide(*slide_specs[1], 2, total)
+    draw = ImageDraw.Draw(image)
+    metric_card(draw, (80, 180, 430, 360), "354", "run records")
+    metric_card(draw, (470, 180, 820, 360), "1,802", "calibrated spectrum files", GREEN)
+    metric_card(draw, (860, 180, 1210, 360), "241", "mapped coordinate records", GOLD)
+    metric_card(draw, (1250, 180, 1520, 360), "ROOT-free", "browser and CSV export", RED)
+    bullets(draw, [
+        "The versioned bundle contains the canonical SQLite catalog, calibrated text spectra, and setup-time checksum verification.",
+        "Runs can be filtered by official reactor cycle/state, shielding, name, description, and released coordinate.",
+        "Environment variables replace workstation paths; browser and export tools always open the database read-only.",
+    ], (100, 450, 1500, 800), size=26)
+    slides.append(image)
+
+    image = base_slide(*slide_specs[2], 3, total)
+    fit_image(image, report / "floor_scan_point_statistics.png", (50, 160, 1070, 815))
+    draw = ImageDraw.Draw(image)
+    bullets(draw, [
+        "Original position_scan_3 through _8 campaigns: 122 acquisitions at 117 coordinates.",
+        "Routine sample: 104 acquisitions with 100–400 s live time at 102 coordinates.",
+        "Later Cycle 492 monitoring shares coordinates and must not be selected by a generic ‘down-facing’ query.",
+        "Spectra measure the downward-collimated component, not orientation-independent flux.",
+    ], (1100, 165, 1540, 800), size=20)
+    slides.append(image)
+
+    image = base_slide(*slide_specs[3], 4, total)
+    draw = ImageDraw.Draw(image)
+    metric_card(draw, (90, 180, 480, 385), "227.26 s", "median live time")
+    metric_card(draw, (605, 180, 995, 385), "37,446", "median counts, 50–11,400 keV", GREEN)
+    metric_card(draw, (1120, 180, 1510, 385), "178.09 s⁻¹", "median total count rate", GOLD)
+    metric_card(draw, (90, 470, 670, 690), "4,290–223,525", "routine point count range", RED)
+    metric_card(draw, (790, 470, 1510, 690), "HB4_DOWN_2", "representative: 216.25 s, 38,393 counts", BLUE)
+    draw.text((90, 740), "The representative point minimizes robust distance to median live time, counts, and rate.", font=font(24), fill=MUTED)
+    slides.append(image)
+
+    image = base_slide(*slide_specs[4], 5, total)
+    fit_image(image, report / "representative_point_adaptive_binning.png", (60, 140, 1540, 830))
+    slides.append(image)
+
+    image = base_slide(*slide_specs[5], 6, total)
+    draw = ImageDraw.Draw(image)
+    simple_table(
+        draw,
+        ["Energy range", "Display width", "Median mean counts/bin", "Median nonzero bins"],
+        [
+            ["50–1,000 keV", "2 keV", "46.0", "100%"],
+            ["1,000–3,000 keV", "10 keV", "55.8", "100%"],
+            ["3,000–7,000 keV", "50 keV", "48.3", "100%"],
+            ["7,000–11,400 keV", "200 keV", "16.2", "77%"],
+        ],
+        (110, 180, 1490, 560),
+        widths=[1.4, 1.0, 1.35, 1.2],
+    )
+    bullets(draw, [
+        "Above 7 MeV, only 41% of 200-keV bins contain at least 10 counts at a typical point.",
+        "Release native calibrated channels plus this convenience binning and Poisson errors.",
+        "The Figure 7 package includes all 122 spectra, a point manifest, occupancy metrics, and provenance.",
+    ], (130, 610, 1470, 825), size=24)
+    slides.append(image)
+
+    image = base_slide(*slide_specs[6], 7, total)
+    draw = ImageDraw.Draw(image)
+    if browser_screenshot.is_file():
+        fit_image(image, browser_screenshot, (55, 145, 1120, 820))
+    else:
+        draw.rounded_rectangle((55, 145, 1120, 820), radius=18, fill=LIGHT, outline="#c9d2d8", width=2)
+        wrapped(
+            draw,
+            "Start ./scripts/run_data_browser.sh and open localhost:8501 for the live demonstration.",
+            (150, 390), 55, 27, color=MUTED, bold=True,
+        )
+    bullets(draw, [
+        "Filter official cycle/state, shield, run text, and location.",
+        "Select a measurement point, then a run and spectrum file.",
+        "Change energy range, normalization, rebinning, log scale, and errors.",
+        "Download the filtered run table or displayed calibrated bins.",
+    ], (1150, 160, 1540, 800), size=20)
+    slides.append(image)
+
+    image = base_slide(*slide_specs[7], 8, total)
+    draw = ImageDraw.Draw(image)
+    code_box(draw, "git clone https://github.com/BlaineHeffron/HFIR_BG_Analysis.git\ncd HFIR_BG_Analysis\n./scripts/setup_analysis.sh --browser-only\n./scripts/run_data_browser.sh", (80, 165, 1520, 405), size=25)
+    code_box(draw, ".venv/bin/python scripts/analyze_floor_scan_statistics.py\n.venv/bin/python scripts/export_public_data.py --help", (80, 455, 1520, 625), size=24)
+    bullets(draw, [
+        "Open http://localhost:8501 and search position_scan_ to inspect the Figure 7 acquisitions.",
+        "The same tools export arbitrary catalog slices, file manifests, and calibrated spectra to CSV.",
+        "The quickstart handout and commands were verified end to end in a fresh clone.",
+    ], (110, 680, 1490, 825), size=22)
+    slides.append(image)
+    return slides
+
+
 def main() -> int:
     args = parse_args()
     output_dir = args.output_dir.expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     required = [
-        REPO_ROOT / "analysis" / "public_analysis" / "unfolded_key_locations.png",
-        REPO_ROOT / "analysis" / "public_analysis" / "shield_configuration_spectra.png",
         REPO_ROOT / "reports" / "floor_scan_statistics" / "floor_scan_point_statistics.png",
+        REPO_ROOT / "reports" / "floor_scan_statistics" / "representative_point_adaptive_binning.png",
     ]
     missing = [str(path) for path in required if not path.is_file()]
     if missing:
