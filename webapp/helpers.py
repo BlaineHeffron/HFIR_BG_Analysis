@@ -9,6 +9,8 @@ import pandas as pd
 
 DEFAULT_MAP_Z_RANGE = (-25.0, 425.0)
 DEFAULT_MAP_X_RANGE = (180.0, -5.0)
+ORIENTATION_ARROW_LENGTH_IN = 12.0
+DOWNWARD_TILT_TOLERANCE_DEGREES = 1e-6
 
 
 def filter_catalog(
@@ -64,6 +66,32 @@ def detector_face_position(
     )
 
 
+def orientation_arrow_vector(
+    rx: float,
+    rz: float,
+    lx: float,
+    lz: float,
+    *,
+    length_in: float = ORIENTATION_ARROW_LENGTH_IN,
+) -> tuple[float, float]:
+    """Return the plotted ``(dz, dx)`` direction for a tilted detector.
+
+    This is the same cart-azimuth geometry used by the paper-diagram scripts:
+    ``dz = L cos(phi)`` and ``dx = -L sin(phi)``, where ``phi`` comes from
+    the released right/left cart-corner coordinates.  The caller places the
+    tail at the calculated detector-face center.
+    """
+
+    phi = atan2(lx - rx, rz - lz)
+    return length_in * cos(phi), -length_in * sin(phi)
+
+
+def is_downward_facing(tilt_degrees: float) -> bool:
+    """Return whether a detector is vertically downward-facing on the map."""
+
+    return abs(float(tilt_degrees)) <= DOWNWARD_TILT_TOLERANCE_DEGREES
+
+
 def location_catalog(catalog: pd.DataFrame) -> pd.DataFrame:
     """Return one map row per coordinate record represented by filtered runs."""
 
@@ -89,6 +117,17 @@ def location_catalog(catalog: pd.DataFrame) -> pd.DataFrame:
     )
     rows["map_z"] = [position[0] for position in positions]
     rows["map_x"] = [position[1] for position in positions]
+    directions = rows.apply(
+        lambda row: orientation_arrow_vector(
+            row.coordinate_Rx, row.coordinate_Rz,
+            row.coordinate_Lx, row.coordinate_Lz,
+        ), axis=1
+    )
+    rows["map_direction_dz"] = [direction[0] for direction in directions]
+    rows["map_direction_dx"] = [direction[1] for direction in directions]
+    rows["map_direction_end_z"] = rows["map_z"] + rows["map_direction_dz"]
+    rows["map_direction_end_x"] = rows["map_x"] + rows["map_direction_dx"]
+    rows["downward_facing"] = rows["orientation_angle"].map(is_downward_facing)
     return rows
 
 
@@ -100,14 +139,13 @@ def measurement_map_ranges(
 ) -> tuple[tuple[float, float], tuple[float, float]]:
     """Return padded Plotly ranges focused on the currently mapped locations.
 
-    Both detector-face positions and released cart corners are included so the
-    orientation lines remain visible. The x range is reversed to preserve the
-    orientation of the published hall schematic.
+    Detector-face positions and the ends of the orientation arrows are
+    included so visual orientation cues remain visible. The x range is
+    reversed to preserve the orientation of the published hall schematic.
     """
 
     required = {
-        "map_z", "map_x", "coordinate_Rz", "coordinate_Rx",
-        "coordinate_Lz", "coordinate_Lx",
+        "map_z", "map_x", "map_direction_end_z", "map_direction_end_x",
     }
     if locations.empty or not required.issubset(locations.columns):
         return DEFAULT_MAP_Z_RANGE, DEFAULT_MAP_X_RANGE
@@ -126,8 +164,8 @@ def measurement_map_ranges(
         return center - half_span, center + half_span
 
     try:
-        z_low, z_high = limits(("map_z", "coordinate_Rz", "coordinate_Lz"), minimum_z_span)
-        x_low, x_high = limits(("map_x", "coordinate_Rx", "coordinate_Lx"), minimum_x_span)
+        z_low, z_high = limits(("map_z", "map_direction_end_z"), minimum_z_span)
+        x_low, x_high = limits(("map_x", "map_direction_end_x"), minimum_x_span)
     except ValueError:
         return DEFAULT_MAP_Z_RANGE, DEFAULT_MAP_X_RANGE
     return (z_low, z_high), (x_high, x_low)

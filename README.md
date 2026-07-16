@@ -24,9 +24,9 @@ Open <http://localhost:8501>. The browser supports:
 
 - filtering by official HFIR cycle, operating/outage classification, shield,
   run text, and recorded location;
-- a selectable, cropped HFIR location map where red circles are calculated
-  detector-face centers and gray-blue right-to-left cart reference baselines
-  determine azimuth (the baselines are not identified as front edges);
+- a selectable, cropped HFIR location map where gold stars mark
+  downward-facing detectors and red arrows mark the horizontal direction of
+  tilted detectors (arrow length is only a visual cue, not a tilt magnitude);
 - a run timeline in the `America/New_York` timezone;
 - overlays of up to six calibrated spectra with energy range, rebinning,
   normalization, logarithmic scale, and Poisson errors; and
@@ -205,16 +205,19 @@ provenance and limitations are in
 ## Data layout and portable paths
 
 The setup downloads the
-[`data-v1.0.0` release](https://github.com/BlaineHeffron/HFIR_BG_Analysis/releases/tag/data-v1.0.0)
+[`data-v1.0.1` release](https://github.com/BlaineHeffron/HFIR_BG_Analysis/releases/tag/data-v1.0.1)
 into this ignored layout:
 
 ```text
 data/
-└── HFIRBG_public_data_v1.0.0/
+└── HFIRBG_public_data_v1.0.1/
     ├── HFIRBG.db
     └── spectra/
         └── 1,802 calibrated .txt spectra
 ```
+
+Version 1.0.1 corrects the `Cycle492_NE_East` cart coordinate used to display
+the detector orientation on the hall map.
 
 Configuration is controlled by:
 

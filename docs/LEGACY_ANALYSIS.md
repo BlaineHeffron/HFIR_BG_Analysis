@@ -59,5 +59,9 @@ corners. The database `angle` is detector tilt; the cart azimuth is derived from
 the corner vector. `src/database/CartScanFiles.py` contains the historical
 position conversion used by cart-scan analyses.
 
-The interactive public browser exposes both quantities in map hover text and
-does not require the legacy database wrapper.
+The interactive public browser mirrors the historical azimuth calculation:
+downward-facing detectors are marked with a star, while tilted detectors use
+an arrow with `dz = L cos(phi)` and `dx = -L sin(phi)` from the same released
+cart-corner geometry. Tilt remains available in map hover text; arrow length
+is only a visual cue and does not encode tilt magnitude. The browser does not
+require the legacy database wrapper.

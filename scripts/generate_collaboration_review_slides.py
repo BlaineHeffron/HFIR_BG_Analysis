@@ -60,7 +60,7 @@ def base_slide(title: str, subtitle: str | None, number: int, total: int) -> Ima
     if subtitle:
         draw.text((62, 104), subtitle, font=font(20), fill=MUTED)
     draw.rectangle((55, 855, 1545, 857), fill=BLUE)
-    draw.text((60, 865), "HFIR gamma-background public data | analysis overview", font=font(14), fill=MUTED)
+    draw.text((60, 865), "HFIR gamma-background data | Figure 7 and public analysis", font=font(14), fill=MUTED)
     label = f"{number}/{total}"
     box = draw.textbbox((0, 0), label, font=font(14))
     draw.text((1540 - (box[2] - box[0]), 865), label, font=font(14), fill=MUTED)
@@ -77,8 +77,22 @@ def title_slide(title: str, subtitle: str, footer: str) -> Image.Image:
     return image
 
 
-def fit_image(canvas: Image.Image, path: Path, box: tuple[int, int, int, int], border: bool = True) -> None:
+def fit_image(
+    canvas: Image.Image,
+    path: Path,
+    box: tuple[int, int, int, int],
+    border: bool = True,
+    crop_fraction: tuple[float, float, float, float] | None = None,
+) -> None:
     source = Image.open(path).convert("RGB")
+    if crop_fraction:
+        left, top, right, bottom = crop_fraction
+        source = source.crop((
+            round(source.width * left),
+            round(source.height * top),
+            round(source.width * right),
+            round(source.height * bottom),
+        ))
     x0, y0, x1, y1 = box
     scale = min((x1 - x0) / source.width, (y1 - y0) / source.height)
     resized = source.resize((round(source.width * scale), round(source.height * scale)), Image.Resampling.LANCZOS)
@@ -168,78 +182,55 @@ def save_slides(slides: list[Image.Image], output_dir: Path) -> tuple[Path, Path
 
 
 def write_handout(output_dir: Path) -> tuple[Path, Path]:
-    markdown = """# HFIR public gamma data: student quickstart
+    markdown = """# A beginner's guide to the HFIR gamma-background data
 
-## 1. Clone and install the ROOT-free browser tools
+This guide assumes you are new to this dataset. You do **not** need to know Git, Python, or the project folders to follow the presentation or explore the browser.
+
+## 1. Start with the idea, not the files
+
+A **spectrum** is a record of how many gamma rays a detector observed at each energy. It is the radiation fingerprint of one place and one time.
+
+This collection contains 1,802 calibrated spectra from 354 measurement runs at 241 mapped locations. Each spectrum is linked to basic context—where, when, and under what conditions it was measured—so comparisons can be made fairly.
+
+## 2. Explore in the browser first
+
+If a presenter or colleague has started the browser, open the address they provide (on the presenter's computer it is usually <http://localhost:8501>). Then:
+
+1. Filter by a location, reactor condition, shielding setup, or a word in the run description.
+2. Choose a measurement point, then select one recording from that point.
+3. View the spectrum, adjust the energy range if helpful, and download the displayed values only if you want to work with them further.
+
+You do not need to memorize run IDs or understand the repository layout to do this. A good first question is: **How does the spectrum change from one floor location to another?**
+
+## 3. If you want a copy on your own computer
+
+This is optional. `git clone` simply downloads a copy of the project. If Git or the command line is new to you, a collaborator can do this one-time setup with you.
 
 ```bash
 git clone https://github.com/BlaineHeffron/HFIR_BG_Analysis.git
 cd HFIR_BG_Analysis
 ./scripts/setup_analysis.sh --browser-only
-```
-
-The setup downloads and verifies the public database plus 1,802 calibrated spectra, creates `.env`, sanitizes the database path, and installs a local `.venv`.
-
-## 2. Demonstrate the browser
-
-```bash
 ./scripts/run_data_browser.sh
 ```
 
-Open <http://localhost:8501>. Try filtering by official cycle, state, shield, run text, and map location. Select runs and files, change energy range/rebinning/normalization, and download CSV.
+After the last command, open <http://localhost:8501> in a web browser. The setup prepares a local, read-only copy of the public catalog and spectra; it does not alter the published data.
 
-For the Figure 7 scan, search for `position_scan_` or the representative run `position_scan_3_HB4_DOWN_2`.
+## 4. What Figure 7 represents
 
-## 3. Reproduce the Figure 7 review package
+Figure 7 uses the original downward-looking floor survey. The detector was measuring radiation arriving from the floor direction, so these spectra should not be described as a measurement of radiation arriving equally from every direction.
 
-```bash
-.venv/bin/python scripts/analyze_floor_scan_statistics.py
-```
+Later checks at some of the same locations are kept separate. They were collected at a different time and for a different purpose, so mixing them with the original survey would blur the comparison.
 
-Read `analysis/floor_scan_statistics/README.md`. The output contains the point manifest, binning study, a representative spectrum, quantile plots, and all 122 individual piecewise-binned histograms.
+## 5. Reading and reusing the data thoughtfully
 
-## 4. Export data without the browser
+- The plotted spectra are detector readings (counts) as a function of gamma-ray energy. They are not, by themselves, an estimate of the incoming gamma-ray flux.
+- The original fine-grained energy channels remain available. A grouped display version is provided only to make broad patterns easier to see.
+- Measurements at high energy are sparse, so their uncertainty is naturally larger.
+- If you plan to publish, share, or draw a scientific conclusion from a selection, keep the selected location, conditions, and source information with it.
 
-```bash
-.venv/bin/python scripts/export_public_data.py catalog \\
-  --cycle 491 --calendar-state operating \\
-  --output analysis/student/cycle491.csv
+## 6. Where to get help
 
-.venv/bin/python scripts/export_public_data.py files \\
-  --run-id 102 --output analysis/student/run102_files.csv
-
-.venv/bin/python scripts/export_public_data.py spectra \\
-  --file-id 1729 --normalization counts/s/keV \\
-  --emin 50 --emax 11400 \\
-  --output analysis/student/HB4_DOWN_2_native.csv
-```
-
-## 5. Generate the paper-facing products (Linux x86-64)
-
-```bash
-./scripts/setup_analysis.sh
-source .env
-.venv/bin/python scripts/public_analysis.py all
-.venv/bin/python scripts/reproduce_paper.py --list
-```
-
-Outputs appear in `analysis/public_analysis/`. Figure 14 is recalculated from released measurements. The three-location Figure 19 subset is replotted from official ancillary unfolded CSVs; it is not a new unfolding.
-
-## Interpretation checklist
-
-- Text spectra are measured HPGe detector counts, not incident unfolded flux.
-- Figure 7 spectra measure the downward-collimated component, not orientation-independent ambient flux.
-- HFIR cycle dates have day precision; do not infer exact transition times.
-- Preserve native calibrated channel counts. Suggested Figure 7 display widths are 2, 10, 50, and 200 keV over 50–1000, 1000–3000, 3000–7000, and 7000–11400 keV.
-- Keep Poisson uncertainties, especially above 7 MeV.
-- Do not run database synchronization/calibration-writing commands on the canonical release.
-
-## If something fails
-
-- Re-run the setup; it is idempotent.
-- For a busy browser port: `./scripts/run_data_browser.sh --server.port 8502`.
-- For moved data, edit `HFIRBGDATA` and `HFIRBG_CALDB` in `.env`.
-- Check `README.md`, `docs/PUBLIC_ANALYSIS_GUIDE.md`, and `docs/FLOOR_SCAN_STATISTICS.md`.
+Start with the browser and a simple question. For a guided first look, ask the presenter to walk through one location and one spectrum. The repository `README.md`, `docs/PUBLIC_ANALYSIS_GUIDE.md`, and `docs/FLOOR_SCAN_STATISTICS.md` contain the optional technical details for later.
 """
     md_path = output_dir / "HFIR_student_data_quickstart.md"
     md_path.write_text(markdown, encoding="utf-8")
@@ -247,28 +238,30 @@ Outputs appear in `analysis/public_analysis/`. Figure 14 is recalculated from re
     pages: list[Image.Image] = []
     sections = [
         (
-            "HFIR student quickstart — setup and browser",
+            "HFIR data guide — begin with the question",
             [
-                ("1. Clone and install", "git clone https://github.com/BlaineHeffron/HFIR_BG_Analysis.git\ncd HFIR_BG_Analysis\n./scripts/setup_analysis.sh --browser-only"),
-                ("2. Start the browser", "./scripts/run_data_browser.sh\n# open http://localhost:8501"),
-                ("Browser exercise", "Filter by official cycle/state/shield. Search position_scan_. Select a location, run, and spectrum. Change normalization and binning; download CSV."),
+                ("You can start here", "You do not need to know Git, Python, or the project folders to follow this guide. Begin with the browser and one question about the measurements."),
+                ("What is a spectrum?", "A spectrum is a record of how many gamma rays the detector observed at each energy. It is the radiation fingerprint of one place and one time."),
+                ("What is in the collection?", "There are 1,802 calibrated spectra from 354 measurement runs at 241 mapped locations. Each is linked to location, reactor condition, shielding, and measurement duration."),
+                ("A useful first question", "How does the spectrum change from one floor location to another? Start there rather than trying to learn every file or term at once."),
             ],
         ),
         (
-            "HFIR student quickstart — reproduce and export",
+            "HFIR data guide — explore first, set up later",
             [
-                ("Figure 7 review", ".venv/bin/python scripts/analyze_floor_scan_statistics.py"),
-                ("Representative native spectrum", ".venv/bin/python scripts/export_public_data.py spectra \\\n  --file-id 1729 --normalization counts/s/keV \\\n  --emin 50 --emax 11400 \\\n  --output analysis/student/HB4_DOWN_2_native.csv"),
-                ("Paper-facing products", "./scripts/setup_analysis.sh\nsource .env\n.venv/bin/python scripts/public_analysis.py all\n.venv/bin/python scripts/reproduce_paper.py --list"),
+                ("Use the browser", "Ask your presenter or colleague for the browser link. Filter by location or condition, choose a measurement point, select one recording, and view its spectrum. You can change the displayed energy range or download the selected values."),
+                ("Optional one-time setup", "git clone https://github.com/BlaineHeffron/HFIR_BG_Analysis.git\ncd HFIR_BG_Analysis\n./scripts/setup_analysis.sh --browser-only"),
+                ("Start your local browser", "./scripts/run_data_browser.sh\n# then open http://localhost:8501"),
+                ("What the setup does", "It downloads a local, read-only copy of the public catalog and spectra. If the command line is new to you, ask a collaborator to do this first setup with you."),
             ],
         ),
         (
-            "HFIR student quickstart — interpretation",
+            "HFIR data guide — use the measurements carefully",
             [
-                ("What the data mean", "Text spectra are HPGe detector counts. Unfolded flux is a separate ancillary result. Figure 7 measures the downward-collimated component."),
-                ("Binning", "Preserve native counts. Suggested Figure 7 display widths: 2 keV (50–1000), 10 keV (1–3 MeV), 50 keV (3–7 MeV), 200 keV (7–11.4 MeV). Keep Poisson errors."),
-                ("Reproducibility boundary", "Figure 14 is recalculated. The three-location Figure 19 subset is an ancillary-data replot. Use reproduce_paper.py --list for every figure's exact status."),
-                ("Safety", "The public database is canonical and read-only for these tools. Do not run legacy synchronization or calibration-writing commands against it."),
+                ("Figure 7 in plain language", "Figure 7 uses the original downward-looking floor survey. It measures radiation arriving from the floor direction, not radiation arriving equally from every direction."),
+                ("Keep like with like", "Later checks at some of the same locations are not folded into the original survey because they were collected at a different time and for a different purpose."),
+                ("Detailed and easy-to-read views", "The original fine-grained energy channels are preserved. Grouped display values make broad patterns easier to see, especially at high energy where readings are sparse."),
+                ("When you need help", "Start with one location and one spectrum. The README and the public-analysis guide explain the optional technical details when you are ready for them."),
             ],
         ),
     ]
@@ -291,7 +284,7 @@ Outputs appear in `analysis/public_analysis/`. Figure 14 is recalculated from re
             else:
                 used = wrapped(draw, content, (75, y), 92, 23, color=TEXT, spacing=9)
                 y += used + 42
-        draw.text((70, 1595), f"Page {page_number}/3 | HFIR_BG_Analysis public release", font=font(17), fill=MUTED)
+        draw.text((70, 1595), f"Page {page_number}/3 | HFIR gamma-background data", font=font(17), fill=MUTED)
         page.save(output_dir / f"handout_page_{page_number}.png", optimize=True)
         pages.append(page)
     pdf_path = output_dir / "HFIR_student_data_quickstart.pdf"
@@ -382,10 +375,10 @@ def build_full_deck(output_dir: Path, browser_screenshot: Path) -> list[Image.Im
     fit_image(image, report / "floor_scan_point_statistics.png", (50, 160, 1070, 815))
     draw = ImageDraw.Draw(image)
     bullets(draw, [
-        "Original position_scan_3 through _8 campaigns: 122 acquisitions at 117 coordinates.",
-        "Routine sample: 104 acquisitions with 100–400 s live time at 102 coordinates.",
-        "Later Cycle 492 monitoring shares coordinates and must not be selected by a generic ‘down-facing’ query.",
-        "Spectra measure the downward-collimated component, not orientation-independent flux.",
+        "Figure 7 comes from the original downward-looking floor survey: 122 measurements at 117 locations.",
+        "Most were routine measurements lasting about 2–7 minutes; those give us a fair picture of a typical survey point.",
+        "Later checks used some of the same locations, but answered a different question—so they are kept separate here.",
+        "Because the detector looked downward, these spectra describe radiation arriving from the floor direction, not from every direction around it.",
     ], (1100, 165, 1540, 800), size=20)
     slides.append(image)
 
@@ -411,7 +404,7 @@ def build_full_deck(output_dir: Path, browser_screenshot: Path) -> list[Image.Im
     draw = ImageDraw.Draw(image)
     simple_table(
         draw,
-        ["Energy range", "Display width", "Median mean counts/bin", "Median nonzero bins"],
+        ["Energy range", "Group size for display", "Typical readings per group", "Groups with a reading"],
         [
             ["50–1,000 keV", "2 keV", "46.0", "100%"],
             ["1,000–3,000 keV", "10 keV", "55.8", "100%"],
@@ -518,56 +511,50 @@ def build_deck(output_dir: Path, browser_screenshot: Path) -> list[Image.Image]:
     del output_dir
     report = REPO_ROOT / "reports" / "floor_scan_statistics"
     slide_specs: list[tuple[str, str | None]] = [
-        ("Figure 7 scan spectra and public data access", None),
-        ("Public release at a glance", "A read-only path from run metadata to calibrated spectra"),
-        ("Selecting the Figure 7 scan population", "Keep the original floor scan separate from later monitoring"),
-        ("Statistics for a typical scan point", "Routine acquisitions only: 100–400 s live time"),
-        ("Representative spectrum", "HB4_DOWN_2: 216.25 s and 38,393 counts"),
-        ("Practical histogram binning", "Preserve native channels; add a convenient display product"),
-        ("Browse and select spectra interactively", "Filter, inspect, compare, and export without ROOT"),
-        ("Start using the data", "Browser, command-line exports, and a reproducible Figure 7 package"),
+        ("HFIR gamma background: Figure 7", None),
+        ("Dataset at a glance", "Released calibrated spectra and location metadata"),
+        ("Figure 7 selection", "Original downward-looking floor scan"),
+        ("Representative spectrum", "Acquisition nearest the floor-scan median"),
+        ("Native and display spectra", "Representative point: fine channels and binned view"),
+        ("Adaptive binning", "Native channels retained; bins are a viewing convenience"),
+        ("Map and browser", "Detector orientation and spectrum access"),
+        ("Analysis workflow", "Point → acquisition → spectrum"),
     ]
     total = len(slide_specs)
     slides: list[Image.Image] = [
         title_slide(
-            "Figure 7 scan spectra\nand public data access",
-            "Typical-point statistics, practical binning,\nand tools for selecting and exporting spectra",
-            "HFIR gamma-background public data | July 2026",
+            "HFIR gamma background\nfor Figure 7",
+            "Floor-scan data, spectrum products,\nand public analysis tools",
+            "HFIR gamma-background data | July 2026",
         )
     ]
 
     image = base_slide(*slide_specs[1], 2, total)
     draw = ImageDraw.Draw(image)
-    metric_card(draw, (80, 180, 430, 360), "354", "run records")
-    metric_card(draw, (470, 180, 820, 360), "1,802", "calibrated spectrum files", GREEN)
-    metric_card(draw, (860, 180, 1210, 360), "241", "mapped coordinate records", GOLD)
-    metric_card(draw, (1250, 180, 1520, 360), "ROOT-free", "browser and CSV export", RED)
-    bullets(draw, [
-        "The versioned bundle contains the canonical SQLite catalog, calibrated text spectra, and setup-time checksum verification.",
-        "Runs can be filtered by official reactor cycle/state, shielding, name, description, and released coordinate.",
-        "Environment variables replace workstation paths; browser and export tools always open the database read-only.",
-    ], (100, 450, 1500, 800), size=26)
+    metric_card(draw, (100, 205, 525, 445), "354", "runs")
+    metric_card(draw, (585, 205, 1010, 445), "1,802", "calibrated spectra", GREEN)
+    metric_card(draw, (1070, 205, 1495, 445), "241", "mapped locations", GOLD)
+    draw.text((100, 570), "Energy histograms + run, location, shielding, and operating-state metadata", font=font(30), fill=TEXT)
     slides.append(image)
 
     image = base_slide(*slide_specs[2], 3, total)
-    fit_image(image, report / "floor_scan_point_statistics.png", (50, 160, 1070, 815))
+    fit_image(image, report / "floor_scan_point_statistics.png", (50, 145, 1120, 820))
     draw = ImageDraw.Draw(image)
-    bullets(draw, [
-        "Original position_scan_3 through _8 campaigns: 122 acquisitions at 117 coordinates.",
-        "Routine sample: 104 acquisitions with 100–400 s live time at 102 coordinates.",
-        "Later Cycle 492 monitoring shares coordinates and must not be selected by a generic ‘down-facing’ query.",
-        "Spectra measure the downward-collimated component, not orientation-independent flux.",
-    ], (1100, 165, 1540, 800), size=20)
+    metric_card(draw, (1160, 185, 1515, 355), "122", "original spectra", GOLD)
+    metric_card(draw, (1160, 395, 1515, 565), "117", "locations", GREEN)
+    draw.text((1160, 640), "Detector axis", font=font(24), fill=MUTED)
+    draw.text((1160, 675), "↓  downward", font=font(34, bold=True), fill=NAVY)
+    draw.text((1160, 760), "Later follow-ups excluded", font=font(20), fill=MUTED)
     slides.append(image)
 
     image = base_slide(*slide_specs[3], 4, total)
     draw = ImageDraw.Draw(image)
-    metric_card(draw, (90, 180, 480, 385), "227.26 s", "median live time")
-    metric_card(draw, (605, 180, 995, 385), "37,446", "median counts, 50–11,400 keV", GREEN)
-    metric_card(draw, (1120, 180, 1510, 385), "178.09 s⁻¹", "median total count rate", GOLD)
-    metric_card(draw, (90, 470, 670, 690), "4,290–223,525", "routine point count range", RED)
-    metric_card(draw, (790, 470, 1510, 690), "HB4_DOWN_2", "representative: 216.25 s, 38,393 counts", BLUE)
-    draw.text((90, 740), "The representative point minimizes robust distance to median live time, counts, and rate.", font=font(24), fill=MUTED)
+    metric_card(draw, (90, 180, 480, 385), "about 4 min", "typical measurement length")
+    metric_card(draw, (605, 180, 995, 385), "37,446", "typical detector readings", GREEN)
+    metric_card(draw, (1120, 180, 1510, 385), "178 / sec", "typical reading rate", GOLD)
+    metric_card(draw, (90, 470, 670, 690), "4,290–223,525", "range across routine locations", RED)
+    metric_card(draw, (790, 470, 1510, 690), "Representative", "an example near the middle: 216 s and 38,393 readings", BLUE)
+    draw.text((90, 760), "Selection metric: nearest median in (acquisition time, total counts, count rate)", font=font(23), fill=MUTED)
     slides.append(image)
 
     image = base_slide(*slide_specs[4], 5, total)
@@ -578,7 +565,7 @@ def build_deck(output_dir: Path, browser_screenshot: Path) -> list[Image.Image]:
     draw = ImageDraw.Draw(image)
     simple_table(
         draw,
-        ["Energy range", "Display width", "Median mean counts/bin", "Median nonzero bins"],
+        ["Energy range", "Group size for display", "Typical readings per group", "Groups with a reading"],
         [
             ["50–1,000 keV", "2 keV", "46.0", "100%"],
             ["1,000–3,000 keV", "10 keV", "55.8", "100%"],
@@ -588,41 +575,41 @@ def build_deck(output_dir: Path, browser_screenshot: Path) -> list[Image.Image]:
         (110, 180, 1490, 560),
         widths=[1.4, 1.0, 1.35, 1.2],
     )
-    bullets(draw, [
-        "Above 7 MeV, only 41% of 200-keV bins contain at least 10 counts at a typical point.",
-        "Release native calibrated channels plus this convenience binning and Poisson errors.",
-        "The Figure 7 package includes all 122 spectra, a point manifest, occupancy metrics, and provenance.",
-    ], (130, 610, 1470, 825), size=24)
+    draw.text((130, 665), "Adaptive bins improve visual comparison; the released product preserves native-channel counts.", font=font(27), fill=TEXT)
     slides.append(image)
 
     image = base_slide(*slide_specs[6], 7, total)
     draw = ImageDraw.Draw(image)
     if browser_screenshot.is_file():
-        fit_image(image, browser_screenshot, (55, 145, 1120, 820))
+        fit_image(
+            image,
+            browser_screenshot,
+            (55, 175, 1130, 720),
+            crop_fraction=(0.1875, 0.37, 0.875, 0.84),
+        )
     else:
         draw.rounded_rectangle((55, 145, 1120, 820), radius=18, fill=LIGHT, outline="#c9d2d8", width=2)
         wrapped(
             draw,
-            "Start ./scripts/run_data_browser.sh and open localhost:8501 for the live demonstration.",
+            "This is where the presenter can demonstrate selecting a location, opening one spectrum, and changing the display.",
             (150, 390), 55, 27, color=MUTED, bold=True,
         )
-    bullets(draw, [
-        "Filter official cycle/state, shield, run text, and location.",
-        "Select a measurement point, then a run and spectrum file.",
-        "Change energy range, normalization, rebinning, log scale, and errors.",
-        "Download the filtered run table or displayed calibrated bins.",
-    ], (1150, 160, 1540, 800), size=20)
+    draw.text((1160, 180), "Map encoding", font=font(28, bold=True), fill=NAVY)
+    draw.text((1160, 250), "★", font=font(44), fill=GOLD)
+    draw.text((1210, 260), "detector axis down", font=font(25), fill=TEXT)
+    draw.text((1160, 350), "→", font=font(46, bold=True), fill=RED)
+    draw.text((1210, 360), "tilted: horizontal projection", font=font(25), fill=TEXT)
+    draw.text((1160, 500), "Select marker", font=font(26, bold=True), fill=NAVY)
+    draw.text((1160, 545), "→ select acquisition", font=font(24), fill=TEXT)
+    draw.text((1160, 585), "→ plot or export spectrum", font=font(24), fill=TEXT)
     slides.append(image)
 
     image = base_slide(*slide_specs[7], 8, total)
     draw = ImageDraw.Draw(image)
-    code_box(draw, "git clone https://github.com/BlaineHeffron/HFIR_BG_Analysis.git\ncd HFIR_BG_Analysis\n./scripts/setup_analysis.sh --browser-only\n./scripts/run_data_browser.sh", (80, 165, 1520, 405), size=25)
-    code_box(draw, ".venv/bin/python scripts/analyze_floor_scan_statistics.py\n.venv/bin/python scripts/export_public_data.py --help", (80, 455, 1520, 625), size=24)
-    bullets(draw, [
-        "Open http://localhost:8501 and search position_scan_ to inspect the Figure 7 acquisitions.",
-        "The same tools export arbitrary catalog slices, file manifests, and calibrated spectra to CSV.",
-        "The quickstart handout and commands were verified end to end in a fresh clone.",
-    ], (110, 680, 1490, 825), size=22)
+    metric_card(draw, (80, 215, 510, 490), "1. Locate", "map marker or metadata filter")
+    metric_card(draw, (590, 215, 1020, 490), "2. Select", "acquisition at a point", GREEN)
+    metric_card(draw, (1100, 215, 1530, 490), "3. Inspect", "spectrum or CSV export", GOLD)
+    draw.text((110, 625), "Read-only browser; analysis starts from the native calibrated spectrum.", font=font(30), fill=TEXT)
     slides.append(image)
     return slides
 

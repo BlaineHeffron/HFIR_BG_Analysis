@@ -63,29 +63,87 @@ def schematic(locations: pd.DataFrame) -> go.Figure:
     ]
     fig.update_layout(shapes=shapes)
     if not locations.empty:
-        # Released right/left cart references show azimuth independently of tilt.
-        line_x, line_y = [], []
-        for row in locations.itertuples():
-            line_x += [row.coordinate_Rz, row.coordinate_Lz, None]
-            line_y += [row.coordinate_Rx, row.coordinate_Lx, None]
-        fig.add_trace(go.Scatter(
-            x=line_x,
-            y=line_y,
-            mode="lines",
-            name="Right↔left cart reference baseline",
-            line=dict(color="#587384", width=2),
-            hoverinfo="skip",
-            showlegend=True,
-        ))
-        custom = locations[["detector_coordinates_id", "orientation_angle", "cart_azimuth", "run_count", "file_count"]].to_numpy()
-        fig.add_trace(go.Scatter(
-            x=locations["map_z"], y=locations["map_x"], mode="markers",
-            name="Calculated detector-face center",
-            marker=dict(size=14, color="#a51c30", line=dict(color="white", width=1)),
-            customdata=custom,
-            hovertemplate="<b>Detector-face center</b><br>Coordinate %{customdata[0]}<br>z=%{x:.1f} in, x=%{y:.1f} in<br>detector tilt=%{customdata[1]:.1f}°<br>cart azimuth from R↔L baseline=%{customdata[2]:.1f}°<br>%{customdata[3]} runs, %{customdata[4]} files<extra></extra>",
-            showlegend=True,
-        ))
+        def add_location_markers(
+            rows: pd.DataFrame,
+            *,
+            name: str,
+            symbol: str,
+            color: str,
+            size: int,
+            label: str,
+        ) -> None:
+            """Add selectable markers with one shared public hover contract."""
+
+            if rows.empty:
+                return
+            custom = rows.assign(map_symbol_label=label)[[
+                "detector_coordinates_id", "orientation_angle", "cart_azimuth",
+                "run_count", "file_count", "map_symbol_label",
+            ]].to_numpy()
+            fig.add_trace(go.Scatter(
+                x=rows["map_z"], y=rows["map_x"], mode="markers",
+                name=name,
+                marker=dict(
+                    symbol=symbol,
+                    size=size,
+                    color=color,
+                    line=dict(color="#14324a" if symbol == "star" else "white", width=1.5),
+                ),
+                customdata=custom,
+                hovertemplate=(
+                    "<b>%{customdata[5]}</b><br>Coordinate %{customdata[0]}"
+                    "<br>z=%{x:.1f} in, x=%{y:.1f} in"
+                    "<br>detector tilt=%{customdata[1]:.1f}°"
+                    "<br>cart direction=%{customdata[2]:.1f}°"
+                    "<br>%{customdata[3]} runs, %{customdata[4]} files"
+                    "<extra></extra>"
+                ),
+                showlegend=True,
+            ))
+
+        downward = locations[locations["downward_facing"]]
+        tilted = locations[~locations["downward_facing"]]
+        add_location_markers(
+            downward,
+            name="Downward-facing detector",
+            symbol="star",
+            color="#d9a441",
+            size=20,
+            label="Downward-facing detector (star)",
+        )
+        add_location_markers(
+            tilted,
+            name="Tilted detector",
+            symbol="circle",
+            color="#a51c30",
+            size=11,
+            label="Tilted detector (arrow shows direction)",
+        )
+        for row in tilted.itertuples(index=False):
+            fig.add_annotation(
+                x=float(row.map_direction_end_z),
+                y=float(row.map_direction_end_x),
+                ax=float(row.map_z),
+                ay=float(row.map_x),
+                xref="x",
+                yref="y",
+                axref="x",
+                ayref="y",
+                text="",
+                showarrow=True,
+                arrowhead=3,
+                arrowsize=1.1,
+                arrowwidth=2.5,
+                arrowcolor="#a51c30",
+            )
+        if not tilted.empty:
+            fig.add_trace(go.Scatter(
+                x=[None], y=[None], mode="lines",
+                name="Arrow = direction of tilted detector",
+                line=dict(color="#a51c30", width=2.5),
+                hoverinfo="skip",
+                showlegend=True,
+            ))
     fig.add_annotation(x=188, y=100, text="PROSPECT", showarrow=False, font=dict(color="cornflowerblue"))
     fig.add_annotation(x=85, y=5, text="MIF", showarrow=False, font=dict(color="red"))
     z_range, x_range = measurement_map_ranges(locations)
@@ -151,10 +209,10 @@ explore, timeline, paper, about = st.tabs(["Explore", "Cycle timeline", "Paper f
 with explore:
     st.warning("Official cycle boundaries have day precision; do not interpret a boundary date as an exact startup or shutdown time. The map is cropped to the released measurement region and omits the reactor area, where this release has no measurements.")
     st.markdown(
-        "**How to read the map:** **red circles** are calculated detector-face "
-        "centers. Each **gray-blue segment** connects the recorded right and left "
-        "cart reference points and determines cart azimuth—it is **not identified "
-        "as the cart's front edge**. Detector tilt is a separate value shown on hover."
+        "**How to read the map:** a **gold star** marks a detector pointed "
+        "straight down. A **red dot and arrow** mark a tilted detector; the arrow "
+        "shows its recorded horizontal direction. Arrow length is only a visual "
+        "cue, not a measure of tilt. Click a star or dot to choose that location."
     )
     selected_coordinate = None
     event = st.plotly_chart(schematic(locations), width="stretch", on_select="rerun", selection_mode="points", key="location_map")
@@ -167,7 +225,7 @@ with explore:
     selector_column, runs_column, locations_column, files_column = st.columns([2, 1, 1, 1])
     with selector_column:
         coordinate_options = [int(value) for value in locations.get("detector_coordinates_id", pd.Series(dtype=int)).tolist()]
-        fallback = st.selectbox("Location fallback selector", [None] + coordinate_options, format_func=lambda value: "All mapped locations" if value is None else f"Coordinate {value}")
+        fallback = st.selectbox("Choose a location from a list", [None] + coordinate_options, format_func=lambda value: "All mapped locations" if value is None else f"Coordinate {value}")
         if selected_coordinate is None:
             selected_coordinate = fallback
     with runs_column:
@@ -240,5 +298,5 @@ This browser reads the canonical SQLite database in read-only mode and resolves 
 
 **Cycle calendar:** [{source['source_title']}]({source['source_url']}) · DOI `{source['source_doi']}` · retrieved `{source['retrieved_date']}`. Dates have **day precision**.
 
-The top-down map reproduces only geometry and coordinate conventions already released with this repository. Red circles are calculated detector-face centers. Gray-blue segments join the recorded right and left cart reference points; they determine cart azimuth and are not identified as a front edge. Detector tilt is a separate quantity shown in point hover text.
+The top-down map reproduces only geometry and coordinate conventions already released with this repository. A gold star marks a downward-facing detector. A red dot and arrow mark a tilted detector; the arrow uses the released cart-corner geometry to show horizontal direction, while the detector tilt remains available in point hover text. Arrow length is a visual cue, not a measure of tilt.
 """)

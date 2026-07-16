@@ -126,6 +126,17 @@ class OfficialCycleCalendarTests(unittest.TestCase):
     "HFIRBG_CALDB is not set; canonical-database integration test skipped",
 )
 class CanonicalDatabaseIntegrationTests(unittest.TestCase):
+    def test_cycle492_ne_east_uses_the_corrected_cart_coordinate(self):
+        catalog = build_run_catalog()
+        row = catalog.loc[catalog["run_name"] == "Cycle492_NE_East"]
+        self.assertEqual(len(row), 1)
+        record = row.iloc[0]
+        self.assertEqual(record["coordinate_Rx"], 32.0)
+        self.assertEqual(record["coordinate_Rz"], 221.5)
+        self.assertEqual(record["coordinate_Lx"], 32.0)
+        self.assertEqual(record["coordinate_Lz"], 204.0)
+        self.assertEqual(record["orientation_angle"], 90.0)
+
     def test_catalog_matches_run_and_file_aggregates(self):
         catalog = build_run_catalog()
         db_path = Path(os.environ["HFIRBG_CALDB"]).expanduser().resolve()
