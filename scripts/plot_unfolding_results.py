@@ -426,6 +426,36 @@ def plot_bounds(outdir, iso_spectra, front_spectra):
     save_figure(fig, outdir, "unfolded_spectrum_bounds")
 
 
+def plot_individual_unfolded(outdir, case_name, spectra, title_suffix):
+    """Generate individual full-size plots for each measurement location."""
+    if not spectra:
+        return
+
+    for spec in spectra:
+        fig, ax = plt.subplots(figsize=(10, 7))
+        ax.step(
+            spec["x"],
+            spec["y"],
+            where="mid",
+            color="#d62728",
+            linewidth=1.5,
+            alpha=0.85,
+            label=title_suffix,
+        )
+        ax.set_xlim(50, 11500)
+        ax.set_yscale("log")
+        ax.set_xlabel("Energy [keV]", fontsize=14)
+        ax.set_ylabel("Gamma Flux [Hz/mm$^2$/keV]", fontsize=14)
+        ax.set_title(f"Unfolded Gamma Spectrum: {spec['alias']} ({title_suffix})", fontsize=16)
+        ax.legend(loc="upper right", fontsize=12)
+        ax.grid(True, alpha=0.3)
+        ax.tick_params(labelsize=12)
+        plt.tight_layout()
+
+        safe_alias = spec["alias"].replace(" ", "_").replace("(", "").replace(")", "")
+        save_figure(fig, outdir, f"unfolded_{safe_alias}_{case_name}")
+
+
 def copy_paper_figures(outdir, paper_dir):
     ensure_dir(paper_dir)
     copy_pairs = {
@@ -488,6 +518,7 @@ def main():
         export_case_csvs(outdir, case_name, case_data[case_name], case_data[case_name])
         plot_case_overlay(outdir, case_name, case_data[case_name], cfg["label"])
         plot_measured_vs_unfolded(outdir, case_name, case_data[case_name], cfg["label"])
+        plot_individual_unfolded(outdir, case_name, case_data[case_name], cfg["label"])
 
     measured_reference = None
     for case_name in ["isotropic", "front"]:

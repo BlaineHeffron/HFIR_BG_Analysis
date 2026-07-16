@@ -107,7 +107,6 @@ def save_plot(path, rows):
     axes[0].plot(energies, iso, marker="o", linewidth=1.2, label="Isotropic")
     axes[0].plot(energies, front, marker="o", linewidth=1.2, label="Front")
     axes[0].set_ylabel("Median Relative Error")
-    axes[0].set_yscale("log")
     axes[0].grid(True, alpha=0.3)
     axes[0].legend()
 
@@ -115,7 +114,6 @@ def save_plot(path, rows):
     axes[1].plot(energies, ratio, marker="o", linewidth=1.2, color="#d62728")
     axes[1].set_xlabel("Simulated Energy [keV]")
     axes[1].set_ylabel("Front / Isotropic")
-    axes[1].set_yscale("log")
     axes[1].grid(True, alpha=0.3)
 
     plt.tight_layout()

@@ -124,7 +124,6 @@ def make_needed_stats_plot(csv_path, out_path):
     fig, ax = plt.subplots(figsize=(9, 4.8))
     ax.axhline(1.0, color="black", linestyle="--", linewidth=1)
     ax.plot(df["energy_keV"], df["additional_stats_factor_needed"], marker="o", linewidth=1.4, color="#d62728")
-    ax.set_yscale("log")
     ax.set_xlabel("Energy [keV]")
     ax.set_ylabel("Extra front stats factor\nneeded to match isotropic")
     ax.set_title("Front production still needed at energies already simulated")
