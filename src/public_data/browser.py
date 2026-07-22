@@ -20,7 +20,7 @@ import pandas as pd
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 STANDARD_PUBLIC_BUNDLE = (
-    REPOSITORY_ROOT / "data" / "HFIRBG_public_data_v1.0.1"
+    REPOSITORY_ROOT / "data" / "HFIRBG_public_data_v1.1.0"
 )
 STANDARD_DB_CANDIDATES = (
     REPOSITORY_ROOT / "db" / "HFIRBG.db",

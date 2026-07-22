@@ -123,9 +123,10 @@ The method and exact selection are documented in
 for immediate inspection.
 
 The text spectra are measured detector counts, not unfolded incident flux.
-Recalculating the unfolds requires Geant4 response matrices and the external
-unfolder, which are not included in the public bundle. The full setup therefore
-uses the official arXiv ancillary CSVs as the authoritative unfolded results.
+The public bundle includes ROOT-free NumPy copies of the two Geant4 response
+matrices used for the published unfolds, but reproducing a new unfold also
+requires the external unfolder. The full setup therefore uses the official
+arXiv ancillary CSVs as the authoritative unfolded results.
 
 ## Export data without the web interface
 
@@ -205,13 +206,16 @@ provenance and limitations are in
 ## Data layout and portable paths
 
 The setup downloads the
-[`data-v1.0.1` release](https://github.com/BlaineHeffron/HFIR_BG_Analysis/releases/tag/data-v1.0.1)
+[`data-v1.1.0` release](https://github.com/BlaineHeffron/HFIR_BG_Analysis/releases/tag/data-v1.1.0)
 into this ignored layout:
 
 ```text
 data/
-└── HFIRBG_public_data_v1.0.1/
+└── HFIRBG_public_data_v1.1.0/
     ├── HFIRBG.db
+    ├── migration_matrices/
+    │   ├── migration_matrix_isotropic.npz
+    │   └── migration_matrix_front.npz
     └── spectra/
         └── 1,802 calibrated .txt spectra
 ```
@@ -240,6 +244,34 @@ python3 scripts/check_public_data_setup.py --sanitize-database-path
 
 Do not run `db.sync_files()` against the canonical public database; all file,
 run, coordinate, shield, and calibration relationships are already populated.
+
+### ROOT-free response matrices
+
+`migration_matrices/migration_matrix_isotropic.npz` and
+`migration_matrices/migration_matrix_front.npz` are compressed NumPy archives
+for the isotropic and uniform-front-face response assumptions, respectively.
+Each contains a `float32` `matrix` array with shape
+`(n_detected, n_generated)`, along with `detected_energy_keV`,
+`generated_energy_keV`, and `simulated_generated_energy_mask` arrays. Rows map
+to detected-energy bins and columns to generated-energy bins; both axes span
+40--12000 keV in 1 keV bins. The matrix coefficients retain the normalization
+used for the published unfolding.
+
+They can be read without CERN ROOT:
+
+```python
+import numpy as np
+
+with np.load("data/HFIRBG_public_data_v1.1.0/migration_matrices/"
+             "migration_matrix_isotropic.npz") as response:
+    matrix = response["matrix"]
+    detected_energy_keV = response["detected_energy_keV"]
+    generated_energy_keV = response["generated_energy_keV"]
+```
+
+The dense matrix expands to roughly 0.57 GB in memory. The `metadata.json`
+member in each archive records the scenario, source filename, energy bounds,
+and array convention.
 
 ## Supplemental unfolding README
 

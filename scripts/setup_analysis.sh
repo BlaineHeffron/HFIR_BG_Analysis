@@ -21,11 +21,11 @@ case "${1:-}" in
         ;;
 esac
 
-DATA_VERSION="v1.0.1"
+DATA_VERSION="v1.1.0"
 DATA_BASENAME="HFIRBG_public_data_${DATA_VERSION}"
 DATA_ARCHIVE="${REPO_ROOT}/data/${DATA_BASENAME}.tar.gz"
 DATA_URL="https://github.com/BlaineHeffron/HFIR_BG_Analysis/releases/download/data-${DATA_VERSION}/${DATA_BASENAME}.tar.gz"
-DATA_SHA256="19afabbb75d094926d5ad01071fb0b204f0ce77a01d177032a4d6ec474fff7a6"
+DATA_SHA256="8cc39143349c6ea2c823ea2506ce7d3a69ebd40bd40264220d1fa9982b991bb8"
 
 ARXIV_ID="2607.05834v1"
 PAPER_ARCHIVE="${REPO_ROOT}/data/arxiv_${ARXIV_ID}_source.tar.gz"

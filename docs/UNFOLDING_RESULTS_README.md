@@ -49,6 +49,11 @@ Metadata and simulation diagnostics:
 - `migration_matrix_support_comparison.{txt,pdf,png}`
 - `raw_sim_efficiency_comparison.{csv,pdf,png}`
 
+ROOT-free detector-response matrices distributed with the public data bundle:
+
+- `migration_matrices/migration_matrix_isotropic.npz`
+- `migration_matrices/migration_matrix_front.npz`
+
 ## Measurement locations
 
 | Number | Filename | Alias |
@@ -84,6 +89,29 @@ The files cover 40–12000 keV at 1 keV spacing. Values use scientific notation.
 and its direct simulated-energy support. Both current matrices use 166 directly
 simulated energies spanning 40–12000 keV. Detailed error/runtime comparisons
 are in `migration_matrix_stats_comparison.csv`.
+
+## ROOT-free response matrices
+
+The public data bundle contains the matrices used for the published isotropic
+and front-face unfolds as compressed NumPy (`.npz`) archives. They can be read
+without CERN ROOT and contain `matrix` (`float32`, shape
+`(n_detected, n_generated)`), `detected_energy_keV`,
+`generated_energy_keV`, and `simulated_generated_energy_mask`. Matrix rows are
+detected-energy bins and columns are generated-energy bins. Both axes span
+40--12000 keV in 1 keV bins; the coefficients retain the normalization used by
+the unfolding. `metadata.json` inside each archive records the scenario, source
+filename, energy limits, and array convention.
+
+```python
+import numpy as np
+
+with np.load("migration_matrices/migration_matrix_isotropic.npz") as response:
+    matrix = response["matrix"]
+    detected_energy_keV = response["detected_energy_keV"]
+    generated_energy_keV = response["generated_energy_keV"]
+```
+
+Each dense matrix expands to roughly 0.57 GB in memory.
 
 ## Python example
 
