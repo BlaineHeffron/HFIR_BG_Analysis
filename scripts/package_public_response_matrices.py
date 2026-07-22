@@ -173,16 +173,15 @@ def build_paper_zip(ancillary_dir: Path, destination: Path) -> None:
     if not ancillary_dir.is_dir():
         raise RuntimeError(f"paper ancillary directory does not exist: {ancillary_dir}")
     with tempfile.TemporaryDirectory(prefix="hfirbg-paper-files-") as staging_name:
-        staging = Path(staging_name) / "paper_files"
+        staging = Path(staging_name) / "supplement"
         shutil.copytree(ancillary_dir, staging)
         legacy_readme = staging / "UNFOLDING_RESULTS_README.md"
         if legacy_readme.is_file() and not (staging / "README.md").exists():
             legacy_readme.rename(staging / "README.md")
 
-        results_dir = staging / "unfolding_results"
-        spectra_dir = results_dir / "spectra"
-        figures_dir = results_dir / "figures"
-        metadata_dir = results_dir / "metadata"
+        spectra_dir = staging / "spectra"
+        figures_dir = staging / "figures"
+        metadata_dir = staging / "metadata"
         for directory in (spectra_dir, figures_dir, metadata_dir):
             directory.mkdir(parents=True, exist_ok=True)
         for path in sorted(staging.iterdir()):
@@ -210,7 +209,7 @@ def build_paper_zip(ancillary_dir: Path, destination: Path) -> None:
             ) as archive:
                 for path in sorted(staging.rglob("*")):
                     if path.is_file():
-                        archive.write(path, path.relative_to(staging.parent))
+                        archive.write(path, path.relative_to(staging))
             os.replace(temporary_path, destination)
         finally:
             temporary_path.unlink(missing_ok=True)

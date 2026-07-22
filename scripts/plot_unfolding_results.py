@@ -262,7 +262,7 @@ def write_case_metadata(outdir, case_data, case_cfgs, repo_root):
                     "alias": spec["alias"],
                     "scenario": case_name,
                     "unfolded_csv": (
-                        "unfolding_results/spectra/"
+                        "spectra/"
                         f"unfolded_spectrum_{case_name}_{spec['number']:02d}_"
                         f"{spec['filename']}.csv"
                     ),
