@@ -175,6 +175,27 @@ def build_paper_zip(ancillary_dir: Path, destination: Path) -> None:
     with tempfile.TemporaryDirectory(prefix="hfirbg-paper-files-") as staging_name:
         staging = Path(staging_name) / "paper_files"
         shutil.copytree(ancillary_dir, staging)
+        legacy_readme = staging / "UNFOLDING_RESULTS_README.md"
+        if legacy_readme.is_file() and not (staging / "README.md").exists():
+            legacy_readme.rename(staging / "README.md")
+
+        results_dir = staging / "unfolding_results"
+        spectra_dir = results_dir / "spectra"
+        figures_dir = results_dir / "figures"
+        metadata_dir = results_dir / "metadata"
+        for directory in (spectra_dir, figures_dir, metadata_dir):
+            directory.mkdir(parents=True, exist_ok=True)
+        for path in sorted(staging.iterdir()):
+            if not path.is_file() or path.name == "README.md":
+                continue
+            if path.suffix.lower() in {".pdf", ".png"}:
+                target_directory = figures_dir
+            elif path.name.startswith(("measured_spectrum_", "unfolded_spectrum_")):
+                target_directory = spectra_dir
+            else:
+                target_directory = metadata_dir
+            path.rename(target_directory / path.name)
+
         with tempfile.NamedTemporaryFile(
             dir=destination.parent, prefix=f".{destination.name}.", suffix=".tmp", delete=False
         ) as temporary:
