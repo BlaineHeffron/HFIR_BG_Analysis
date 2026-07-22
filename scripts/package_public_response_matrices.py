@@ -2,9 +2,10 @@
 """Export ROOT response matrices to NumPy and package the public supplements.
 
 The script creates two portable, compressed NumPy archives from the production
-ROOT matrices.  It can then add them to both the versioned public-data tarball
-and the paper's arXiv ancillary ZIP.  ROOT is needed only for this conversion;
-readers need only NumPy to load the resulting ``.npz`` files.
+ROOT matrices and adds them to the versioned public-data tarball. It also builds
+a compact paper ZIP from the paper's arXiv ancillary directory. ROOT is needed
+only for the matrix conversion; readers need only NumPy to load the resulting
+``.npz`` files.
 
 Example:
     .venv/bin/python scripts/package_public_response_matrices.py \
@@ -62,6 +63,11 @@ def parse_args() -> argparse.Namespace:
         "--skip-archive-build",
         action="store_true",
         help="export the matrices but do not rebuild the public-data tarball",
+    )
+    parser.add_argument(
+        "--skip-matrix-export",
+        action="store_true",
+        help="reuse existing NPZ matrices instead of exporting them from ROOT",
     )
     return parser.parse_args()
 
@@ -163,35 +169,12 @@ def build_release_archive(data_dir: Path, destination: Path, release_root_name: 
         temporary_path.unlink(missing_ok=True)
 
 
-def build_paper_zip(ancillary_dir: Path, destination: Path, data_dir: Path) -> None:
+def build_paper_zip(ancillary_dir: Path, destination: Path) -> None:
     if not ancillary_dir.is_dir():
         raise RuntimeError(f"paper ancillary directory does not exist: {ancillary_dir}")
     with tempfile.TemporaryDirectory(prefix="hfirbg-paper-files-") as staging_name:
         staging = Path(staging_name) / "paper_files"
         shutil.copytree(ancillary_dir, staging)
-        (staging / "UNFOLDING_RESULTS_README.md").rename(staging / "README.md")
-        results_dir = staging / "unfolding_results"
-        spectra_dir = results_dir / "spectra"
-        figures_dir = results_dir / "figures"
-        metadata_dir = results_dir / "metadata"
-        for directory in (spectra_dir, figures_dir, metadata_dir):
-            directory.mkdir(parents=True)
-        for path in sorted(staging.iterdir()):
-            if not path.is_file() or path.name == "README.md":
-                continue
-            if path.suffix.lower() in {".pdf", ".png"}:
-                target_directory = figures_dir
-            elif path.name.startswith(("measured_spectrum_", "unfolded_spectrum_")):
-                target_directory = spectra_dir
-            else:
-                target_directory = metadata_dir
-            path.rename(target_directory / path.name)
-
-        data_output_dir = staging / "data"
-        data_output_dir.mkdir()
-        shutil.copy2(data_dir / "HFIRBG.db", data_output_dir / "HFIRBG.db")
-        shutil.copytree(data_dir / "spectra", data_output_dir / "spectra")
-        shutil.copytree(data_dir / "migration_matrices", staging / "response_matrices")
         with tempfile.NamedTemporaryFile(
             dir=destination.parent, prefix=f".{destination.name}.", suffix=".tmp", delete=False
         ) as temporary:
@@ -221,17 +204,22 @@ def main() -> None:
         (args.isotropic_root, matrix_dir / "migration_matrix_isotropic.npz", "isotropic"),
         (args.front_root, matrix_dir / "migration_matrix_front.npz", "front"),
     )
-    for source, destination, scenario in targets:
-        if not source.is_file():
-            raise SystemExit(f"missing source matrix: {source}")
-        print(f"Exporting {scenario} response matrix to {destination}")
-        export_matrix(source, destination, scenario)
+    if args.skip_matrix_export and not args.skip_archive_build:
+        for _, destination, _ in targets:
+            if not destination.is_file():
+                raise SystemExit(f"missing existing response matrix: {destination}")
+    elif not args.skip_matrix_export:
+        for source, destination, scenario in targets:
+            if not source.is_file():
+                raise SystemExit(f"missing source matrix: {source}")
+            print(f"Exporting {scenario} response matrix to {destination}")
+            export_matrix(source, destination, scenario)
     if not args.skip_archive_build:
         print(f"Building public-data archive: {args.release_archive}")
         build_release_archive(args.data_dir, args.release_archive, args.release_root_name)
     if args.paper_ancillary_dir:
         print(f"Building paper supplemental archive: {args.paper_output}")
-        build_paper_zip(args.paper_ancillary_dir, args.paper_output, args.data_dir)
+        build_paper_zip(args.paper_ancillary_dir, args.paper_output)
 
 
 if __name__ == "__main__":

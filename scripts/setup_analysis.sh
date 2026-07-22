@@ -87,6 +87,13 @@ if [[ ! -f .env ]]; then
     echo "Created .env from portable defaults."
 fi
 
+# Upgrade only the repository's former portable default paths. Custom data
+# locations remain untouched.
+if grep -qF '/data/HFIRBG_public_data_v1.0.1/' .env; then
+    sed -i 's|/data/HFIRBG_public_data_v1\.0\.1/|/data/HFIRBG_public_data_v1.1.0/|g' .env
+    echo "Updated .env portable defaults to ${DATA_VERSION}."
+fi
+
 set -a
 source .env
 set +a

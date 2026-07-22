@@ -221,7 +221,9 @@ data/
 ```
 
 Version 1.0.1 corrects the `Cycle492_NE_East` cart coordinate used to display
-the detector orientation on the hall map.
+the detector orientation on the hall map. Version 1.1.0 adds the two portable,
+ROOT-free detector-response matrices used for the isotropic and front-face
+unfolding assumptions.
 
 Configuration is controlled by:
 

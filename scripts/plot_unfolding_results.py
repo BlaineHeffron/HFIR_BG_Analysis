@@ -105,6 +105,8 @@ SCENARIO_DEFAULTS = {
     },
 }
 
+PUBLIC_DATA_BUNDLE = "HFIRBG_public_data_v1.1.0"
+
 
 def hist_to_arrays(hist):
     n_bins = hist.GetNbinsX()
@@ -225,8 +227,10 @@ def write_case_metadata(outdir, case_data, case_cfgs, repo_root):
             {
                 "scenario": case_name,
                 "label": specs["label"],
-                "results_dir": specs["results_dir"],
-                "migration_matrix": matrix_path,
+                "public_bundle_matrix": (
+                    f"{PUBLIC_DATA_BUNDLE}/migration_matrices/"
+                    f"migration_matrix_{case_name}.npz"
+                ),
                 "simulated_energy_count": matrix_summary["simulated_energy_count"],
                 "supported_energy_min_keV": matrix_summary["supported_energy_min_keV"],
                 "supported_energy_max_keV": matrix_summary["supported_energy_max_keV"],
@@ -239,8 +243,7 @@ def write_case_metadata(outdir, case_data, case_cfgs, repo_root):
         [
             "scenario",
             "label",
-            "results_dir",
-            "migration_matrix",
+            "public_bundle_matrix",
             "simulated_energy_count",
             "supported_energy_min_keV",
             "supported_energy_max_keV",
@@ -258,14 +261,17 @@ def write_case_metadata(outdir, case_data, case_cfgs, repo_root):
                     "filename": spec["filename"],
                     "alias": spec["alias"],
                     "scenario": case_name,
-                    "root_file": spec["root_path"],
-                    "unfolded_csv": join(outdir, f"unfolded_spectrum_{case_name}_{spec['number']:02d}_{spec['filename']}.csv"),
+                    "unfolded_csv": (
+                        "unfolding_results/spectra/"
+                        f"unfolded_spectrum_{case_name}_{spec['number']:02d}_"
+                        f"{spec['filename']}.csv"
+                    ),
                 }
             )
 
     save_csv_rows(
         join(outdir, "measurement_case_files.csv"),
-        ["number", "filename", "alias", "scenario", "root_file", "unfolded_csv"],
+        ["number", "filename", "alias", "scenario", "unfolded_csv"],
         measurement_case_rows,
     )
 
