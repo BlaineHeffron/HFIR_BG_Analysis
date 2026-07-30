@@ -12,12 +12,16 @@ from pathlib import Path
 from matplotlib import font_manager
 from PIL import Image, ImageDraw, ImageFont
 from pptx import Presentation
+from pptx.enum.shapes import MSO_SHAPE
 from pptx.util import Inches
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = REPO_ROOT / "analysis" / "presentations" / "bryce_collaboration_review"
 WIDTH, HEIGHT = 1600, 900
+PPTX_WIDTH_IN, PPTX_HEIGHT_IN = 13.333333, 7.5
+REPOSITORY_URL = "https://github.com/BlaineHeffron/HFIR_BG_Analysis"
+DATA_RELEASE_URL = f"{REPOSITORY_URL}/releases/tag/data-v1.1.0"
 
 NAVY = "#14324a"
 BLUE = "#247ba0"
@@ -155,6 +159,22 @@ def simple_table(draw: ImageDraw.ImageDraw, headers: list[str], rows: list[list[
             draw.text((positions[column] + 12, top + (bottom - top - text_height) / 2 - 2), str(value), font=selected_font, fill=text_color)
 
 
+def add_clickable_overlay(slide, box: tuple[int, int, int, int], url: str) -> None:
+    """Add an invisible, clickable URL region over a rasterized slide."""
+
+    x0, y0, x1, y1 = box
+    shape = slide.shapes.add_shape(
+        MSO_SHAPE.RECTANGLE,
+        Inches(PPTX_WIDTH_IN * x0 / WIDTH),
+        Inches(PPTX_HEIGHT_IN * y0 / HEIGHT),
+        Inches(PPTX_WIDTH_IN * (x1 - x0) / WIDTH),
+        Inches(PPTX_HEIGHT_IN * (y1 - y0) / HEIGHT),
+    )
+    shape.fill.background()
+    shape.line.fill.background()
+    shape.click_action.hyperlink.address = url
+
+
 def save_slides(slides: list[Image.Image], output_dir: Path) -> tuple[Path, Path]:
     slide_dir = output_dir / "slide_images"
     slide_dir.mkdir(parents=True, exist_ok=True)
@@ -167,12 +187,15 @@ def save_slides(slides: list[Image.Image], output_dir: Path) -> tuple[Path, Path
         paths.append(path)
 
     presentation = Presentation()
-    presentation.slide_width = Inches(13.333333)
-    presentation.slide_height = Inches(7.5)
+    presentation.slide_width = Inches(PPTX_WIDTH_IN)
+    presentation.slide_height = Inches(PPTX_HEIGHT_IN)
     blank = presentation.slide_layouts[6]
-    for path in paths:
+    for number, path in enumerate(paths, start=1):
         slide = presentation.slides.add_slide(blank)
         slide.shapes.add_picture(str(path), 0, 0, width=presentation.slide_width, height=presentation.slide_height)
+        if number == len(paths):
+            add_clickable_overlay(slide, (100, 185, 1500, 405), REPOSITORY_URL)
+            add_clickable_overlay(slide, (100, 470, 1500, 695), DATA_RELEASE_URL)
     pptx_path = output_dir / "HFIR_public_data_analysis_overview.pptx"
     presentation.save(pptx_path)
 
@@ -518,7 +541,7 @@ def build_deck(output_dir: Path, browser_screenshot: Path) -> list[Image.Image]:
         ("Native and display spectra", "Representative point: fine channels and binned view"),
         ("Adaptive binning", "Native channels retained; bins are a viewing convenience"),
         ("Map and browser", "Detector orientation and spectrum access"),
-        ("Analysis workflow", "Point → acquisition → spectrum"),
+        ("Code and data", "Repository, release bundle, and browser setup"),
     ]
     total = len(slide_specs)
     slides: list[Image.Image] = [
@@ -606,10 +629,18 @@ def build_deck(output_dir: Path, browser_screenshot: Path) -> list[Image.Image]:
 
     image = base_slide(*slide_specs[7], 8, total)
     draw = ImageDraw.Draw(image)
-    metric_card(draw, (80, 215, 510, 490), "1. Locate", "map marker or metadata filter")
-    metric_card(draw, (590, 215, 1020, 490), "2. Select", "acquisition at a point", GREEN)
-    metric_card(draw, (1100, 215, 1530, 490), "3. Inspect", "spectrum or CSV export", GOLD)
-    draw.text((110, 625), "Read-only browser; analysis starts from the native calibrated spectrum.", font=font(30), fill=TEXT)
+    draw.rounded_rectangle((100, 185, 1500, 405), radius=18, fill=LIGHT, outline="#d7e0e5", width=2)
+    draw.rectangle((100, 185, 112, 405), fill=BLUE)
+    draw.text((140, 220), "Repository", font=font(30, bold=True), fill=NAVY)
+    draw.text((140, 276), REPOSITORY_URL.removeprefix("https://"), font=font(29), fill=BLUE)
+    draw.text((140, 340), "Browser, catalog export, and Figure 7 analysis tools", font=font(22), fill=MUTED)
+
+    draw.rounded_rectangle((100, 470, 1500, 695), radius=18, fill=LIGHT, outline="#d7e0e5", width=2)
+    draw.rectangle((100, 470, 112, 695), fill=GOLD)
+    draw.text((140, 505), "Released data — v1.1.0", font=font(30, bold=True), fill=NAVY)
+    draw.text((140, 561), DATA_RELEASE_URL.removeprefix("https://"), font=font(24), fill=BLUE)
+    draw.text((140, 620), "1,802 calibrated spectra + SQLite catalog", font=font(22), fill=MUTED)
+    draw.text((140, 760), "Browser-only setup:  ./scripts/setup_analysis.sh --browser-only", font=font(25), fill=TEXT)
     slides.append(image)
     return slides
 
