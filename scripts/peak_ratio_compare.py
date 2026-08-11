@@ -25,10 +25,19 @@ verify = False
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument(
+    legacy_group = parser.add_mutually_exclusive_group(required=True)
+    legacy_group.add_argument(
         "--paper-legacy",
         action="store_true",
         help="use the historical mean-window-density ratios",
+    )
+    legacy_group.add_argument(
+        "--legacy-window-counts",
+        action="store_true",
+        help=(
+            "use count units in the historical window fitter; its ad hoc "
+            "uncertainties are not corrected Table 8 results"
+        ),
     )
     args = parser.parse_args()
     area_mode = (
@@ -37,6 +46,7 @@ def main():
         else PEAK_AREA_NET_COUNTS
     )
     print(f"peak estimand: {area_mode}")
+    print("workflow class: explicitly requested unavailable legacy data/simulation workflow")
     datadir = get_data_dir()
     all_energies = []
     for e in energies:

@@ -122,6 +122,29 @@ The method and exact selection are documented in
 [generated review package](reports/floor_scan_statistics/README.md) is included
 for immediate inspection.
 
+For the exploratory measured-data correction of paper Tables 3 and 8, use an
+empty output directory:
+
+```bash
+peak_output_dir=$(mktemp -d /tmp/hfir-peak-statistics.XXXXXX)
+python3 scripts/reanalyze_paper_peak_statistics.py \
+  --bundle data/HFIRBG_public_data_v1.1.0 \
+  --output-dir "$peak_output_dir"
+```
+
+This ROOT-free command fits raw integer channels with a declared simultaneous
+Poisson model and writes full covariance, profiles where required, bootstrap
+diagnostics, shape/background likelihood comparisons, hashes, and calibrated
+global/window/bin applicability tests restricted to the declared high-count
+diagnostic subset. Results remain exploratory; the present Table 3 and Table 8
+models both fail the declared fit-quality criteria. Table 3 additionally fits
+separate frozen neutron-capture/radioactive-decay run scales plus constrained
+calibration/width drift. It writes separate model-variant, reference-core, and
+cross-origin composition sensitivity covariances; decay/capture ratios are
+explicitly reference-run relative rather than run invariant.
+See [Paper peak-statistics correction, phase
+1](docs/PEAK_STATISTICS_CORRECTION.md).
+
 The text spectra are measured detector counts, not unfolded incident flux.
 The public bundle includes ROOT-free NumPy copies of the two Geant4 response
 matrices used for the published unfolds, but reproducing a new unfold also

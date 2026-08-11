@@ -35,10 +35,19 @@ def main():
         os.mkdir(outdir)
     arg = ArgumentParser()
     arg.add_argument("basedir", help="path to directory containing RD sim files", type=str)
-    arg.add_argument(
+    legacy_group = arg.add_mutually_exclusive_group(required=True)
+    legacy_group.add_argument(
         "--paper-legacy",
         action="store_true",
         help="use the historical mean-window-density rates and ratios",
+    )
+    legacy_group.add_argument(
+        "--legacy-window-counts",
+        action="store_true",
+        help=(
+            "use count units in the unavailable historical simulation-tuning "
+            "workflow; ad hoc fit uncertainties are retained"
+        ),
     )
     args = arg.parse_args()
     area_mode = (
@@ -47,6 +56,7 @@ def main():
         else PEAK_AREA_NET_COUNTS
     )
     print(f"peak estimand: {area_mode}")
+    print("workflow class: explicitly requested unavailable legacy cadmium-tuning workflow")
     newdir = os.path.join(outdir, "RD_gamma_neutron_sim")
     if not os.path.exists(newdir):
         os.mkdir(newdir)

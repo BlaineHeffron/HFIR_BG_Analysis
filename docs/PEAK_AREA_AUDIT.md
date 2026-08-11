@@ -5,6 +5,11 @@ Audit target: `PeakFit.area()` and `MultiPeakFit.area()` at main revision
 `3888c8b8fed18b4b70e6e2c7f395dc9fb106ea57` checked separately. Paper
 references are to arXiv `2607.05834v1`.
 
+This document preserves the historical audit. The separate [phase-1
+peak-statistics correction](PEAK_STATISTICS_CORRECTION.md) now provides the
+declared simultaneous-Poisson candidate workflow; it does not reinterpret the
+legacy columns below.
+
 ## Finding
 
 Both methods had returned an average net spectral density while naming it a

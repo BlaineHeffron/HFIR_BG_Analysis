@@ -14,6 +14,14 @@ The separate [Python peak-area audit](PEAK_AREA_AUDIT.md) records the estimand,
 consumer graph, immutable public-data replay, and paper-claim impact for the
 legacy Gaussian peak-window path.
 
+The [phase-1 peak-statistics correction](PEAK_STATISTICS_CORRECTION.md) defines
+the separate exploratory simultaneous-Poisson workflow for the measured-data
+parts of Tables 3 and 8. Candidate numbers are not approved manuscript
+replacements; both current measured-data models fail the declared calibrated
+global/window/bin fit-quality criteria. Table 3 additionally shows that
+neutron-capture and radioactive-decay intensities vary independently by run,
+so its cross-origin ratios are not run-invariant observables.
+
 List the complete inventory after running the public setup:
 
 ```bash

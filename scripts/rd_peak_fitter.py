@@ -159,12 +159,21 @@ def main():
     )
     parser.add_argument("--ref-energy", type=float, default=558.5,
                         help="Reference peak energy in keV (default: 558.5 keV)")
-    parser.add_argument(
+    legacy_group = parser.add_mutually_exclusive_group(required=True)
+    legacy_group.add_argument(
         "--paper-legacy",
         action="store_true",
         help=(
             "reproduce the published mean-window-density ratios and the "
             "historical nonzero uncertainty on the reference self-ratio"
+        ),
+    )
+    legacy_group.add_argument(
+        "--legacy-window-counts",
+        action="store_true",
+        help=(
+            "run the historical window fitter with count units; this remains "
+            "an ad hoc uncertainty diagnostic, not the corrected Table 3 workflow"
         ),
     )
     args = parser.parse_args()
@@ -188,6 +197,9 @@ def main():
     render_latex_table(rel_on)
     print(f"% Reference energy for relative areas: {args.ref_energy:.3f} keV")
     print(f"% Peak estimand: {area_mode}")
+    print("% Workflow class: explicitly requested legacy window fitter")
+    if not args.paper_legacy:
+        print("% WARNING: historical ad hoc fit uncertainty; use reanalyze_paper_peak_statistics.py for corrected candidates")
 
 if __name__ == "__main__":
     main()
