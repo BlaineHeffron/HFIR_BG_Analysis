@@ -10,7 +10,11 @@ from src.utilities.util import get_spec_from_root, plot_multi_spectra, get_bins,
     retrieve_peak_areas
 from src.database.HFIRBG_DB import HFIRBG_DB
 from src.utilities.FitUtils import minimize_diff
-from src.analysis.Spectrum import SubtractSpectrum
+from src.analysis.Spectrum import (
+    PEAK_AREA_LEGACY_DENSITY,
+    PEAK_AREA_NET_COUNTS,
+    SubtractSpectrum,
+)
 
 outdir = join(join(os.environ["HFIRBG_ANALYSIS"], "russian_doll"), "sim")
 
@@ -31,7 +35,18 @@ def main():
         os.mkdir(outdir)
     arg = ArgumentParser()
     arg.add_argument("basedir", help="path to directory containing RD sim files", type=str)
+    arg.add_argument(
+        "--paper-legacy",
+        action="store_true",
+        help="use the historical mean-window-density rates and ratios",
+    )
     args = arg.parse_args()
+    area_mode = (
+        PEAK_AREA_LEGACY_DENSITY
+        if args.paper_legacy
+        else PEAK_AREA_NET_COUNTS
+    )
+    print(f"peak estimand: {area_mode}")
     newdir = os.path.join(outdir, "RD_gamma_neutron_sim")
     if not os.path.exists(newdir):
         os.mkdir(newdir)
@@ -68,8 +83,8 @@ def main():
         write_pyspec(gname, gsim)
     nsim.rebin(full_bins)
     gsim.rebin(full_bins)
-    nareas, ndareas = retrieve_peak_areas(nsim, neut_peaks)
-    gareas, gdareas = retrieve_peak_areas(gsim, gam_peaks)
+    nareas, ndareas = retrieve_peak_areas(nsim, neut_peaks, area_mode=area_mode)
+    gareas, gdareas = retrieve_peak_areas(gsim, gam_peaks, area_mode=area_mode)
     print("simulated neutron peak rates: ")
     print(nareas)
     print("area uncertainties")
@@ -87,7 +102,11 @@ def main():
         rd_shield_id = shield_id - 2
         if 5 in rd_sub[shield_id].keys():
             outname = "GammaNeutronFit_{}".format(rd_shield_id)
-            areas, dareas = retrieve_peak_areas(rd_data[shield_id][5], neut_peaks)
+            areas, dareas = retrieve_peak_areas(
+                rd_data[shield_id][5],
+                neut_peaks,
+                area_mode=area_mode,
+            )
             print("data peak rates: ")
             print(areas)
             print("area uncertainties")

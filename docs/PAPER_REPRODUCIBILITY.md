@@ -10,6 +10,10 @@ machine-readable inventory at [`config/paper_figures.json`](../config/paper_figu
 records the status, inputs, published artifact, supported command, and known
 limitations for every figure.
 
+The separate [Python peak-area audit](PEAK_AREA_AUDIT.md) records the estimand,
+consumer graph, immutable public-data replay, and paper-claim impact for the
+legacy Gaussian peak-window path.
+
 List the complete inventory after running the public setup:
 
 ```bash

@@ -2,7 +2,6 @@ from copy import copy
 
 import numba as nb
 import numpy as np
-from ROOT import TH1F
 from datetime import datetime
 from math import sqrt, floor
 from os.path import join
@@ -15,6 +14,22 @@ import matplotlib.pyplot as plt
 from src.utilities.FitUtils import linfit_to_calibration, linfit
 from src.utilities.PlotUtils import ScatterLinePlot
 from src.utilities.NumbaFunctions import average_median, integrate_lininterp_range
+
+
+PEAK_AREA_NET_COUNTS = "net_counts"
+PEAK_AREA_LEGACY_DENSITY = "legacy_window_density"
+PEAK_AREA_MODES = (PEAK_AREA_NET_COUNTS, PEAK_AREA_LEGACY_DENSITY)
+
+
+def _format_peak_area(net_counts, uncertainty, energy_width, mode):
+    """Return a peak-window result with an explicit estimand."""
+    if mode == PEAK_AREA_NET_COUNTS:
+        return net_counts, uncertainty
+    if mode == PEAK_AREA_LEGACY_DENSITY:
+        return net_counts / energy_width, uncertainty / energy_width
+    raise ValueError(
+        "peak area mode must be one of {}".format(", ".join(PEAK_AREA_MODES))
+    )
 
 
 
@@ -201,6 +216,8 @@ class SpectrumData:
         return len(self.bin_edges)
 
     def generate_root_hist(self, name, title):
+        from ROOT import TH1F
+
         bin_low = self.A0 + self.A1 / 2.
         bin_high = self.A0 + self.A1 * self.data.shape[0] + self.A1 / 2.
         hist = TH1F(name, title, self.data.shape[0], bin_low, bin_high)
@@ -492,7 +509,13 @@ class MultiPeakFit:
                     break
         return inds
 
-    def area(self):
+    def area(self, mode=PEAK_AREA_NET_COUNTS):
+        """Return net counts in each +/-3.5 sigma window.
+
+        ``legacy_window_density`` exactly preserves the historical division by
+        the window's keV width.  Its values are mean counts/keV, not areas.
+        The historical uncertainty calculation is retained in both modes.
+        """
         areas = []
         for centroid, sigma in zip(self.centroids, self.sigmas):
             bounds = [centroid - 3.5 * sigma, centroid + 3.5 * sigma]
@@ -506,7 +529,7 @@ class MultiPeakFit:
             # dtot = sqrt(area + dbgtotsqr)
             dtot = sqrt(area + 1.1 * bgtot)
             e_width = bounds[1] - bounds[0]
-            areas.append((tot/e_width, dtot/e_width))
+            areas.append(_format_peak_area(tot, dtot, e_width, mode))
             # for x, y in zip(self.xs, self.ys):
             #    if (x > centroid - 3.5 * sigma) and (x < centroid + 3 * sigma):
             #        tot += y - self.parameters[-3] - self.parameters[-2] * x - self.parameters[-1] * x * x
@@ -610,7 +633,13 @@ class PeakFit:
                     break
         return inds
 
-    def area(self):
+    def area(self, mode=PEAK_AREA_NET_COUNTS):
+        """Return net counts in the +/-3.5 sigma peak window.
+
+        ``legacy_window_density`` exactly preserves the historical division by
+        the window's keV width.  Its value is mean counts/keV, not an area.
+        The historical uncertainty calculation is retained in both modes.
+        """
         bounds = [self.centroid - 3.5 * self.sigma, self.centroid + 3.5 * self.sigma]
         inds = self.bound_to_index(bounds)
         area = integrate_lininterp_range(self.ys, inds[0], inds[1])
@@ -622,7 +651,7 @@ class PeakFit:
         dtot = sqrt(area + .25 * bgtot * bgtot)
         # dtot = sqrt(area + dbgtotsqr)
         e_width = bounds[1] - bounds[0]
-        return tot/e_width, dtot/e_width
+        return _format_peak_area(tot, dtot, e_width, mode)
         # tot = 0.
         # unc = 0.
         # for x, y in zip(self.xs, self.ys):

@@ -1,6 +1,11 @@
 import sys
+from argparse import ArgumentParser
 from os.path import dirname, realpath
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
+from src.analysis.Spectrum import (
+    PEAK_AREA_LEGACY_DENSITY,
+    PEAK_AREA_NET_COUNTS,
+)
 from src.database.HFIRBG_DB import HFIRBG_DB
 from src.utilities.util import get_data_dir, populate_data,  populate_data_root, \
     compare_peaks
@@ -19,6 +24,19 @@ verify = False
 
 
 def main():
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--paper-legacy",
+        action="store_true",
+        help="use the historical mean-window-density ratios",
+    )
+    args = parser.parse_args()
+    area_mode = (
+        PEAK_AREA_LEGACY_DENSITY
+        if args.paper_legacy
+        else PEAK_AREA_NET_COUNTS
+    )
+    print(f"peak estimand: {area_mode}")
     datadir = get_data_dir()
     all_energies = []
     for e in energies:
@@ -35,7 +53,15 @@ def main():
     simdata.update(populate_data_root(root_data_dict_true,  "GeEfficiencyPlugin/hGeEnergy", "accumulated/runtime", True, 1000., 10))
     if not exists(outdir):
         os.mkdir(outdir)
-    compare_peaks(data, simdata, all_energies, outdir, verify, True)
+    compare_peaks(
+        data,
+        simdata,
+        all_energies,
+        outdir,
+        verify,
+        True,
+        area_mode=area_mode,
+    )
 
 
 

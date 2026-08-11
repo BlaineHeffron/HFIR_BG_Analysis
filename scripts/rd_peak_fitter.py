@@ -8,6 +8,10 @@ from math import sqrt
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
 from src.database.HFIRBG_DB import HFIRBG_DB
 from src.utilities.util import populate_data_db, combine_runs, fit_spectra, get_areas, unc_ratio
+from src.analysis.Spectrum import (
+    PEAK_AREA_LEGACY_DENSITY,
+    PEAK_AREA_NET_COUNTS,
+)
 
 RUNS_TO_USE = ['Cycle493_RD_low_gain', 'PreCycle494_RD_low_gain']
 
@@ -69,10 +73,14 @@ def get_low_gain_specs(db: HFIRBG_DB, rxon_only=False, rxoff_only=False):
             out.append(v)
     return out
 
-def fit_relative_areas(specs, expected_peaks, ref_energy):
+def fit_relative_areas(
+        specs, expected_peaks, ref_energy,
+        area_mode=PEAK_AREA_NET_COUNTS,
+        preserve_legacy_reference_uncertainty=False):
     ref_key = fmt_key(ref_energy)
     sum_w = {fmt_key(e): 0.0 for e in expected_peaks}
     sum_wr = {fmt_key(e): 0.0 for e in expected_peaks}
+    valid_reference = False
 
     for spec in specs:
         try:
@@ -84,13 +92,20 @@ def fit_relative_areas(specs, expected_peaks, ref_energy):
         # Get areas instead of heights
         areas = {}
         dareas = {}
-        get_areas(peak_fits, areas, dareas, lt=spec.live)
+        get_areas(
+            peak_fits,
+            areas,
+            dareas,
+            lt=spec.live,
+            area_mode=area_mode,
+        )
         
         if ref_key not in areas:
             continue
         aref, daref = areas[ref_key], dareas[ref_key]
         if aref <= 0:
             continue
+        valid_reference = True
 
         for e in expected_peaks:
             k = fmt_key(e)
@@ -98,6 +113,8 @@ def fit_relative_areas(specs, expected_peaks, ref_energy):
                 continue
             a, da = areas[k], dareas[k]
             if a <= 0:
+                continue
+            if k == ref_key and not preserve_legacy_reference_uncertainty:
                 continue
             r = a / aref
             dr = unc_ratio(a, aref, da, daref)
@@ -114,6 +131,11 @@ def fit_relative_areas(specs, expected_peaks, ref_energy):
             out[k] = (sum_wr[k] / sum_w[k], sqrt(1.0 / sum_w[k]))
         else:
             out[k] = None
+    if valid_reference and not preserve_legacy_reference_uncertainty:
+        # The same fitted quantity divided by itself is exactly one. Treating
+        # numerator and denominator as independent produced the published
+        # nonzero uncertainty.
+        out[ref_key] = (1.0, 0.0)
     return out
 
 def render_latex_table(rel_on):
@@ -137,15 +159,35 @@ def main():
     )
     parser.add_argument("--ref-energy", type=float, default=558.5,
                         help="Reference peak energy in keV (default: 558.5 keV)")
+    parser.add_argument(
+        "--paper-legacy",
+        action="store_true",
+        help=(
+            "reproduce the published mean-window-density ratios and the "
+            "historical nonzero uncertainty on the reference self-ratio"
+        ),
+    )
     args = parser.parse_args()
 
     db = HFIRBG_DB()
     specs_on = get_low_gain_specs(db, rxon_only=True, rxoff_only=False)
 
-    rel_on = fit_relative_areas(specs_on, EXPECTED_PEAKS, args.ref_energy)
+    area_mode = (
+        PEAK_AREA_LEGACY_DENSITY
+        if args.paper_legacy
+        else PEAK_AREA_NET_COUNTS
+    )
+    rel_on = fit_relative_areas(
+        specs_on,
+        EXPECTED_PEAKS,
+        args.ref_energy,
+        area_mode=area_mode,
+        preserve_legacy_reference_uncertainty=args.paper_legacy,
+    )
 
     render_latex_table(rel_on)
     print(f"% Reference energy for relative areas: {args.ref_energy:.3f} keV")
+    print(f"% Peak estimand: {area_mode}")
 
 if __name__ == "__main__":
     main()

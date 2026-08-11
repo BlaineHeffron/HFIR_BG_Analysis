@@ -6,6 +6,7 @@ import os
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
 from src.database.HFIRBG_DB import HFIRBG_DB
 from src.utilities.util import get_data_dir, populate_data, fit_spectra, combine_runs, populate_data_config, load_pyspec
+from src.analysis.Spectrum import PEAK_AREA_NET_COUNTS
 
 def read_md_file(path):
     d = {}
@@ -46,13 +47,26 @@ def main():
         peak_data = fit_spectra({"neut_sim": hist}, all_energies, args.basedir, verify, True, False)
         for e, d in peak_data.items():
             if isinstance(e, str) and ',' in e:
-                print( "{0} {1} area {2}".format(key, d.fit_energy_string(), d.area()))
+                print("{0} {1} net counts {2}".format(
+                    key,
+                    d.fit_energy_string(),
+                    d.area(mode=PEAK_AREA_NET_COUNTS),
+                ))
                 continue
             for en, freq in zip(*mydata[key]):
                 if en == e:
                     try:
                         if abs(float(d.fit_energy_string()) - en) > 1:
-                            print("** BAD FIT ** {0} {1} {2:.2f} {3:.2f} area {4:.2f}".format(key, freq, en, float(d.fit_energy_string()), d.area()[0]))
+                            print(
+                                "** BAD FIT ** {0} {1} {2:.2f} {3:.2f} "
+                                "net counts {4:.2f}".format(
+                                    key,
+                                    freq,
+                                    en,
+                                    float(d.fit_energy_string()),
+                                    d.area(mode=PEAK_AREA_NET_COUNTS)[0],
+                                )
+                            )
                             nearby_peaks = []
                             for mykey in mydata:
                                 if mykey == key:
@@ -62,7 +76,15 @@ def main():
                                         nearby_peaks.append(myen)
                             #print("other nearby peaks are {}".format(nearby_peaks))
                         else:
-                            print("{0} {1} {2:.2f} {3:.2f} area {4:.2f}".format(key, freq, en, float(d.fit_energy_string()), d.area()[0]))
+                            print(
+                                "{0} {1} {2:.2f} {3:.2f} net counts {4:.2f}".format(
+                                    key,
+                                    freq,
+                                    en,
+                                    float(d.fit_energy_string()),
+                                    d.area(mode=PEAK_AREA_NET_COUNTS)[0],
+                                )
+                            )
                     except Exception as e:
                         print(e)
                         print("{0} {1} {2:.2f} {3:.2f}".format(key, freq, en, d.fit_energy_string()))
