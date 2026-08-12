@@ -36,7 +36,7 @@ from src.public_data.browser import PublicSpectrum
 
 ComponentRole = Literal["line", "fep", "sep", "dep", "contaminant"]
 BackgroundModel = Literal["affine", "quadratic"]
-ResolutionForm = Literal["linear", "sqrt"]
+ResolutionForm = Literal["constant", "linear", "sqrt"]
 TailModel = Literal["none", "constant"]
 YieldModel = Literal["shared_origin_scales", "independent_runs"]
 _SQRT_2PI = np.sqrt(2.0 * np.pi)
@@ -151,7 +151,9 @@ class CalibrationConstraint:
 class DetectorResolution:
     """Shared resolution and optional normalized low-energy-tail model.
 
-    ``form="linear"`` uses ``sigma(E) = intercept_keV + slope * E_keV``.
+    ``form="constant"`` uses one fitted ``intercept_keV`` and omits the slope
+    parameter. ``form="linear"`` uses
+    ``sigma(E) = intercept_keV + slope * E_keV``.
     ``form="sqrt"`` uses the HPGe-motivated
     ``sigma(E) = sqrt(intercept_keV**2 + slope * E_keV)``.  When
     ``tail_model="constant"``, the complete unit-area line shape is a mixture
@@ -353,7 +355,7 @@ class _PreparedProblem:
     run_calibration_parameter_indices: dict[int, tuple[int, int]]
     run_resolution_scale_parameter_indices: dict[int, int]
     calibration_curvature_parameter_index: int | None
-    resolution_parameter_indices: tuple[int, int]
+    resolution_parameter_indices: tuple[int, int | None]
     tail_parameter_indices: tuple[int, int] | None
     background_parameter_indices: dict[str, tuple[int, ...]]
     observed: np.ndarray
@@ -426,6 +428,8 @@ def resolution_sigma_and_derivatives(
 
     intercept = resolution.intercept_keV if intercept_keV is None else intercept_keV
     gradient = resolution.slope if slope is None else slope
+    if resolution.form == "constant":
+        return intercept, 1.0, 0.0
     if resolution.form == "linear":
         sigma = intercept + gradient * energy_keV
         return sigma, 1.0, energy_keV
@@ -713,8 +717,8 @@ def _validate_constraints(
         and calibration.curvature_scale_keV > 0.0
     ):
         raise ValueError("calibration curvature constraint is invalid")
-    if resolution.form not in ("linear", "sqrt"):
-        raise ValueError("resolution form must be 'linear' or 'sqrt'")
+    if resolution.form not in ("constant", "linear", "sqrt"):
+        raise ValueError("resolution form must be 'constant', 'linear', or 'sqrt'")
     if resolution.tail_model not in ("none", "constant"):
         raise ValueError("tail model must be 'none' or 'constant'")
     if not (
@@ -778,37 +782,39 @@ def _prepare_problem(
         "calibration.offset_keV",
         "calibration.fractional_gain_stretch",
         "resolution.intercept_keV",
-        (
-            "resolution.linear_sigma_slope_keV_per_keV"
-            if resolution.form == "linear"
-            else "resolution.variance_slope_keV"
-        ),
     ]
     values = [
         calibration.offset_mean_keV,
         calibration.stretch_mean,
         resolution.intercept_keV,
-        resolution.slope,
     ]
     lower = [
         calibration.offset_bounds_keV[0],
         calibration.stretch_bounds[0],
         resolution.intercept_bounds_keV[0],
-        resolution.slope_bounds[0],
     ]
     upper = [
         calibration.offset_bounds_keV[1],
         calibration.stretch_bounds[1],
         resolution.intercept_bounds_keV[1],
-        resolution.slope_bounds[1],
     ]
     scales = [
         max(float(np.sqrt(calibration.covariance[0, 0])), 1e-3),
         max(float(np.sqrt(calibration.covariance[1, 1])), 1e-7),
         max(resolution.intercept_keV, 0.2),
-        max(resolution.slope, 1e-5),
     ]
-    resolution_parameter_indices = (2, 3)
+    resolution_parameter_indices: tuple[int, int | None] = (2, None)
+    if resolution.form != "constant":
+        resolution_parameter_indices = (2, len(values))
+        names.append(
+            "resolution.linear_sigma_slope_keV_per_keV"
+            if resolution.form == "linear"
+            else "resolution.variance_slope_keV"
+        )
+        values.append(resolution.slope)
+        lower.append(resolution.slope_bounds[0])
+        upper.append(resolution.slope_bounds[1])
+        scales.append(max(resolution.slope, 1e-5))
     tail_parameter_indices: tuple[int, int] | None = None
     if resolution.tail_model == "constant":
         tail_parameter_indices = (len(values), len(values) + 1)
@@ -1278,7 +1284,11 @@ def _model_and_jacobian(
         problem.resolution_parameter_indices
     )
     resolution_intercept = parameters[resolution_intercept_index]
-    resolution_slope = parameters[resolution_slope_index]
+    resolution_slope = (
+        problem.resolution.slope
+        if resolution_slope_index is None
+        else parameters[resolution_slope_index]
+    )
     if problem.tail_parameter_indices is None:
         tail_fraction = 0.0
         tail_scale_in_sigma = 1.0
@@ -1608,9 +1618,10 @@ def _model_and_jacobian(
                 jacobian[segment, resolution_intercept_index] += (
                     common * d_probability_d_sigma * sigma_derivative_intercept
                 )
-                jacobian[segment, resolution_slope_index] += (
-                    common * d_probability_d_sigma * sigma_derivative_slope
-                )
+                if resolution_slope_index is not None:
+                    jacobian[segment, resolution_slope_index] += (
+                        common * d_probability_d_sigma * sigma_derivative_slope
+                    )
                 if run_resolution_scale_index is not None:
                     jacobian[segment, run_resolution_scale_index] += (
                         common * d_probability_d_sigma * base_sigma

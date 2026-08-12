@@ -54,6 +54,7 @@ from src.public_data.run_estimands import (
     per_run_ratios,
     temporal_model_identifiability,
 )
+from src.public_data.table3_sum_first import analyze_table3_sum_first
 
 
 PUBLIC_V1_1_DB_SHA256 = (
@@ -2680,7 +2681,10 @@ def _write_manifest(
     """Write the self-contained provenance manifest used by the CLI."""
 
     manifest = {
-        "workflow": "paper peak-statistics measured-data correction phase 2",
+        "workflow": (
+            "paper peak-statistics measured-data correction; phase-2 and/or "
+            "Table 3 exact-sum/local-window lanes"
+        ),
         "result_semantics": config["result_semantics"],
         "input_release": "HFIRBG_public_data_v1.1.0",
         "database_sha256": database_sha256,
@@ -2740,12 +2744,33 @@ def main() -> None:
     )
     parser.add_argument("--table", choices=("3", "8", "all"), default="all")
     parser.add_argument(
+        "--table3-workflow",
+        choices=("phase2", "sum-first", "both"),
+        default="phase2",
+        help="Table 3 analysis lane; 'both' emits the complete comparison map",
+    )
+    parser.add_argument(
+        "--table3-phase2-comparison-csv",
+        type=Path,
+        help=(
+            "prior table3_candidate.csv to populate the sum-first comparison "
+            "without repeating the expensive unchanged phase-2 fit"
+        ),
+    )
+    parser.add_argument(
         "--bootstrap-replicates",
         type=int,
         default=None,
         help="deterministic diagnostic refits per table (default from config)",
     )
     args = parser.parse_args()
+    if (
+        args.table3_phase2_comparison_csv is not None
+        and args.table3_workflow != "sum-first"
+    ):
+        raise ValueError(
+            "--table3-phase2-comparison-csv is only valid with sum-first"
+        )
 
     bundle = args.bundle.expanduser().resolve()
     db_path = bundle / "HFIRBG.db"
@@ -2798,25 +2823,85 @@ def main() -> None:
         expected_run = config["table3"]["selection"]["run_name"]
         if any(spectrum.run_name != expected_run for spectrum in spectra):
             raise RuntimeError("a configured Table 3 file no longer belongs to the declared run")
-        table_products, diagnostics = _table3_products(
-            spectra, config["table3"], reporting, bootstrap_replicates
-        )
-        products.update(table_products)
+        diagnostics: dict[str, Any] = {}
+        if args.table3_workflow in {"phase2", "both"}:
+            table_products, diagnostics = _table3_products(
+                spectra, config["table3"], reporting, bootstrap_replicates
+            )
+            products.update(table_products)
+            fit_bin_jobs.append(
+                (
+                    "table3_fit_bins.csv.gz",
+                    spectra,
+                    diagnostics["fit_result"],
+                    diagnostics["spec"],
+                    diagnostics["calibration"],
+                    diagnostics["resolution"],
+                )
+            )
+        if args.table3_workflow in {"sum-first", "both"}:
+            historical_path = (
+                repo_root / "config" / "table3_historical_reconstruction.json"
+            )
+            historical = json.loads(historical_path.read_text(encoding="utf-8"))
+            phase2_comparison_rows: Sequence[dict[str, Any]] = products.get(
+                "table3_candidate.csv", ()
+            )
+            phase2_comparison_record: dict[str, Any] | None = None
+            if args.table3_phase2_comparison_csv is not None:
+                comparison_path = (
+                    args.table3_phase2_comparison_csv.expanduser().resolve()
+                )
+                with comparison_path.open("r", encoding="utf-8", newline="") as handle:
+                    phase2_comparison_rows = list(csv.DictReader(handle))
+                if len(phase2_comparison_rows) != 35:
+                    raise RuntimeError(
+                        "prior phase-2 Table 3 comparison must contain 35 rows"
+                    )
+                phase2_comparison_record = {
+                    "path": str(comparison_path),
+                    "sha256": _sha256(comparison_path),
+                    "row_count": len(phase2_comparison_rows),
+                    "semantics": "prior simultaneous phase-2 conditional diagnostic",
+                }
+            sum_first = analyze_table3_sum_first(
+                spectra,
+                config["table3"],
+                historical,
+                _constraint(config["table3"]["calibration_constraint"]),
+                _resolution(config["table3"]["resolution_initial"]),
+                phase2_rows=phase2_comparison_rows,
+                minimum_expected_counts=float(
+                    reporting["chi_square_minimum_expected_counts_per_bin"]
+                ),
+            )
+            products.update(sum_first.products)
+            diagnostics["sum_first"] = sum_first.diagnostics
+            diagnostics["sum_first_phase2_comparison_input"] = (
+                phase2_comparison_record
+                if phase2_comparison_record is not None
+                else {
+                    "source": "same invocation phase-2 lane"
+                    if phase2_comparison_rows
+                    else "not supplied",
+                    "row_count": len(phase2_comparison_rows),
+                }
+            )
+            fit_bin_jobs.append(
+                (
+                    "table3_sum_first_fit_bins.csv.gz",
+                    (sum_first.accumulated,),
+                    sum_first.canonical_result,
+                    sum_first.canonical_spec,
+                    sum_first.calibration,
+                    sum_first.resolution,
+                )
+            )
         diagnostics_by_table["3"] = _serializable_diagnostics(diagnostics)
         input_records["3"] = [
             _input_record(spectrum, data_root, run_records[spectrum.run_id])
             for spectrum in spectra
         ]
-        fit_bin_jobs.append(
-            (
-                "table3_fit_bins.csv.gz",
-                spectra,
-                diagnostics["fit_result"],
-                diagnostics["spec"],
-                diagnostics["calibration"],
-                diagnostics["resolution"],
-            )
-        )
 
     if args.table in {"8", "all"}:
         file_id = int(config["table8"]["selection"]["file_id"])

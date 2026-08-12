@@ -103,7 +103,7 @@ def test_manifest_preserves_exploratory_scope_and_reporting(tmp_path):
     )
     manifest = json.loads(manifest_path.read_text())
     assert manifest["reporting_configuration"] == CONFIG["reporting"]
-    assert manifest["configuration"]["schema_version"] == 9
+    assert manifest["configuration"]["schema_version"] == 10
     assert manifest["result_semantics"] == CONFIG["result_semantics"]
     assert CONFIG["result_semantics"].startswith("phase-2 new exploratory")
     assert CONFIG["reporting"]["candidate_status"].startswith("exploratory")
@@ -130,6 +130,17 @@ def test_historical_table3_record_freezes_inputs_bug_and_caption_conflict():
     assert [item["file_id"] for item in files] == [1716, 1765, 334, 1676]
     assert all(len(item["spectrum_sha256"]) == 64 for item in files)
     assert HISTORICAL["selection_and_order"]["total_live_time_s"] == 260013.89
+    assert HISTORICAL["selection_and_order"]["summed_detector_counts"] == 5845047
+    assert HISTORICAL["selection_and_order"]["maximum_summed_channel_count"] == 156917
+    assert HISTORICAL["selection_and_order"][
+        "summed_counts_sha256_int64_little_endian"
+    ] == "ca030c709a3ece435df510a6e1e62b4ffe866e43fc9c181f948b50e6ae2a6d24"
+    windows = HISTORICAL["historical_local_windows"]
+    assert len(windows) == 34
+    assert sum(
+        item["last_channel_1_based"] - item["first_channel_1_based"] + 1
+        for item in windows
+    ) == 515
     by_energy = {
         item["energy_keV"]: item for item in HISTORICAL["exact_legacy_ratios"]
     }
@@ -137,6 +148,44 @@ def test_historical_table3_record_freezes_inputs_bug_and_caption_conflict():
     assert round(by_energy[238.6]["ratio"], 3) == 0.346
     assert round(by_energy[7367.9]["ratio"], 3) == 0.003
     assert by_energy[478.0]["paper_display"] == "--"
+    assert by_energy[558.5]["repaired_full_line_ratio"] == 1.0
+    assert by_energy[558.5]["repaired_full_line_conditional_uncertainty"] == 0.0
+
+
+def test_table3_sum_first_model_and_drift_decisions_are_frozen():
+    workflow = CONFIG["table3"]["sum_first_local_workflow"]
+    assert [item["name"] for item in workflow["model_variants"]] == [
+        "no_tail_affine",
+        "no_tail_quadratic",
+        "common_left_tail_quadratic",
+    ]
+    assert workflow["drift_diagnostic"]["anchors_keV"] == [
+        351.932,
+        558.456,
+        1293.640,
+        1764.491,
+        2614.511,
+    ]
+    assert workflow["drift_diagnostic"][
+        "mixture_broadening_threshold_fraction"
+    ] == 0.05
+    assert "25 keV" in workflow["weak_branch_rule"]
+    assert workflow["row_thresholds"] == {
+        "supported_conditional_z_minimum": 3.0,
+        "zero_compatible_conditional_z_maximum": 1.96,
+        "material_absolute_poisson_residual": 4.0,
+        "material_ratio_shift_conditional_sigma": 1.0,
+    }
+    isolated = {
+        item["name"]: item["energy_keV"]
+        for item in workflow["isolated_candidate_components"]
+    }
+    assert isolated == {
+        "rd_609_3": 609.321,
+        "rd_707_4": 707.419,
+        "rd_1364_3": 1364.339,
+        "rd_1377_7": 1377.669,
+    }
 
 
 def test_table8_candidates_are_declared_inside_windows_and_not_auto_promoted():

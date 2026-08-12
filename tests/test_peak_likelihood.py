@@ -1372,6 +1372,29 @@ class JointFitTests(unittest.TestCase):
             any(name.startswith("shape.") for name in result.parameter_names)
         )
 
+    def test_constant_resolution_has_one_identifiable_width_parameter(self):
+        constant = LinearResolution(
+            1.1,
+            0.0,
+            form="constant",
+            tail_model="none",
+            intercept_bounds_keV=(0.2, 3.0),
+        )
+        sigma, derivative_intercept, derivative_slope = (
+            likelihood.resolution_sigma_and_derivatives(constant, 2500.0)
+        )
+        self.assertEqual(
+            (sigma, derivative_intercept, derivative_slope),
+            (1.1, 1.0, 0.0),
+        )
+        result = fit_joint_peak_model(
+            self.spectra, self.spec, self.calibration, constant
+        )
+        self.assertTrue(result.success, result.message)
+        self.assertTrue(result.fisher_covariance_valid)
+        self.assertIn("resolution.intercept_keV", result.parameter_names)
+        self.assertFalse(any("slope" in name for name in result.parameter_names))
+
     def test_quadratic_background_uses_calibrated_fraction_and_valid_gradient(self):
         quadratic_spec = replace(
             self.spec,

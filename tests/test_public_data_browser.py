@@ -6,12 +6,14 @@ import os
 import sqlite3
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
 
 from src.public_data.browser import (
+    accumulate_spectra_exact,
     load_spectrum,
     query_file_metadata,
     rebin_by_factor,
@@ -153,6 +155,28 @@ class TemporaryPublicBundleTests(unittest.TestCase):
         np.testing.assert_allclose(per_second["value"], [0.4, 2.5, 2.5])
         density = spectrum_dataframe(spectrum, "counts/s/keV")
         np.testing.assert_allclose(density["value"], [0.1, 0.625, 1.25])
+
+    def test_exact_accumulation_uses_int64_and_preserves_provenance(self):
+        first = load_spectrum(7, db_path=self.db)
+        first = replace(
+            first,
+            counts=np.asarray([2**31 - 1, 4, 9, 16, 25], dtype=np.float64),
+        )
+        second = replace(
+            first,
+            file_id=8,
+            file_name="00000008",
+            live_time=3.5,
+            counts=np.asarray([2, 1, 0, 2, 3], dtype=np.float64),
+        )
+        accumulated = accumulate_spectra_exact((first, second))
+        self.assertEqual(accumulated.counts.dtype, np.int64)
+        np.testing.assert_array_equal(
+            accumulated.counts, [2**31 + 1, 5, 9, 18, 28]
+        )
+        self.assertEqual(accumulated.live_time, 13.5)
+        self.assertEqual(accumulated.metadata["input_file_ids"], (7, 8))
+        self.assertEqual(accumulated.metadata["calibration_group_id"], 6)
 
     def test_malformed_channel_rows_are_rejected(self):
         (self.spectra / "00000007.txt").write_text(

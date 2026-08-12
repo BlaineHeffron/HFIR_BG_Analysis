@@ -1,5 +1,5 @@
 {
-  "schema_version": 9,
+  "schema_version": 10,
   "result_semantics": "phase-2 new exploratory measured-data calculation; not approved manuscript replacement",
   "likelihood": {
     "observations": "raw unrebinned integer detector counts per channel",
@@ -21,6 +21,49 @@
       "run_name": "Cycle493_RD_low_gain",
       "file_ids_in_time_order": [1716, 1765, 334, 1676],
       "reason": "Only public reactor-on low-gain RD family matching the no-added-water/no-added-floor-lead shield description; public catalog contains no Cycle 498 run."
+    },
+    "sum_first_local_workflow": {
+      "result_semantics": "new descriptive measured-detector-count calculation on one exact raw-channel accumulation; approximate relative detected peak prominence only",
+      "historical_windows": "config/table3_historical_reconstruction.json historical_local_windows; exact native bins frozen by one-based raw channel",
+      "accumulation": "nonnegative integer channels added in int64 after exact run, calibration-group, A0/A1, energy-grid, and width-grid equality checks; no interpolation or rebinning",
+      "calibration_nuisance": "one common offset and fractional stretch with table3 calibration_constraint priors/bounds; no per-file terms in the accumulated fit",
+      "model_variants": [
+        {"name": "no_tail_affine", "background_model": "affine", "tail_model": "none", "role": "uniform background-degree comparison"},
+        {"name": "no_tail_quadratic", "background_model": "quadratic", "tail_model": "none", "role": "canonical candidate"},
+        {"name": "common_left_tail_quadratic", "background_model": "quadratic", "tail_model": "constant", "tail_fraction_initial": 0.05, "role": "uniform line-shape sensitivity"}
+      ],
+      "model_selection_rule": "Use one family for every primary window. Prefer the smaller identifiable family unless the added nuisance is interior, coherent residual morphology improves across multiple windows, and reported rows remain stable. Never select by row p-value. A bound-active tail or nonrecurrent improvement is sensitivity only. Local deviance is diagnostic, not a publication gate.",
+      "per_window_sensitivity_rule": "Refit every primary window independently on identical bins with free effective width and the canonical background/shape. Cross-window numerator/reference covariance is zero for disjoint Poisson bins; same-window fitted covariance is retained. Flag when absolute ratio movement exceeds the canonical conditional 1 sigma.",
+      "isolated_candidate_components": [
+        {"name": "rd_609_3", "energy_keV": 609.321, "paper_energy_keV": 609.3, "window_paper_energy_keV": 609.3, "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay", "authoritative_source": "IAEA LiveChart/ENSDF decay_rads, extracted 2026-08-12", "intensity_percent": 45.44},
+        {"name": "rd_707_4", "energy_keV": 707.419, "paper_energy_keV": 707.4, "window_paper_energy_keV": 707.4, "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture", "authoritative_source": "NNDC CapGam 113CD(N,G) E=THERMAL, evaluated 2026-08-01", "capgam_relative_intensity": 1.5591},
+        {"name": "rd_1364_3", "energy_keV": 1364.339, "paper_energy_keV": 1364.3, "window_paper_energy_keV": 1364.3, "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture", "authoritative_source": "NNDC CapGam 113CD(N,G) E=THERMAL, evaluated 2026-08-01", "capgam_relative_intensity": 6.2366},
+        {"name": "rd_1377_7", "energy_keV": 1377.669, "paper_energy_keV": 1377.7, "window_paper_energy_keV": 1377.7, "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay", "authoritative_source": "IAEA LiveChart/ENSDF decay_rads, extracted 2026-08-12", "intensity_percent": 3.985}
+      ],
+      "diagnostic_clusters": [
+        {"name": "338_352", "low_keV": 335.0, "high_keV": 370.0, "reported_components": ["rd_351_9"], "candidate_components": [{"name": "ac228_338_320_diagnostic", "energy_keV": 338.320, "identity": "Ac-228 beta decay", "authoritative_source": "IAEA LiveChart/ENSDF decay_rads, extracted 2026-08-12", "intensity_percent": 11.27, "treatment": "independent nonnegative nuisance; flexibility, not prediction"}]},
+        {"name": "595_609", "low_keV": 580.0, "high_keV": 630.0, "reported_components": ["rd_609_3"], "unmodeled_feature": {"energy_keV": 595.85, "identity": "intrinsic Ge-74(n,n') asymmetric feature", "authoritative_source": "prior residual audit and evaluated Ge level energy", "reason": "no released normalized detector-response template; never fit as a Gaussian"}},
+        {"name": "707_725", "low_keV": 695.0, "high_keV": 738.0, "reported_components": ["rd_707_4", "rd_725_0"], "candidate_components": [{"name": "ac228_726_863_diagnostic", "energy_keV": 726.863, "identity": "Ac-228 beta decay", "authoritative_source": "IAEA LiveChart/ENSDF decay_rads, extracted 2026-08-12", "intensity_percent": 0.62, "treatment": "independent nonnegative nuisance; flexibility, not prediction"}, {"name": "bi212_727_330_diagnostic", "energy_keV": 727.330, "identity": "Bi-212 beta decay", "authoritative_source": "IAEA LiveChart/ENSDF decay_rads, extracted 2026-08-12", "intensity_percent": 6.67, "treatment": "independent nonnegative nuisance; flexibility, not prediction"}]},
+        {"name": "1364_1408", "low_keV": 1345.0, "high_keV": 1420.0, "reported_components": ["rd_1364_3", "rd_1377_7", "rd_1399_6"], "candidate_components": [{"name": "pb208_1400_3_diagnostic", "energy_keV": 1400.3, "identity": "Pb-208 neutron capture", "authoritative_source": "NNDC CapGam 208PB(N,G) E=THERMAL", "capgam_relative_intensity": 10.8696, "treatment": "independent nonnegative nuisance; flexibility, not prediction"}, {"name": "bi214_1401_515_diagnostic", "energy_keV": 1401.515, "identity": "Bi-214 beta decay", "authoritative_source": "IAEA LiveChart/ENSDF decay_rads, extracted 2026-08-12", "intensity_percent": 1.333, "treatment": "independent nonnegative nuisance; flexibility, not prediction"}, {"name": "bi214_1407_988_diagnostic", "energy_keV": 1407.988, "identity": "Bi-214 beta decay", "authoritative_source": "IAEA LiveChart/ENSDF decay_rads, extracted 2026-08-12", "intensity_percent": 2.388, "treatment": "independent nonnegative nuisance; flexibility, not prediction"}, {"name": "al27_1408_3_diagnostic", "energy_keV": 1408.3, "identity": "Al-27 neutron capture", "authoritative_source": "NNDC CapGam 27AL(N,G) E=THERMAL", "capgam_relative_intensity": 11.1111, "treatment": "independent nonnegative nuisance; flexibility, not prediction"}]},
+        {"name": "5433", "window_paper_energy_keV": 5433.1, "reported_components": ["rd_5433_1"], "candidate_components": [{"name": "cd113_5429_3_diagnostic", "energy_keV": 5429.3, "identity": "Cd-113 neutron capture", "authoritative_source": "NNDC CapGam 113CD(N,G) E=THERMAL, evaluated 2026-08-01", "capgam_relative_intensity": 0.4301, "treatment": "independent nonnegative nuisance; flexibility, not prediction"}]},
+        {"name": "5825", "window_paper_energy_keV": 5824.6, "reported_components": ["rd_5824_6"], "candidate_components": []},
+        {"name": "7368", "window_paper_energy_keV": 7367.9, "reported_components": ["rd_7367_9"], "candidate_components": [{"name": "unidentified_7374_58_diagnostic", "energy_keV": 7374.58, "identity": "unidentified nuisance at the Cr-52 CapGam energy; released RD material provenance does not establish chromium", "authoritative_source": "NNDC CapGam 52CR(N,G) E=THERMAL", "capgam_relative_intensity": 18.942, "treatment": "unidentified nonnegative nuisance; recurrence and identifiability required"}]},
+        {"name": "7916", "window_paper_energy_keV": 7916.3, "reported_components": ["rd_7916_3"], "candidate_components": [{"name": "cd113_7908_4_diagnostic", "energy_keV": 7908.4, "identity": "Cd-113 neutron capture", "authoritative_source": "NNDC CapGam 113CD(N,G) E=THERMAL, evaluated 2026-08-01", "capgam_relative_intensity": 0.0726, "treatment": "independent nonnegative nuisance; flexibility, not prediction"}]}
+      ],
+      "weak_branch_rule": "Frozen isotope set only: Pb-214/Bi-214, Pb-212/Bi-212/Tl-208/Ac-228, Cd-113 capture, H-1, Ar-41, Cu-63/Pb-207 capture, and catalogued intrinsic Ge activation. Only same-isotope lines within 25 keV in one window are even eligible for an intensity constraint, and none is constrained without RD-geometry evidence that cascade summing cancels. Therefore free catalog amplitudes are background flexibility, never an explained prediction; cross-energy prediction is unavailable without a response/geometry model.",
+      "unidentified_nuisance_rule": "Promotion requires an interior yield at least 2 conditional Fisher sigma in each of the three 86400-s files, maximum absolute fitted target/nuisance correlation below 0.95, and target-ratio movement below one canonical conditional sigma. Otherwise retain unidentified diagnostic status only.",
+      "drift_diagnostic": {
+        "anchors_keV": [351.932, 558.456, 1293.640, 1764.491, 2614.511],
+        "anchor_components": ["rd_351_9", "rd_558_5_reference", "rd_1293_6", "rd_1764_5", "rd_2614_533"],
+        "centroid_threshold": "coherent same-sign multi-anchor inter-file spread greater than min(0.5 native channel, 0.5 local fitted sigma)",
+        "mixture_broadening_threshold_fraction": 0.05,
+        "area_instability_threshold_conditional_sigma": 1.0,
+        "high_energy_limitation": "Per-file anchors end at 2614.511 keV. Any drift verdict for sparse lines above 5 MeV is conditional on affine gain drift; extrapolation beyond the anchor range cannot exclude higher-order calibration drift.",
+        "invalidation": "all three conditions required: centroid threshold, predicted quadrature mixture sigma increase above 5%, and material accumulated ratio movement above one canonical conditional sigma"
+      },
+      "row_classification_rule": "Supported quantitative requires successful full-rank/interior fit, reference supported, interval excluding zero, no material local residual morphology, and no greater-than-one-sigma per-window movement. Boundary yields are never quantitative. Zero-compatible weak yields receive a one-sided limit or unavailable status. Other statuses are visible/identified but quantitative area unreliable; broad physical feature requiring a non-Gaussian template; unresolved blend; unsupported/unavailable.",
+      "row_thresholds": {"supported_conditional_z_minimum": 3.0, "zero_compatible_conditional_z_maximum": 1.96, "material_absolute_poisson_residual": 4.0, "material_ratio_shift_conditional_sigma": 1.0},
+      "reference_rule": "The 558.456-keV row must pass the same quantitative rule. Its self-ratio is exactly one with exactly zero variance. If it fails, qualify every ratio."
     },
     "temporal_model_policy": {
       "calendar_source": "reference_data/hfir_cycle_calendar.csv",
@@ -115,7 +158,10 @@
         "reason": "Broad Doppler feature is not a detector photopeak and has no declared normalized physical line shape in phase 2; no Gaussian yield is reported."
       },
       {
-        "energy_keV": 609.3,
+        "energy_keV": 609.321,
+        "paper_energy_keV": 609.3,
+        "authoritative_source": "IAEA LiveChart/ENSDF decay_rads, extracted 2026-08-12",
+        "intensity_percent": 45.44,
         "name": "rd_609_3",
         "identity": "Bi-214 beta decay",
         "origin_class": "radioactive_decay",
@@ -123,7 +169,10 @@
         "reason": "The fitted window contains the intrinsic asymmetric 595.85-keV Ge inelastic feature, but the released data provide no normalized response shape; a Gaussian surrogate is rejected."
       },
       {
-        "energy_keV": 707.4,
+        "energy_keV": 707.419,
+        "paper_energy_keV": 707.4,
+        "authoritative_source": "NNDC CapGam 113CD(N,G) E=THERMAL, evaluated 2026-08-01",
+        "capgam_relative_intensity": 1.5591,
         "name": "rd_707_4",
         "identity": "Cd-113 neutron capture",
         "origin_class": "neutron_capture",
@@ -131,7 +180,10 @@
         "reason": "Ac-228 726.863- and Bi-212 727.330-keV neighbors are unresolved and non-identifiable; their complete fit changes the paired-window target yields materially."
       },
       {
-        "energy_keV": 725.0,
+        "energy_keV": 725.298,
+        "paper_energy_keV": 725.0,
+        "authoritative_source": "NNDC CapGam 113CD(N,G) E=THERMAL, evaluated 2026-08-01",
+        "capgam_relative_intensity": 5.9946,
         "name": "rd_725_0",
         "identity": "Cd-113 neutron capture",
         "origin_class": "neutron_capture",
@@ -139,7 +191,10 @@
         "reason": "Ac-228 726.863- and Bi-212 727.330-keV neighbors are unresolved and non-identifiable; long-run target-yield shifts are 20--31%."
       },
       {
-        "energy_keV": 1364.3,
+        "energy_keV": 1364.339,
+        "paper_energy_keV": 1364.3,
+        "authoritative_source": "NNDC CapGam 113CD(N,G) E=THERMAL, evaluated 2026-08-01",
+        "capgam_relative_intensity": 6.2366,
         "name": "rd_1364_3",
         "identity": "Cd-113 neutron capture",
         "origin_class": "neutron_capture",
@@ -147,7 +202,10 @@
         "reason": "The 1399.638--1408.300-keV Cd/Pb/Bi/Al neighborhood is non-identifiable in the shared window, so all reported yields from that window are unavailable."
       },
       {
-        "energy_keV": 1377.7,
+        "energy_keV": 1377.669,
+        "paper_energy_keV": 1377.7,
+        "authoritative_source": "IAEA LiveChart/ENSDF decay_rads, extracted 2026-08-12",
+        "intensity_percent": 3.985,
         "name": "rd_1377_7",
         "identity": "Bi-214 beta decay",
         "origin_class": "radioactive_decay",
@@ -155,7 +213,10 @@
         "reason": "The 1399.638--1408.300-keV Cd/Pb/Bi/Al neighborhood is non-identifiable in the shared window, so all reported yields from that window are unavailable."
       },
       {
-        "energy_keV": 1399.6,
+        "energy_keV": 1399.638,
+        "paper_energy_keV": 1399.6,
+        "authoritative_source": "NNDC CapGam 113CD(N,G) E=THERMAL, evaluated 2026-08-01",
+        "capgam_relative_intensity": 4.6371,
         "name": "rd_1399_6",
         "identity": "Cd-113 neutron capture",
         "origin_class": "neutron_capture",
@@ -164,6 +225,9 @@
       },
       {
         "energy_keV": 5433.1,
+        "paper_energy_keV": 5433.1,
+        "authoritative_source": "NNDC CapGam 113CD(N,G) E=THERMAL, evaluated 2026-08-01",
+        "capgam_relative_intensity": 1.5591,
         "name": "rd_5433_1",
         "identity": "Cd-113 neutron capture",
         "origin_class": "neutron_capture",
@@ -172,6 +236,9 @@
       },
       {
         "energy_keV": 5824.6,
+        "paper_energy_keV": 5824.6,
+        "authoritative_source": "NNDC CapGam 113CD(N,G) E=THERMAL, evaluated 2026-08-01",
+        "capgam_relative_intensity": 3.9651,
         "name": "rd_5824_6",
         "identity": "Cd-113 neutron capture",
         "origin_class": "neutron_capture",
@@ -179,7 +246,10 @@
         "reason": "Reviewer residual audit found undeclared structure in rd_5825; the line is excluded from the canonical fit and unavailable for candidate reporting until explicit neighboring/escape components are justified."
       },
       {
-        "energy_keV": 7367.9,
+        "energy_keV": 7367.96,
+        "paper_energy_keV": 7367.9,
+        "authoritative_source": "IAEA PGAA energy-ordered database; current CapGam lacks a Pb-206 target dataset",
+        "authoritative_relative_intensity": "unavailable in cited current dataset",
         "name": "rd_7367_9",
         "identity": "Pb-207 neutron capture",
         "origin_class": "neutron_capture",
@@ -187,7 +257,10 @@
         "reason": "Reviewer residual audit found undeclared structure in rd_7368; the line is excluded from the canonical fit and unavailable for candidate reporting until explicit neighboring/escape components are justified."
       },
       {
-        "energy_keV": 7916.3,
+        "energy_keV": 7916.26,
+        "paper_energy_keV": 7916.3,
+        "authoritative_source": "NNDC CapGam 63CU(N,G),(POL N,G) E=TH",
+        "capgam_relative_intensity": 100.0,
         "name": "rd_7916_3",
         "identity": "Cu-63 neutron capture",
         "origin_class": "neutron_capture",
@@ -220,7 +293,7 @@
       {"name": "rd_238_6", "energy_keV": 238.632, "paper_energy_keV": 238.6, "window": "rd_238_242", "role": "line", "identity": "Pb-212 beta decay", "origin_class": "radioactive_decay"},
       {"name": "rd_242_0", "energy_keV": 241.995, "paper_energy_keV": 242.0, "window": "rd_238_242", "role": "line", "identity": "Pb-214 beta decay", "origin_class": "radioactive_decay"},
       {"name": "rd_295_2", "energy_keV": 295.224, "paper_energy_keV": 295.2, "window": "rd_295", "role": "line", "identity": "Pb-214 beta decay", "origin_class": "radioactive_decay"},
-      {"name": "rd_351_9", "energy_keV": 351.932, "paper_energy_keV": 351.9, "window": "rd_352", "role": "line", "identity": "Pb-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_351_9", "energy_keV": 351.932, "paper_energy_keV": 351.9, "window": "rd_352", "role": "line", "identity": "Pb-214 beta decay", "origin_class": "radioactive_decay", "authoritative_source": "IAEA LiveChart/ENSDF decay_rads, extracted 2026-08-12", "intensity_percent": 35.7237},
       {"name": "ac228_338_320_nuisance", "energy_keV": 338.32, "window": "rd_352", "role": "contaminant", "identity": "Ac-228 beta-decay nuisance; not a Table 3 row", "origin_class": "radioactive_decay"},
       {"name": "rd_558_5_reference", "energy_keV": 558.456, "paper_energy_keV": 558.5, "window": "rd_558", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
       {"name": "rd_651_3", "energy_keV": 651.256, "paper_energy_keV": 651.3, "window": "rd_651", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
