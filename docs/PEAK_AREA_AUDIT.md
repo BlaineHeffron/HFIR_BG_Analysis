@@ -30,6 +30,25 @@ remain available as `area(mode="legacy_window_density")` and through
 counts fixes its units; it does not independently validate that fit's
 background, centroid, or sigma.
 
+For the manuscript-correction comparison, the audit also integrates the
+complete historical fitted Gaussian-plus-left-tail signal analytically and
+propagates the complete component covariance. For channel width (A_1),
+
+\[
+N_{\rm full}=\frac{H}{A_1}\left[\sqrt{2\pi}(1-R)\sigma
++2R\beta\exp\left(-\frac{\sigma^2}{2\beta^2}\right)\right].
+\]
+
+This keeps the historical spectra, selected bins, background, fit order, and
+parameters fixed while correcting the estimand and covariance arithmetic. The
+Table 3 historical model has post-fit Poisson deviance 375.072 on 238
+descriptive degrees of freedom (chi-square-reference
+(p=3.38\times10^{-8})); several weak-line tail covariances are unstable.
+These columns are an apples-to-apples sensitivity, not the selected table-wide
+replacement. Their comparison-status field is deliberately local: it flags an
+unstable covariance when the linearized one-sigma interval reaches zero. A
+finite local status does not override the rejected absolute count-model fit.
+
 This is a fitted-resolution dependence, not a material detector-bin-width
 dependence. Rebinning that preserves counts scales the counts in each bin while
 reducing the number of bins in the physical window. Both `N_window` and
@@ -52,6 +71,7 @@ area.
 | `area(mode="legacy_window_density")` | mean net density across the fitted window | counts/keV |
 | `get_areas(..., lt=live_time)` with net mode | live-time-normalized window count | counts/s (Hz) |
 | Same helper with legacy mode | live-time-normalized window density | counts/(s keV) |
+| Historical full-line comparison | analytic Gaussian-plus-tail signal integral divided by calibrated channel width | counts; counts/s after live-time normalization |
 | Relative and escape-peak ratios | ratio of either like unit | dimensionless, but legacy ratios contain a sigma ratio |
 | ROOT-free parent-group sensitivity fit | full fitted Gaussian component and rate | counts; counts/s |
 | P2x efficiency fit | `sqrt(2 pi) * sigma[MeV] * height[Hz/MeV]` | Hz |
@@ -110,18 +130,21 @@ The command verifies database SHA-256
 and writes:
 
 - `rd_peak_area_impact.csv`: all Table 3 fits, units, sigmas, legacy density
-  values, legacy-fit unit-corrected values, and historical uncertainties.
+  values, legacy-fit window-count values, analytic historical full-line values,
+  and both historical and covariance-propagated uncertainties.
 - `rd_parent_group_sensitivity.csv`: independent Poisson/covariance result for
   the 7367.9/558.5 keV anchor under two calibration constraints.
 - `mif_escape_peak_ratio_impact.csv`: all 24 Table 8 data ratios from the
-  current ordered fit, under both area estimands.
+  current ordered fit under the legacy density, window-count, and analytic
+  full-line estimands; this fit is not paper-exact.
 - `mif_parent_group_sensitivity.csv`: a separate Poisson/covariance
   sensitivity calculation for four convergent parent groups.
 - `claim_impact.csv`: machine-readable affected/unaffected/not-reproducible
   findings.
 - `manifest.json`: run/file IDs, calibration, live time, input hashes, peak
   order, model assumptions, and history.
-- `fit_diagnostics.txt`: current fitter grouping and offset diagnostics.
+- `fit_diagnostics.txt`: current fitter grouping, offset, and post-fit Poisson
+  diagnostics.
 
 ### Table 3: Russian-doll lines
 
@@ -179,6 +202,13 @@ list or order changes results. A one-triplet fit can reproduce individual
 paper rows, but the current script's ordered 24-peak pass does not reproduce
 the full published data column. Tuning the list to manufacture agreement is
 not a paper-exact workflow.
+
+For diagnostic completeness, the current ordered 24-peak audit fit has
+Poisson deviance 2089.811 on 222 descriptive degrees of freedom
+(chi-square-reference \(p=1.41\times10^{-300}\)). It is not the exact legacy
+fit. Phase 2 has deviance 3194.266 on 1097 descriptive degrees of freedom and
+uses different windows and components. These values show rejection under the
+same diagnostic family; they do not rank the two model families.
 
 Therefore:
 

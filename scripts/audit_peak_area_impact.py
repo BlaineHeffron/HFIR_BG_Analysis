@@ -23,6 +23,7 @@ os.environ.setdefault("MPLBACKEND", "Agg")
 sys.path.insert(1, str(Path(__file__).resolve().parents[1]))
 
 import numpy as np
+from scipy.stats import chi2
 
 from scripts.rd_peak_fitter import EXPECTED_PEAKS as RD_PEAKS
 from src.analysis.Spectrum import (
@@ -159,6 +160,162 @@ def _areas(fits, live_time: float, mode: str):
     return values, errors
 
 
+def _fitted_full_line_area(
+    parameters: np.ndarray,
+    covariance: np.ndarray,
+    energy_bin_width_keV: float,
+    peak_index: int = 0,
+) -> tuple[float, float, np.ndarray]:
+    """Integrate one historical fitted signal and propagate its fit covariance.
+
+    The historical model ordinates are counts per detector channel evaluated
+    on an energy axis.  Dividing the analytic energy integral by the calibrated
+    channel width therefore gives full-line detector counts.  Background
+    parameters and the centroid have zero derivative for this full-line
+    estimand.
+    """
+
+    values = np.asarray(parameters, dtype=np.float64)
+    fit_covariance = np.asarray(covariance, dtype=np.float64)
+    if values.ndim != 1:
+        raise ValueError("fit parameters must be one-dimensional")
+    if fit_covariance.shape != (values.size, values.size):
+        raise ValueError("fit covariance must match the parameter vector")
+    if not np.isfinite(values).all() or not np.isfinite(fit_covariance).all():
+        raise ValueError("fit parameters and covariance must be finite")
+    if not np.isfinite(energy_bin_width_keV) or energy_bin_width_keV <= 0:
+        raise ValueError("energy-bin width must be finite and positive")
+    start = 5 * int(peak_index)
+    if peak_index < 0 or start + 5 > values.size:
+        raise IndexError("peak index is outside the fitted parameter vector")
+
+    height, tail_fraction, _, sigma, tail_scale = values[start : start + 5]
+    if sigma <= 0 or tail_scale <= 0:
+        raise ValueError("fitted sigma and tail scale must be positive")
+    root_two_pi = np.sqrt(2.0 * np.pi)
+    tail_attenuation = np.exp(-0.5 * (sigma / tail_scale) ** 2)
+    integral_per_height = (
+        root_two_pi * (1.0 - tail_fraction) * sigma
+        + 2.0 * tail_fraction * tail_scale * tail_attenuation
+    )
+    area_counts = height * integral_per_height / energy_bin_width_keV
+
+    gradient = np.zeros(values.size, dtype=np.float64)
+    gradient[start] = integral_per_height / energy_bin_width_keV
+    gradient[start + 1] = height * (
+        -root_two_pi * sigma + 2.0 * tail_scale * tail_attenuation
+    ) / energy_bin_width_keV
+    gradient[start + 3] = height * (
+        root_two_pi * (1.0 - tail_fraction)
+        - 2.0 * tail_fraction * sigma * tail_attenuation / tail_scale
+    ) / energy_bin_width_keV
+    gradient[start + 4] = height * (
+        2.0
+        * tail_fraction
+        * tail_attenuation
+        * (1.0 + (sigma / tail_scale) ** 2)
+    ) / energy_bin_width_keV
+    variance = float(gradient @ fit_covariance @ gradient)
+    if variance < -1e-10 * max(area_counts * area_counts, 1.0):
+        raise ValueError("fit covariance gives a negative full-line variance")
+    return float(area_counts), float(np.sqrt(max(variance, 0.0))), gradient
+
+
+def _fitted_full_line_records(fits, energy_bin_width_keV: float, live_time: float):
+    records: dict[str, dict[str, object]] = {}
+    for key, fit in fits.items():
+        energies = key.split(",") if isinstance(key, str) else [key]
+        for peak_index, energy in enumerate(energies):
+            area, uncertainty, gradient = _fitted_full_line_area(
+                fit.parameters,
+                fit.cov,
+                energy_bin_width_keV,
+                peak_index,
+            )
+            records[f"{float(energy):.2f}"] = {
+                "value": area / live_time,
+                "uncertainty": uncertainty / live_time,
+                "gradient": gradient / live_time,
+                "fit": fit,
+            }
+    return records
+
+
+def _covariance_ratio(records, numerator: str, denominator: str):
+    if numerator == denominator:
+        return 1.0, 0.0
+    numerator_record = records[numerator]
+    denominator_record = records[denominator]
+    numerator_value = float(numerator_record["value"])
+    denominator_value = float(denominator_record["value"])
+    numerator_uncertainty = float(numerator_record["uncertainty"])
+    denominator_uncertainty = float(denominator_record["uncertainty"])
+    value = numerator_value / denominator_value
+    variance = (
+        numerator_uncertainty**2 / denominator_value**2
+        + numerator_value**2
+        * denominator_uncertainty**2
+        / denominator_value**4
+    )
+    if numerator_record["fit"] is denominator_record["fit"]:
+        fit = numerator_record["fit"]
+        cross_covariance = float(
+            numerator_record["gradient"]
+            @ fit.cov
+            @ denominator_record["gradient"]
+        )
+        variance -= 2.0 * numerator_value * cross_covariance / denominator_value**3
+    return float(value), float(np.sqrt(max(variance, 0.0)))
+
+
+def _local_covariance_status(value: float, uncertainty: float, *, exact: bool = False):
+    if exact:
+        return "exact self-ratio"
+    if uncertainty >= abs(value):
+        return "unstable: linearized one-sigma covariance interval reaches zero"
+    return (
+        "finite local covariance sensitivity; absolute count-model fit still rejected"
+    )
+
+
+def _postfit_poisson_diagnostic(fits) -> dict[str, object]:
+    """Apply one common absolute count-model diagnostic to recovered fits."""
+
+    deviance = 0.0
+    bin_count = 0
+    parameter_count = 0
+    for fit in fits.values():
+        observed = np.asarray(fit.ys, dtype=np.float64)
+        expected = np.asarray(fit.get_y(), dtype=np.float64)
+        if np.any(expected <= 0) or not np.isfinite(expected).all():
+            return {
+                "valid": False,
+                "reason": "fitted expected counts are nonpositive or nonfinite",
+            }
+        positive = observed > 0
+        terms = expected - observed
+        terms[positive] += observed[positive] * np.log(
+            observed[positive] / expected[positive]
+        )
+        deviance += 2.0 * float(np.sum(terms))
+        bin_count += observed.size
+        parameter_count += len(fit.parameters)
+    degrees_of_freedom = bin_count - parameter_count
+    return {
+        "valid": True,
+        "poisson_deviance": deviance,
+        "raw_bin_count": bin_count,
+        "free_parameter_count": parameter_count,
+        "descriptive_degrees_of_freedom": degrees_of_freedom,
+        "chi_square_reference_p_value": float(chi2.sf(deviance, degrees_of_freedom)),
+        "comparison_limit": (
+            "same diagnostic family as phase 2, but the recovered historical "
+            "and phase-2 fits use different window sets; do not rank models "
+            "from their deviances or per-degree-of-freedom values"
+        ),
+    }
+
+
 def _fit_line_metadata(fits) -> dict[str, dict[str, object]]:
     result: dict[str, dict[str, object]] = {}
     for key, fit in fits.items():
@@ -232,6 +389,7 @@ def _rd_rows(spec: SpectrumData):
     unit_corrected, unit_corrected_error = _areas(
         fits, spec.live, PEAK_AREA_NET_COUNTS
     )
+    fitted_full_line = _fitted_full_line_records(fits, spec.A1, spec.live)
     metadata = _fit_line_metadata(fits)
     reference = "558.50"
     rows = []
@@ -243,6 +401,9 @@ def _rd_rows(spec: SpectrumData):
         )
         unit_corrected_ratio, unit_corrected_ratio_error = _ratio(
             unit_corrected, unit_corrected_error, key, reference
+        )
+        full_line_ratio, full_line_ratio_error = _covariance_ratio(
+            fitted_full_line, key, reference
         )
         if key == reference:
             unit_corrected_ratio_error = 0.0
@@ -277,6 +438,23 @@ def _rd_rows(spec: SpectrumData):
                 "legacy_fit_unit_corrected_ratio_uncertainty_historical": (
                     unit_corrected_ratio_error
                 ),
+                "historical_fit_full_line_rate_counts_per_s": fitted_full_line[key][
+                    "value"
+                ],
+                "historical_fit_full_line_rate_covariance_uncertainty_counts_per_s": (
+                    fitted_full_line[key]["uncertainty"]
+                ),
+                "historical_fit_full_line_ratio": full_line_ratio,
+                "historical_fit_full_line_ratio_covariance_uncertainty": (
+                    full_line_ratio_error
+                ),
+                "historical_fit_full_line_comparison_status": (
+                    _local_covariance_status(
+                        full_line_ratio,
+                        full_line_ratio_error,
+                        exact=key == reference,
+                    )
+                ),
                 "unit_corrected_over_density_ratio": (
                     unit_corrected_ratio / legacy_ratio
                 ),
@@ -288,7 +466,7 @@ def _rd_rows(spec: SpectrumData):
                 ),
             }
         )
-    return rows, diagnostics
+    return rows, diagnostics, _postfit_poisson_diagnostic(fits)
 
 
 def _mif_window_rows(spec: SpectrumData):
@@ -302,6 +480,7 @@ def _mif_window_rows(spec: SpectrumData):
     unit_corrected, unit_corrected_error = _areas(
         fits, spec.live, PEAK_AREA_NET_COUNTS
     )
+    fitted_full_line = _fitted_full_line_records(fits, spec.A1, spec.live)
     metadata = _fit_line_metadata(fits)
     rows = []
     for parent in sorted(MIF_PARENTS_FIT_ORDER):
@@ -317,6 +496,9 @@ def _mif_window_rows(spec: SpectrumData):
             )
             unit_corrected_ratio, unit_corrected_ratio_error = _ratio(
                 unit_corrected, unit_corrected_error, numerator, denominator
+            )
+            full_line_ratio, full_line_ratio_error = _covariance_ratio(
+                fitted_full_line, numerator, denominator
             )
             rows.append(
                 {
@@ -338,6 +520,13 @@ def _mif_window_rows(spec: SpectrumData):
                     "legacy_fit_unit_corrected_ratio_uncertainty_historical": (
                         unit_corrected_ratio_error
                     ),
+                    "current_fit_full_line_ratio": full_line_ratio,
+                    "current_fit_full_line_ratio_covariance_uncertainty": (
+                        full_line_ratio_error
+                    ),
+                    "current_fit_full_line_comparison_status": (
+                        _local_covariance_status(full_line_ratio, full_line_ratio_error)
+                    ),
                     "unit_corrected_over_density_ratio": (
                         unit_corrected_ratio / legacy_ratio
                     ),
@@ -347,7 +536,7 @@ def _mif_window_rows(spec: SpectrumData):
                     "fit_context": "current ordered 24-peak SpectrumFitter pass",
                 }
             )
-    return rows, diagnostics
+    return rows, diagnostics, _postfit_poisson_diagnostic(fits)
 
 
 def _parent_group_spec(parent: float) -> ParentGroupSpec:
@@ -732,7 +921,7 @@ def main() -> None:
         raise RuntimeError("output directory must be empty")
 
     rd_spec, rd_inputs = _load_rd_combination(db_path, data_root)
-    rd_rows, rd_diagnostics = _rd_rows(rd_spec)
+    rd_rows, rd_diagnostics, rd_postfit_diagnostic = _rd_rows(rd_spec)
     rd_public = replace(
         rd_inputs[0],
         file_id=0,
@@ -751,7 +940,7 @@ def main() -> None:
         mif_public.calibration_A1,
         mif_public.file_name,
     )
-    mif_rows, mif_diagnostics = _mif_window_rows(mif_spec)
+    mif_rows, mif_diagnostics, mif_postfit_diagnostic = _mif_window_rows(mif_spec)
     mif_parent_rows = _mif_parent_group_rows(mif_public, mif_rows)
     claim_rows = _claim_rows(
         rd_rows, rd_parent_rows, mif_rows, mif_parent_rows
@@ -768,8 +957,14 @@ def main() -> None:
     _write_csv(output_dir / "claim_impact.csv", claim_rows)
     (output_dir / "fit_diagnostics.txt").write_text(
         "[Russian-doll combined fit]\n"
+        + "post-fit Poisson diagnostic: "
+        + json.dumps(rd_postfit_diagnostic, sort_keys=True)
+        + "\n"
         + rd_diagnostics
         + "\n[MIF ordered 24-peak fit]\n"
+        + "post-fit Poisson diagnostic: "
+        + json.dumps(mif_postfit_diagnostic, sort_keys=True)
+        + "\n"
         + mif_diagnostics,
         encoding="utf-8",
     )
@@ -784,6 +979,11 @@ def main() -> None:
         "area_modes": {
             PEAK_AREA_LEGACY_DENSITY: "net counts / (7 sigma_keV)",
             PEAK_AREA_NET_COUNTS: "background-subtracted counts in +/-3.5 sigma",
+            "historical_fit_full_line_counts": (
+                "analytic integral of the complete fitted Gaussian-plus-left-tail "
+                "signal divided by calibrated channel width; fit covariance "
+                "propagated with the complete component gradient"
+            ),
         },
         "history": {
             "division_introduced": "5cb9e0afd362e7d3703456531594b0e1424555e3",
@@ -803,6 +1003,7 @@ def main() -> None:
                 "The paper says Cycle 498 and run-by-run weighting; the "
                 "paper-number-reproducing script combines Cycle 493 files first."
             ),
+            "historical_fit_postfit_poisson_diagnostic": rd_postfit_diagnostic,
             "parent_group_sensitivity": {
                 "lines_keV": [7367.9, 558.5, 7916.3],
                 "fitter_role_mapping": {
@@ -829,6 +1030,9 @@ def main() -> None:
                 "unavailable: simulation ROOT files absent and data fit is "
                 "peak-list/order dependent"
             ),
+            "current_ordered_fit_postfit_poisson_diagnostic": (
+                mif_postfit_diagnostic
+            ),
             "parent_group_sensitivity": {
                 "parents_keV": [11386.5, 9718.79, 8998.63, 7724.034],
                 "model": (
@@ -851,7 +1055,8 @@ def main() -> None:
             "legacy_multipeakfit": "sqrt(gross + 1.1 * background)",
             "status": (
                 "historical formulas retained; reference self-ratio fixed; "
-                "parent-group sensitivity uses fitted covariance"
+                "historical full-line comparison and parent-group sensitivity "
+                "use fitted covariance"
             ),
         },
         "outputs": [

@@ -1,15 +1,17 @@
 # Paper peak-statistics correction, phase 2
 
-Status: **new exploratory measured-data calculation**. The outputs described
-here are not approved manuscript replacements. Historical numerical replay
-remains separate and explicitly named.
+Status: **measured-data arithmetic correction with rejected absolute fit
+diagnostics**. Historical numerical replay remains separate and explicitly
+named. Selection of corrected table entries does not certify either the
+historical or phase-2 count model.
 
-Comparison limit: the new absolute fit-quality diagnostics were applied to the
-phase-2 models, not to the historical paper procedure. The historical replay
-checks arithmetic provenance only. Failure of a phase-2 model therefore does
-not establish adequacy of the legacy model, and no replacement decision should
-be made until both methods are evaluated on the same spectra, windows, and
-diagnostics.
+Comparison limit: the audit now applies the Poisson-deviance diagnostic family
+to the recovered historical fits and phase 2. The strict same-bin comparison
+is the historical fit re-expressed as a normalized full-line integral with its
+own covariance; that arithmetic change does not alter its selected bins or
+background. The historical and phase-2 model families still use different
+window sets, so their deviances cannot rank the models. Failure of either model
+does not establish adequacy of the other.
 
 This workflow replaces the paper-facing uncertainty calculation for the
 measured-data portions of Tables 3 and 8. It does not infer cadmium abundance,
@@ -20,6 +22,47 @@ detector counts.
 Frozen definitions: [`config/paper_peak_statistics.json`](../config/paper_peak_statistics.json).
 Historical consumer inventory: [`config/peak_area_callers.json`](../config/peak_area_callers.json).
 Prior audit: [Python peak-area and paper-impact audit](PEAK_AREA_AUDIT.md).
+
+## Manuscript map and correction selection
+
+The built manuscript maps `tab:rd_lines` to Table 3 and
+`table:peak_ratio_compare` to Table 8. Table 5 (`table:eff`), the peak-width
+table (`tab:peak-fit`), rate tables, and the source catalogue have independent
+calculation paths and are not changed by the Python peak-area defect.
+
+The numerical selection checkpoint is the clean analysis revision
+`6ff9ff0424282ab28302567dfa0e99dfcd677b10`, schema-8 configuration SHA-256
+`2f3c9fb199d88272a635950706700f36a90285b27bfd9fb5689e2d6e10d90cb8`,
+and one-replica diagnostic replay manifest SHA-256
+`81915772224bdfc0a296368b9f82840112943bd2fdf23e7822b213189ee50035`.
+The candidate CSV SHA-256 values are
+`dd7569439ede5a1c2d3aa5bb13abed2068524232d778156afd0915e1776deaea`
+for Table 3 and
+`7dfba8c896c689c78498761eb64b243ab0b668d72c5ff858fc341f8ffd46a870`
+for Table 8. The single bootstrap replica checks deterministic plumbing only;
+it is not used for the table values or for coverage claims.
+
+The printed Table 3 rule is: use the exposure-summed full-line detected-count
+ratio from `table3_candidate.csv`; report its full Fisher-covariance term and
+the predeclared 558-keV reference-model RMS separately; preserve any profile
+interval or upper-limit status emitted by the workflow. The current supported
+aggregate ratios are regular and interior even though four individual yields
+in the short fourth spectrum are on zero bounds. The exact self-ratio is one
+with zero variance. The broad 478-keV feature has no normalized declared line
+shape. The 5433.1-, 5824.6-, 7367.9-, and 7916.3-keV windows are unavailable
+because the declared residual audit rejects their models without explicit
+neighboring or escape components.
+
+The printed Table 8 rule is: use the canonical normalized full-line measured
+ratios from `table8_candidate.csv`; report full Fisher covariance and the RMS
+spread over all successful predeclared model variants separately. The RMS
+includes fits rejected by absolute diagnostics and is a sensitivity spread,
+not a Gaussian standard deviation. The unrecoverable legacy simulation rows
+are withdrawn rather than mixed with corrected measured ratios. This removes
+the former data-versus-simulation validation claim and requires author
+ratification; the defensible fallback is to retain the complete historical
+table in its internally consistent legacy convention with an explicit erratum
+that its uncertainty basis is defective.
 
 ## Statistical model
 
@@ -412,6 +455,25 @@ entered `Spectrum.py` in commit `5cb9e0a`; it inserts an unintended
 sigma-reference/sigma-line factor. The paper caption says Cycle498, but the
 reconstructed workflow and released inputs are Cycle493.
 
+On the recovered historical fits, the complete normalized signal integral is
+
+\[
+ N_{\rm full}=\frac{H}{A_1}\left[\sqrt{2\pi}(1-R)\sigma
+ +2R\beta\exp\left(-\frac{\sigma^2}{2\beta^2}\right)\right].
+\]
+
+The audit propagates the full gradient of this expression through each
+historical fit covariance and retains within-multiplet covariance in ratios.
+This exact same-bin/background re-expression has post-fit Poisson deviance
+375.072 on 238 descriptive degrees of freedom
+(chi-square-reference \(p=3.38\times10^{-8}\)). Several weak-line tail
+parameters make the extrapolated full-line covariance unstable. The comparison
+columns are retained for sensitivity, but this corrected-legacy estimator is
+not selected table-wide. Phase 2 uses different declared windows and has
+deviance 7243.933 on 5434 descriptive degrees of freedom; the two values show
+that both model families fail their absolute diagnostic, not that one is
+preferred.
+
 ## Table 8 selection and applicability
 
 Input is public file ID 1042,
@@ -458,23 +520,25 @@ candidates only. Each future generated energy and response identity must be
 fit separately. Missing simulations must not be fabricated, added, or inferred
 from measured fits.
 
-## Recommendation
+## Manuscript-use recommendation
 
-For any future Table 3 replacement, use exposure-summed fitted detector counts
-or the equivalent total-live-time detected count rates as the primary
-estimands. Preserve per-run rates and GLS heterogeneity beside them. Do not
-label cross-energy detector ratios as relative emission probability, neutron
-flux, or cadmium abundance without a declared efficiency/response treatment.
-The present fit-quality rejection means even these corrected detector
-estimands remain exploratory.
+For Table 3, use exposure-summed fitted detector counts or the equivalent
+total-live-time detected count rates as the primary estimands. Preserve per-run
+rates and GLS heterogeneity in the reproducibility output. Do not label
+cross-energy detector ratios as relative emission probability, neutron flux,
+or cadmium abundance without a declared efficiency/response treatment. The
+present fit-quality rejection means the corrected detector ratios require an
+explicit manuscript caveat and cannot revive the unavailable cadmium-tuning
+claim.
 
-Do not replace Table 8 yet. The Fe/Cu canonical audit and equal-status Al/Ge
-sensitivities materially improve the model,
-but the canonical count model is still rejected and several ratios are
-model-systematic dominated. A defensible replacement needs a better validated
-high-energy line/background response and the missing separately identified
-monoenergetic simulation products. No manuscript files are changed by this
-phase.
+For Table 8, replacing only the published uncertainty while retaining its
+unrecoverable legacy central fit would mix estimators, and retaining the
+simulation rows would preserve known-defective, unrecomputable arithmetic.
+The selected correction therefore reports the phase-2 measured ratios with
+separate Fisher and all-declared-variant terms and withdraws the simulation
+comparison. The canonical count model remains rejected and several ratios are
+model-sensitive. This is an arithmetic/provenance correction, not a validated
+high-energy response result, and requires explicit author ratification.
 
 ## Public command and outputs
 
