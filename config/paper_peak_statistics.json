@@ -1,5 +1,5 @@
 {
-  "schema_version": 8,
+  "schema_version": 9,
   "result_semantics": "phase-2 new exploratory measured-data calculation; not approved manuscript replacement",
   "likelihood": {
     "observations": "raw unrebinned integer detector counts per channel",
@@ -7,7 +7,7 @@
     "resolution": "declared per-table form; Table 3 canonical sigma_keV = sqrt(intercept_keV^2 + variance_slope_keV * nominal_line_energy_keV)",
     "background": "declared interval-nonnegative Bernstein affine or quadratic counts/s/keV density evaluated at calibrated bin centers, with a free common background-scale nuisance for each run after the first; quadratic endpoint coefficients are nonnegative while the middle coefficient may be negative subject to the exact cone middle + sqrt(low*high) >= 0",
     "multi_run_signal": "Table 3 canonical phase-2 fit has one nonnegative detected full-peak rate for every run and component; the former shared origin-class scaling model is retained only as a restrictive comparison",
-    "calibration": "common offset and fractional-gain-stretch nuisances with declared Gaussian constraints; Table 3 additionally declares zero-centered per-run offset/stretch deviations and relative resolution-scale nuisances for runs after the reference run",
+    "calibration": "common offset and fractional-gain-stretch nuisances with declared Gaussian constraints; Table 8 additionally declares one zero-centered domain-normalized quadratic-curvature nuisance after coherent antisymmetric centroid residuals; Table 3 additionally declares zero-centered per-run offset/stretch deviations and relative resolution-scale nuisances for runs after the reference run",
     "optimization": "stable per-bin Poisson NLL relative to saturation; scaled L-BFGS-B warm solve with deterministic box-constrained SLSQP polish when required; quadratic backgrounds use a relaxed middle coefficient followed by an exact interval-nonnegative cone postcheck and transformed constrained fallback on violation; success requires the declared scaled projected-gradient stationarity gate",
     "canonical_intervals": "Full Fisher covariance for regular interior fits; 95% profile likelihood where implemented for weak/boundary ratios, using tight stable-difference SLSQP, exact quadratic-cone coordinates, explicit inner-solver/KKT gates, and a frozen fitted-NLL versus tight-profile-base consistency check; deterministic parametric bootstrap remains a coverage diagnostic; model-variant RMS covariance is kept separate",
     "fisher_covariance": "Expected Fisher rank, condition, and inversion are evaluated in declared scaled-parameter coordinates; the inverse is transformed back to physical coordinates before extracting yield covariance",
@@ -70,7 +70,7 @@
         {"name": "NNDC CapGam/ENSDF", "url": "https://www.nndc.bnl.gov/capgam/"},
         {"name": "NNDC NuDat/ENSDF decay data", "url": "https://www.nndc.bnl.gov/nudat3/"}
       ],
-      "canonical_component": {"name": "rd_558_5_reference", "paper_energy_keV": 558.5, "authoritative_energy_keV": 558.32, "nuclide_reaction": "Cd-113(n,g)Cd-114", "pgaa_partial_cross_section_b": 1860.0, "pgaa_partial_cross_section_uncertainty_b": 30.0, "classification": "known_reference_with_energy_sensitivity"},
+      "canonical_component": {"name": "rd_558_5_reference", "paper_energy_keV": 558.5, "authoritative_energy_keV": 558.456, "authoritative_source": "NNDC CapGam Cd-113(n,g), extracted 2026-08-12", "nuclide_reaction": "Cd-113(n,g)Cd-114", "capgam_relative_intensity": 100.0, "classification": "known_reference_with_energy_sensitivity"},
       "candidates": [
         {"name": "co59_555_972", "energy_keV": 555.972, "nuclide_reaction": "Co-59(n,g)Co-60", "classification": "authoritative_energy_but_unsupported_source", "source_plausibility": "no released cobalt source attribution", "fit_treatment": "not promoted or fitted"},
         {"name": "in115_556_845", "energy_keV": 556.845, "nuclide_reaction": "In-115(n,g)In-116", "classification": "authoritative_energy_but_unsupported_source", "source_plausibility": "no released indium source attribution", "fit_treatment": "not promoted or fitted"},
@@ -82,12 +82,30 @@
         {"name": "tl208_583_187", "energy_keV": 583.187, "nuclide_reaction": "Tl-208 beta decay full-energy peak", "classification": "known_decay_line_window_extension_sensitivity", "source_plausibility": "Tl-208 2614.533-keV line is present in the same spectrum", "fit_treatment": "explicit extended-window sensitivity only; outside the paper's 540-578-keV audit interval"}
       ],
       "model_variants": [
+        {"name": "capgam_energy_558_456", "reference_energy_keV": 558.456, "extend_for_tl208": false},
         {"name": "paper_energy_558_5", "reference_energy_keV": 558.5, "extend_for_tl208": false},
         {"name": "iaea_energy_558_32", "reference_energy_keV": 558.32, "extend_for_tl208": false},
-        {"name": "paper_energy_plus_tl208_583", "reference_energy_keV": 558.5, "extend_for_tl208": true}
+        {"name": "capgam_energy_plus_tl208_583", "reference_energy_keV": 558.456, "extend_for_tl208": true}
       ],
-      "canonical_variant": "paper_energy_558_5",
-      "promotion_policy": "Nuclear-data energy match is necessary but not sufficient. A component also requires released material/source plausibility and likelihood/residual support. The paper energy remains canonical here so the correction isolates estimand/model effects; the IAEA energy and Tl-208 extension contribute declared sensitivity covariance."
+      "canonical_variant": "capgam_energy_558_456",
+      "promotion_policy": "Nuclear-data energy match is necessary but not sufficient. A component also requires released material/source plausibility and likelihood/residual support. Current NNDC CapGam energy is canonical; the rounded paper energy, IAEA PGAA energy, and Tl-208 window extension contribute declared sensitivity covariance."
+    },
+    "residual_model_repair": {
+      "enumeration_policy": "For named residual neighborhoods, enumerate gamma rays within 2 keV having decay photon intensity at least 0.5% for evidenced U-238/Th-232-chain parents, or CapGam relative intensity at least 3% for documented/plausible Cd, H, Al, Cu, Fe, Cr, Ni, Ge, and Pb materials. Catalog matches require residual support and identifiable fitted yields; ambiguous matches retain equal status.",
+      "authoritative_sources": [
+        {"name": "IAEA LiveChart ENSDF decay radiation API", "url": "https://nds.iaea.org/relnsd/v1/data?fields=decay_rads"},
+        {"name": "NNDC CapGam", "url": "https://www.nndc.bnl.gov/capgam/"}
+      ],
+      "line_energy_audit": "Every fitted Table 3 line was checked on 2026-08-12. The likelihood uses current IAEA LiveChart/ENSDF decay energies and NNDC CapGam capture energies; paper-row energies remain explicit labels. The current evaluated Bi-214 record is 2204.10(4) keV; 2204.215(40) keV is one contributing measurement, not the evaluated weighted average. Current CapGam confirms the retained Cd-113 values 2398.6(1), 2550.1(1), 2660.1(1), and 2767.5(2) keV. The supported energy correction reduces named centroid-like residual structure without adding freedom. On matched bins the simultaneous authoritative-energy audit changed D by -43.67, moved the short-run 2455.8-keV row off its zero bound, and left the absolute model rejected.",
+      "accepted_components": [
+        {"name": "ac228_338_320_nuisance", "energy_keV": 338.32, "window": "rd_352", "interpretation": "Ac-228 decay full-energy nuisance; Th-chain presence already supported", "reason": "three long-run yields remain interior at 3.1--3.7 Fisher sigma; adding the complete competing Ni-58 339.418-keV candidate pins that candidate to zero in two long runs and changes the reported 351.9-keV yields by less than 0.45%"}
+      ],
+      "rejected_or_unavailable_hypotheses": [
+        {"neighborhood_keV": "595.85", "candidates": ["intrinsic Ge-74(n,n') asymmetric feature"], "action": "exclude rd_609 window and make rd_609_3 unavailable", "reason": "the released inputs provide no normalized asymmetric detector-response shape; a Gaussian would be physically wrong"},
+        {"neighborhood_keV": "725.298--727.330", "candidates": ["Cd-113 725.298-keV target", "Ac-228 726.863-keV decay", "Bi-212 727.330-keV decay"], "action": "exclude rd_707_725 window and make rd_707_4/rd_725_0 unavailable", "reason": "complete target-plus-neighbor fits have absolute yield correlations above 0.915, boundary-pinned alternatives, and change long-run rd_725_0 yields by 20--31%"},
+        {"neighborhood_keV": "1399.638--1408.300", "candidates": ["Cd-113 1399.638-keV target", "Pb-208 1400.3-keV capture", "Bi-214 1401.515/1407.988-keV decay", "Al-27 1408.3-keV capture"], "action": "exclude rd_1364_1400 window and make its three reported rows unavailable", "reason": "complete fits have candidate correlations above 0.977, multiple active bounds, and change long-run rd_1399_6 yields by 17--51%"},
+        {"neighborhood_keV": "global Table 3", "candidates": ["constant low-energy tail", "smooth sideband shelf", "quadratic calibration curvature"], "action": "reject additions", "reason": "pooled tail score is 1.04 sigma, sideband scores are not recurrent, and local centroid shifts do not follow one coherent quadratic calibration morphology"}
+      ]
     },
     "excluded_components": [
       {
@@ -95,6 +113,54 @@
         "name": "B-10(n,alpha)Li-7 Doppler feature",
         "origin_class": "neutron_capture",
         "reason": "Broad Doppler feature is not a detector photopeak and has no declared normalized physical line shape in phase 2; no Gaussian yield is reported."
+      },
+      {
+        "energy_keV": 609.3,
+        "name": "rd_609_3",
+        "identity": "Bi-214 beta decay",
+        "origin_class": "radioactive_decay",
+        "interval_kind": "unavailable_unmodeled_detector_response",
+        "reason": "The fitted window contains the intrinsic asymmetric 595.85-keV Ge inelastic feature, but the released data provide no normalized response shape; a Gaussian surrogate is rejected."
+      },
+      {
+        "energy_keV": 707.4,
+        "name": "rd_707_4",
+        "identity": "Cd-113 neutron capture",
+        "origin_class": "neutron_capture",
+        "interval_kind": "unavailable_unidentifiable_neighbor_structure",
+        "reason": "Ac-228 726.863- and Bi-212 727.330-keV neighbors are unresolved and non-identifiable; their complete fit changes the paired-window target yields materially."
+      },
+      {
+        "energy_keV": 725.0,
+        "name": "rd_725_0",
+        "identity": "Cd-113 neutron capture",
+        "origin_class": "neutron_capture",
+        "interval_kind": "unavailable_unidentifiable_neighbor_structure",
+        "reason": "Ac-228 726.863- and Bi-212 727.330-keV neighbors are unresolved and non-identifiable; long-run target-yield shifts are 20--31%."
+      },
+      {
+        "energy_keV": 1364.3,
+        "name": "rd_1364_3",
+        "identity": "Cd-113 neutron capture",
+        "origin_class": "neutron_capture",
+        "interval_kind": "unavailable_unidentifiable_neighbor_structure",
+        "reason": "The 1399.638--1408.300-keV Cd/Pb/Bi/Al neighborhood is non-identifiable in the shared window, so all reported yields from that window are unavailable."
+      },
+      {
+        "energy_keV": 1377.7,
+        "name": "rd_1377_7",
+        "identity": "Bi-214 beta decay",
+        "origin_class": "radioactive_decay",
+        "interval_kind": "unavailable_unidentifiable_neighbor_structure",
+        "reason": "The 1399.638--1408.300-keV Cd/Pb/Bi/Al neighborhood is non-identifiable in the shared window, so all reported yields from that window are unavailable."
+      },
+      {
+        "energy_keV": 1399.6,
+        "name": "rd_1399_6",
+        "identity": "Cd-113 neutron capture",
+        "origin_class": "neutron_capture",
+        "interval_kind": "unavailable_unidentifiable_neighbor_structure",
+        "reason": "Complete neighboring-line fits are highly correlated, boundary-active, and change long-run target yields by 17--51%."
       },
       {
         "energy_keV": 5433.1,
@@ -134,15 +200,12 @@
       {"name": "rd_295", "low_keV": 280.0, "high_keV": 310.0},
       {"name": "rd_352", "low_keV": 335.0, "high_keV": 370.0},
       {"name": "rd_558", "low_keV": 540.0, "high_keV": 578.0},
-      {"name": "rd_609", "low_keV": 590.0, "high_keV": 630.0},
       {"name": "rd_651", "low_keV": 635.0, "high_keV": 670.0},
-      {"name": "rd_707_725", "low_keV": 688.0, "high_keV": 742.0},
       {"name": "rd_768", "low_keV": 750.0, "high_keV": 787.0},
       {"name": "rd_806", "low_keV": 790.0, "high_keV": 825.0},
       {"name": "rd_1120", "low_keV": 1100.0, "high_keV": 1140.0},
       {"name": "rd_1209_1238", "low_keV": 1190.0, "high_keV": 1255.0},
       {"name": "rd_1281_1294", "low_keV": 1265.0, "high_keV": 1310.0},
-      {"name": "rd_1364_1400", "low_keV": 1345.0, "high_keV": 1420.0},
       {"name": "rd_1490", "low_keV": 1470.0, "high_keV": 1510.0},
       {"name": "rd_1660", "low_keV": 1640.0, "high_keV": 1680.0},
       {"name": "rd_1764", "low_keV": 1745.0, "high_keV": 1785.0},
@@ -154,34 +217,29 @@
       {"name": "rd_2768", "low_keV": 2748.0, "high_keV": 2788.0}
     ],
     "components": [
-      {"name": "rd_238_6", "energy_keV": 238.6, "window": "rd_238_242", "role": "line", "identity": "Pb-212 beta decay", "origin_class": "radioactive_decay"},
-      {"name": "rd_242_0", "energy_keV": 242.0, "window": "rd_238_242", "role": "line", "identity": "Pb-214 beta decay", "origin_class": "radioactive_decay"},
-      {"name": "rd_295_2", "energy_keV": 295.2, "window": "rd_295", "role": "line", "identity": "Pb-214 beta decay", "origin_class": "radioactive_decay"},
-      {"name": "rd_351_9", "energy_keV": 351.9, "window": "rd_352", "role": "line", "identity": "Pb-214 beta decay", "origin_class": "radioactive_decay"},
-      {"name": "rd_558_5_reference", "energy_keV": 558.5, "window": "rd_558", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
-      {"name": "rd_609_3", "energy_keV": 609.3, "window": "rd_609", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
-      {"name": "rd_651_3", "energy_keV": 651.3, "window": "rd_651", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
-      {"name": "rd_707_4", "energy_keV": 707.4, "window": "rd_707_725", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
-      {"name": "rd_725_0", "energy_keV": 725.0, "window": "rd_707_725", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
-      {"name": "rd_768_4", "energy_keV": 768.4, "window": "rd_768", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
-      {"name": "rd_805_9", "energy_keV": 805.9, "window": "rd_806", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
-      {"name": "rd_1120_3", "energy_keV": 1120.3, "window": "rd_1120", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
-      {"name": "rd_1209_7", "energy_keV": 1209.7, "window": "rd_1209_1238", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
-      {"name": "rd_1238_1", "energy_keV": 1238.1, "window": "rd_1209_1238", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
-      {"name": "rd_1281_0", "energy_keV": 1281.0, "window": "rd_1281_1294", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
-      {"name": "rd_1293_6", "energy_keV": 1293.6, "window": "rd_1281_1294", "role": "line", "identity": "Ar-41 beta decay", "origin_class": "radioactive_decay"},
-      {"name": "rd_1364_3", "energy_keV": 1364.3, "window": "rd_1364_1400", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
-      {"name": "rd_1377_7", "energy_keV": 1377.7, "window": "rd_1364_1400", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
-      {"name": "rd_1399_6", "energy_keV": 1399.6, "window": "rd_1364_1400", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_238_6", "energy_keV": 238.632, "paper_energy_keV": 238.6, "window": "rd_238_242", "role": "line", "identity": "Pb-212 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_242_0", "energy_keV": 241.995, "paper_energy_keV": 242.0, "window": "rd_238_242", "role": "line", "identity": "Pb-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_295_2", "energy_keV": 295.224, "paper_energy_keV": 295.2, "window": "rd_295", "role": "line", "identity": "Pb-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_351_9", "energy_keV": 351.932, "paper_energy_keV": 351.9, "window": "rd_352", "role": "line", "identity": "Pb-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "ac228_338_320_nuisance", "energy_keV": 338.32, "window": "rd_352", "role": "contaminant", "identity": "Ac-228 beta-decay nuisance; not a Table 3 row", "origin_class": "radioactive_decay"},
+      {"name": "rd_558_5_reference", "energy_keV": 558.456, "paper_energy_keV": 558.5, "window": "rd_558", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_651_3", "energy_keV": 651.256, "paper_energy_keV": 651.3, "window": "rd_651", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_768_4", "energy_keV": 768.36, "paper_energy_keV": 768.4, "window": "rd_768", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_805_9", "energy_keV": 805.887, "paper_energy_keV": 805.9, "window": "rd_806", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_1120_3", "energy_keV": 1120.294, "paper_energy_keV": 1120.3, "window": "rd_1120", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_1209_7", "energy_keV": 1209.713, "paper_energy_keV": 1209.7, "window": "rd_1209_1238", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_1238_1", "energy_keV": 1238.122, "paper_energy_keV": 1238.1, "window": "rd_1209_1238", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_1281_0", "energy_keV": 1280.976, "paper_energy_keV": 1281.0, "window": "rd_1281_1294", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_1293_6", "energy_keV": 1293.64, "paper_energy_keV": 1293.6, "window": "rd_1281_1294", "role": "line", "identity": "Ar-41 beta decay", "origin_class": "radioactive_decay"},
       {"name": "rd_1489_56", "energy_keV": 1489.56, "window": "rd_1490", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
       {"name": "rd_1660_368", "energy_keV": 1660.368, "window": "rd_1660", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
-      {"name": "rd_1764_5", "energy_keV": 1764.5, "window": "rd_1764", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
-      {"name": "rd_2204_2", "energy_keV": 2204.2, "window": "rd_2204_2223", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
-      {"name": "rd_2223_0", "energy_keV": 2223.0, "window": "rd_2204_2223", "role": "line", "identity": "H-1 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_1764_5", "energy_keV": 1764.491, "paper_energy_keV": 1764.5, "window": "rd_1764", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_2204_2", "energy_keV": 2204.1, "paper_energy_keV": 2204.2, "window": "rd_2204_2223", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_2223_0", "energy_keV": 2223.245, "paper_energy_keV": 2223.0, "window": "rd_2204_2223", "role": "line", "identity": "H-1 neutron capture", "origin_class": "neutron_capture"},
       {"name": "rd_2398_6", "energy_keV": 2398.6, "window": "rd_2399", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
-      {"name": "rd_2455_8", "energy_keV": 2455.8, "window": "rd_2456", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_2455_8", "energy_keV": 2456.0, "paper_energy_keV": 2455.8, "window": "rd_2456", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
       {"name": "rd_2550_1", "energy_keV": 2550.1, "window": "rd_2550", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
-      {"name": "rd_2614_533", "energy_keV": 2614.533, "window": "rd_2615_2660", "role": "line", "identity": "Tl-208 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_2614_533", "energy_keV": 2614.511, "paper_energy_keV": 2614.533, "window": "rd_2615_2660", "role": "line", "identity": "Tl-208 beta decay", "origin_class": "radioactive_decay"},
       {"name": "rd_2660_1", "energy_keV": 2660.1, "window": "rd_2615_2660", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
       {"name": "rd_2767_5", "energy_keV": 2767.5, "window": "rd_2768", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"}
     ]
@@ -200,7 +258,13 @@
       "covariance": [[4.0, 0.0], [0.0, 4.0e-6]],
       "offset_bounds_keV": [-10.0, 10.0],
       "stretch_bounds": [-0.005, 0.005],
-      "warning": "The release gives A0/A1 but no calibration covariance. Broad declared constraints let the observed high-energy lines calibrate the common correction."
+      "curvature_mean_keV": 0.0,
+      "curvature_sigma_keV": 0.893146,
+      "curvature_bounds_keV": [-2.679438, 2.679438],
+      "curvature_pivot_keV": 8587.055,
+      "curvature_scale_keV": 2825.445,
+      "curvature_basis": "((released_linear_energy_keV - 8587.055) / 2825.445)^2; pivot and scale are the midpoint and half-span of the fixed 5761.61--11412.5-keV Table 8 domain",
+      "warning": "The release gives A0/A1 but no calibration covariance or nonlinearity metrology. Broad affine constraints let the observed high-energy lines calibrate the common correction. The zero-centered curvature sigma is one released native channel (0.893146 keV), with fixed three-sigma bounds; this is a declared applicability assumption motivated by coherent antisymmetric centroid residuals, not released calibration metrology."
     },
     "resolution_initial": {
       "intercept_keV": 0.98,
@@ -214,7 +278,7 @@
     "contaminant_policy": "Phase 2 tests only catalogued lines from materials documented or physically plausible in the detector assembly. Canonical Fe-54 and Cu-63 additions have source plausibility and residual support. The close Al-27/Ge-70 6.71-MeV alternatives directly reallocate a target DEP and are retained at equal noncanonical sensitivity status despite their likelihood difference. Residual-only automatic peak discovery is prohibited.",
     "target_parents_keV": ["6809.610", "7631.180", "7645.580", "7693.398", "7724.034", "8998.630", "9718.790", "11386.500"],
     "canonical_component_variant": "target_plus_fe54_and_cu63",
-    "canonical_model_variant": "target_plus_fe54_and_cu63_quadratic_background",
+    "canonical_model_variant": "target_plus_fe54_and_cu63",
     "phase2_window_change": {
       "window": "t8_6809_sep",
       "phase1_low_keV": 6272.61,
@@ -230,6 +294,7 @@
         "provenance": "ENSDF-derived thermal-neutron capture gamma energies and relative intensities"
       },
       "material_basis": "Public detector/shield metadata and legacy source catalog identify Ge detector material, Al, Cu, and stainless-steel Fe/Cr/Ni as plausible local materials. Nuclear-line presence alone is insufficient.",
+      "target_energy_audit": "All eight parent energies exactly match NNDC CapGam entries extracted 2026-08-12. SEP/DEP values retain the paper's conventional E-511.000/E-1022.000-keV arithmetic. Using the 2022 CODATA electron rest energy would change them by only 0.001049/0.002099 keV, negligible relative to nuclear-energy uncertainty and fitted HPGe resolution.",
       "material_sources": ["immutable public database detector/shield/configuration metadata", "scripts/PrintSources.py historical source catalog"],
       "candidates": [
         {"name": "fe54_6268_9_fep", "parent": "6268.900", "energy_keV": 6268.9, "window": "t8_6809_sep", "role": "contaminant", "nuclide_reaction": "Fe-54(n,g)Fe-55", "capgam_relative_intensity": 4.8485, "classification": "known_and_canonical", "source_plausibility": "steel structural/shield material", "residual_evidence": "positive feature maps to about 6269 keV after fitted calibration correction"},

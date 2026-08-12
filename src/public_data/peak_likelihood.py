@@ -114,11 +114,18 @@ class JointPeakSpec:
 
 @dataclass(frozen=True)
 class CalibrationConstraint:
-    """Gaussian constraint on a common offset and fractional gain stretch.
+    """Gaussian constraint on a common affine calibration and optional curvature.
 
     Before optional per-run deviations, calibrated edges are
 
     ``A0_r + offset_keV + A1_r * (1 + stretch) * channel_edge``.
+
+    When ``curvature_mean_keV`` is declared, a single zero-centered quadratic
+    correction is added.  Its fixed basis is
+    ``((E_nominal - curvature_pivot_keV) / curvature_scale_keV)**2``;
+    therefore the coefficient is the correction in keV one declared scale
+    from the pivot.  The affine terms remain free, so this adds only curvature,
+    not a separately selected local centroid shift.
 
     When ``per_run_deviation_covariance`` is declared, spectra after index zero
     receive independent zero-centered offset/stretch deviations.  Spectrum
@@ -133,6 +140,11 @@ class CalibrationConstraint:
     per_run_deviation_covariance: np.ndarray | None = None
     per_run_offset_bounds_keV: tuple[float, float] = (-1.0, 1.0)
     per_run_stretch_bounds: tuple[float, float] = (-2e-4, 2e-4)
+    curvature_mean_keV: float | None = None
+    curvature_sigma_keV: float | None = None
+    curvature_bounds_keV: tuple[float, float] = (-2.0, 2.0)
+    curvature_pivot_keV: float = 0.0
+    curvature_scale_keV: float = 1.0
 
 
 @dataclass(frozen=True)
@@ -340,6 +352,7 @@ class _PreparedProblem:
     run_background_scale_parameter_indices: dict[int, int]
     run_calibration_parameter_indices: dict[int, tuple[int, int]]
     run_resolution_scale_parameter_indices: dict[int, int]
+    calibration_curvature_parameter_index: int | None
     resolution_parameter_indices: tuple[int, int]
     tail_parameter_indices: tuple[int, int] | None
     background_parameter_indices: dict[str, tuple[int, ...]]
@@ -682,6 +695,24 @@ def _validate_constraints(
             < calibration.per_run_stretch_bounds[1]
         ):
             raise ValueError("per-run calibration deviation bounds must contain zero")
+    if calibration.curvature_mean_keV is None:
+        if calibration.curvature_sigma_keV is not None:
+            raise ValueError(
+                "calibration curvature sigma requires a declared curvature mean"
+            )
+    elif not (
+        calibration.curvature_sigma_keV is not None
+        and isfinite(calibration.curvature_mean_keV)
+        and isfinite(calibration.curvature_sigma_keV)
+        and calibration.curvature_sigma_keV > 0.0
+        and calibration.curvature_bounds_keV[0]
+        <= calibration.curvature_mean_keV
+        <= calibration.curvature_bounds_keV[1]
+        and isfinite(calibration.curvature_pivot_keV)
+        and isfinite(calibration.curvature_scale_keV)
+        and calibration.curvature_scale_keV > 0.0
+    ):
+        raise ValueError("calibration curvature constraint is invalid")
     if resolution.form not in ("linear", "sqrt"):
         raise ValueError("resolution form must be 'linear' or 'sqrt'")
     if resolution.tail_model not in ("none", "constant"):
@@ -801,6 +832,16 @@ def _prepare_problem(
             )
         )
         scales.extend((0.1, max(resolution.tail_scale_in_sigma, 0.5)))
+
+    calibration_curvature_parameter_index: int | None = None
+    if calibration.curvature_mean_keV is not None:
+        assert calibration.curvature_sigma_keV is not None
+        calibration_curvature_parameter_index = len(values)
+        names.append("calibration.quadratic_curvature_keV_at_domain_edges")
+        values.append(calibration.curvature_mean_keV)
+        lower.append(calibration.curvature_bounds_keV[0])
+        upper.append(calibration.curvature_bounds_keV[1])
+        scales.append(calibration.curvature_sigma_keV)
 
     run_calibration_parameter_indices: dict[int, tuple[int, int]] = {}
     if calibration.per_run_deviation_covariance is not None:
@@ -1029,6 +1070,21 @@ def _prepare_problem(
     prior_parameter_indices_list = [0, 1]
     prior_mean_parts = [shared_prior_mean]
     prior_precision_blocks = [shared_prior_precision]
+    if calibration_curvature_parameter_index is not None:
+        assert calibration.curvature_mean_keV is not None
+        assert calibration.curvature_sigma_keV is not None
+        prior_parameter_indices_list.append(
+            calibration_curvature_parameter_index
+        )
+        prior_mean_parts.append(
+            np.asarray([calibration.curvature_mean_keV], dtype=np.float64)
+        )
+        prior_precision_blocks.append(
+            np.asarray(
+                [[1.0 / calibration.curvature_sigma_keV**2]],
+                dtype=np.float64,
+            )
+        )
     if calibration.per_run_deviation_covariance is not None:
         run_precision = np.linalg.inv(
             np.asarray(calibration.per_run_deviation_covariance, dtype=np.float64)
@@ -1105,6 +1161,7 @@ def _prepare_problem(
         run_background_scale_parameter_indices,
         run_calibration_parameter_indices,
         run_resolution_scale_parameter_indices,
+        calibration_curvature_parameter_index,
         resolution_parameter_indices,
         tail_parameter_indices,
         background_parameter_indices,
@@ -1173,6 +1230,46 @@ def _quadratic_background_cone_diagnostics(
     return diagnostics
 
 
+def calibration_curvature_basis(
+    spectrum: PublicSpectrum,
+    calibration: CalibrationConstraint,
+    channels: np.ndarray | float,
+) -> np.ndarray:
+    """Return the fixed dimensionless quadratic calibration basis."""
+
+    channel_array = np.asarray(channels, dtype=np.float64)
+    nominal = spectrum.calibration_A0 + spectrum.calibration_A1 * channel_array
+    return (
+        (nominal - calibration.curvature_pivot_keV)
+        / calibration.curvature_scale_keV
+    ) ** 2
+
+
+def calibrated_channel_energy(
+    spectrum: PublicSpectrum,
+    calibration: CalibrationConstraint,
+    channels: np.ndarray | float,
+    offset_keV: float,
+    fractional_gain_stretch: float,
+    curvature_keV: float = 0.0,
+) -> np.ndarray:
+    """Map detector channels through the declared fitted calibration."""
+
+    channel_array = np.asarray(channels, dtype=np.float64)
+    energy = (
+        spectrum.calibration_A0
+        + offset_keV
+        + spectrum.calibration_A1
+        * (1.0 + fractional_gain_stretch)
+        * channel_array
+    )
+    if curvature_keV:
+        energy = energy + curvature_keV * calibration_curvature_basis(
+            spectrum, calibration, channel_array
+        )
+    return energy
+
+
 def _model_and_jacobian(
     problem: _PreparedProblem, parameters: np.ndarray, *, with_jacobian: bool
 ) -> tuple[np.ndarray, np.ndarray | None]:
@@ -1189,6 +1286,8 @@ def _model_and_jacobian(
         tail_fraction_index, tail_scale_index = problem.tail_parameter_indices
         tail_fraction = parameters[tail_fraction_index]
         tail_scale_in_sigma = parameters[tail_scale_index]
+    curvature_index = problem.calibration_curvature_parameter_index
+    curvature = 0.0 if curvature_index is None else parameters[curvature_index]
     expected = np.zeros(problem.observed.size, dtype=np.float64)
     jacobian = (
         np.zeros((problem.observed.size, parameters.size), dtype=np.float64)
@@ -1226,12 +1325,38 @@ def _model_and_jacobian(
             segment = problem.slices[key]
             low_channels = problem.channel_edges_low[key]
             high_channels = problem.channel_edges_high[key]
-            low_edges = spectrum.calibration_A0 + run_offset + A1 * low_channels
-            high_edges = spectrum.calibration_A0 + run_offset + A1 * high_channels
-            center_channels = 0.5 * (low_channels + high_channels)
-            center_energy = (
-                spectrum.calibration_A0 + run_offset + A1 * center_channels
+            low_edges = calibrated_channel_energy(
+                spectrum,
+                problem.calibration,
+                low_channels,
+                run_offset,
+                run_stretch,
+                curvature,
             )
+            high_edges = calibrated_channel_energy(
+                spectrum,
+                problem.calibration,
+                high_channels,
+                run_offset,
+                run_stretch,
+                curvature,
+            )
+            center_channels = 0.5 * (low_channels + high_channels)
+            center_energy = calibrated_channel_energy(
+                spectrum,
+                problem.calibration,
+                center_channels,
+                run_offset,
+                run_stretch,
+                curvature,
+            )
+            bin_width = (
+                np.full_like(low_edges, A1)
+                if curvature_index is None
+                else high_edges - low_edges
+            )
+            if np.any(bin_width <= 0.0):
+                return np.full_like(expected, np.nan), jacobian
             raw_fraction = (center_energy - window.low_keV) / (
                 window.high_keV - window.low_keV
             )
@@ -1271,12 +1396,34 @@ def _model_and_jacobian(
                 * center_channels
                 / width
             )
-            expected[segment] = spectrum.live_time * background_scale * A1 * density
+            if curvature_index is None:
+                curvature_basis_low = curvature_basis_high = None
+                fraction_derivative_curvature = None
+                bin_width_derivative_curvature = None
+            else:
+                curvature_basis_low = calibration_curvature_basis(
+                    spectrum, problem.calibration, low_channels
+                )
+                curvature_basis_high = calibration_curvature_basis(
+                    spectrum, problem.calibration, high_channels
+                )
+                curvature_basis_center = calibration_curvature_basis(
+                    spectrum, problem.calibration, center_channels
+                )
+                fraction_derivative_curvature = (
+                    differentiable * curvature_basis_center / width
+                )
+                bin_width_derivative_curvature = (
+                    curvature_basis_high - curvature_basis_low
+                )
+            expected[segment] = (
+                spectrum.live_time * background_scale * bin_width * density
+            )
             if jacobian is not None:
                 background_derivative_offset = (
                     spectrum.live_time
                     * background_scale
-                    * A1
+                    * bin_width
                     * density_derivative_fraction
                     * fraction_derivative_offset
                 )
@@ -1285,7 +1432,7 @@ def _model_and_jacobian(
                     * background_scale
                     * (
                         spectrum.calibration_A1 * density
-                        + A1
+                        + bin_width
                         * density_derivative_fraction
                         * fraction_derivative_stretch
                     )
@@ -1299,11 +1446,24 @@ def _model_and_jacobian(
                     jacobian[
                         segment, run_calibration_indices[1]
                     ] += background_derivative_stretch
+                if curvature_index is not None:
+                    assert fraction_derivative_curvature is not None
+                    assert bin_width_derivative_curvature is not None
+                    jacobian[segment, curvature_index] += (
+                        spectrum.live_time
+                        * background_scale
+                        * (
+                            bin_width_derivative_curvature * density
+                            + bin_width
+                            * density_derivative_fraction
+                            * fraction_derivative_curvature
+                        )
+                    )
                 for basis_index, parameter_index in enumerate(background_indices):
                     jacobian[segment, parameter_index] = (
                         spectrum.live_time
                         * background_scale
-                        * A1
+                        * bin_width
                         * basis[:, basis_index]
                     )
                 if run_index > 0:
@@ -1311,7 +1471,7 @@ def _model_and_jacobian(
                         problem.run_background_scale_parameter_indices[run_index]
                     )
                     jacobian[segment, background_scale_index] += (
-                        spectrum.live_time * A1 * density
+                        spectrum.live_time * bin_width * density
                     )
 
             for component in problem.spec.components:
@@ -1374,6 +1534,13 @@ def _model_and_jacobian(
                     spectrum.calibration_A1
                     * (high_channels * pdf_high - low_channels * pdf_low)
                 )
+                if curvature_index is not None:
+                    assert curvature_basis_low is not None
+                    assert curvature_basis_high is not None
+                    d_probability_d_curvature = (
+                        curvature_basis_high * pdf_high
+                        - curvature_basis_low * pdf_low
+                    )
                 sigma_step = max(1e-5 * sigma, 1e-7)
                 probability_sigma_high = peak_shape_bin_probabilities(
                     low_edges,
@@ -1427,6 +1594,10 @@ def _model_and_jacobian(
                 common = normalization * rate
                 jacobian[segment, 0] += common * d_probability_d_offset
                 jacobian[segment, 1] += common * d_probability_d_stretch
+                if curvature_index is not None:
+                    jacobian[segment, curvature_index] += (
+                        common * d_probability_d_curvature
+                    )
                 if run_calibration_indices is not None:
                     jacobian[segment, run_calibration_indices[0]] += (
                         common * d_probability_d_offset

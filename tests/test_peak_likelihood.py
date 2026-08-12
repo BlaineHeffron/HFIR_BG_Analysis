@@ -32,6 +32,11 @@ from scripts.reanalyze_paper_peak_statistics import (
     _bootstrap_provenance,
     _bootstrap_rows,
     _fit_diagnostics,
+    _parameter_unit,
+)
+from src.public_data.peak_residuals import (
+    dominant_signed_residual_cluster,
+    residual_bin_diagnostics,
 )
 from src.public_data.run_estimands import aggregate_independent_run_rates
 
@@ -538,6 +543,81 @@ class JointFitTests(unittest.TestCase):
             delta=0.12,
         )
 
+    def test_native_bin_residual_diagnostics_preserve_geometry_and_deviance(self):
+        rows = residual_bin_diagnostics(
+            self.spectra,
+            self.result,
+            self.spec,
+            self.calibration,
+            self.resolution,
+        )
+        self.assertEqual(len(rows), self.result.observed_counts.size)
+        self.assertAlmostEqual(
+            sum(row["poisson_deviance_contribution"] for row in rows),
+            self.result.poisson_deviance,
+            places=9,
+        )
+        components_by_window = {
+            window.name: {
+                component.name
+                for component in self.spec.components
+                if component.window == window.name
+            }
+            for window in self.spec.windows
+        }
+        for row in rows:
+            spectrum = self.spectra[row["spectrum_index"]]
+            channel = row["channel_index_zero_based"]
+            self.assertEqual(
+                row["nominal_calibrated_center_energy_keV"],
+                spectrum.energy_keV[channel],
+            )
+            self.assertLess(
+                row["fitted_calibrated_low_edge_keV"],
+                row["fitted_calibrated_center_energy_keV"],
+            )
+            self.assertLess(
+                row["fitted_calibrated_center_energy_keV"],
+                row["fitted_calibrated_high_edge_keV"],
+            )
+            self.assertIn(
+                row["nearest_declared_component"],
+                components_by_window[row["window"]],
+            )
+            self.assertGreater(row["nearest_component_sigma_keV"], 0.0)
+            observed_minus_expected = (
+                row["observed_counts_per_bin"]
+                - row["expected_counts_per_bin"]
+            )
+            self.assertEqual(
+                np.sign(row["signed_poisson_deviance_residual"]),
+                np.sign(observed_minus_expected),
+            )
+        cluster = dominant_signed_residual_cluster(
+            [
+                {
+                    **rows[index],
+                    "channel_index_zero_based": index,
+                    "signed_poisson_deviance_residual": sign * np.sqrt(deviance),
+                    "poisson_deviance_contribution": deviance,
+                }
+                for index, (sign, deviance) in enumerate(
+                    ((1.0, 1.0), (1.0, 5.0), (-1.0, 3.0))
+                )
+            ]
+        )
+        self.assertEqual(cluster["dominant_residual_cluster_sign"], "positive")
+        self.assertEqual(
+            cluster["dominant_residual_cluster_start_channel_zero_based"], 0
+        )
+        self.assertEqual(
+            cluster["dominant_residual_cluster_end_channel_zero_based"], 1
+        )
+        self.assertAlmostEqual(
+            float(cluster["dominant_residual_cluster_fraction_of_window_deviance"]),
+            2.0 / 3.0,
+        )
+
     def test_fisher_covariance_inverts_scaled_coordinates_then_transforms_back(self):
         inverse_inputs: list[np.ndarray] = []
         original_inverse = np.linalg.inv
@@ -988,6 +1068,51 @@ class JointFitTests(unittest.TestCase):
                 delta=max(2e-3, 2e-3 * abs(numerical)),
                 msg=f"gradient mismatch for {problem.parameter_names[index]}",
             )
+
+    def test_quadratic_calibration_has_constrained_valid_bin_jacobian(self):
+        calibration = replace(
+            self.calibration,
+            curvature_mean_keV=0.0,
+            curvature_sigma_keV=0.2,
+            curvature_bounds_keV=(-0.6, 0.6),
+            curvature_pivot_keV=70.0,
+            curvature_scale_keV=50.0,
+        )
+        result = fit_joint_peak_model(
+            self.spectra, self.spec, calibration, self.resolution
+        )
+        self.assertTrue(result.success, result.message)
+        name = "calibration.quadratic_curvature_keV_at_domain_edges"
+        self.assertIn(name, result.parameter_names)
+        self.assertEqual(_parameter_unit(name), "keV")
+        self.assertEqual(
+            result.penalized_degrees_of_freedom,
+            result.degrees_of_freedom + 3,
+        )
+        problem = likelihood._prepare_problem(
+            self.spectra,
+            self.spec,
+            calibration,
+            self.resolution,
+            dict(zip(result.parameter_names, result.parameter_values)),
+        )
+        parameters = problem.initial.copy()
+        index = problem.parameter_names.index(name)
+        _, analytic = likelihood._objective_and_gradient(problem, parameters)
+        step = problem.scales[index] * 2.0e-6
+        plus = parameters.copy()
+        minus = parameters.copy()
+        plus[index] += step
+        minus[index] -= step
+        numerical = (
+            likelihood._objective_and_gradient(problem, plus)[0]
+            - likelihood._objective_and_gradient(problem, minus)[0]
+        ) / (2.0 * step)
+        self.assertAlmostEqual(
+            analytic[index],
+            numerical,
+            delta=max(4.0e-3, 3.0e-3 * abs(numerical)),
+        )
 
     def test_deterministic_bootstrap_reports_coverage_diagnostics(self):
         first = parametric_bootstrap(
