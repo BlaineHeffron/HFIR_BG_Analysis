@@ -1,6 +1,7 @@
 # Core analysis stack. The ROOT PyPI wheel is currently Linux x86-64 only.
 numpy>=1.24,<3
 scipy>=1.10,<2
+h5py>=3.8,<4
 matplotlib>=3.7,<4
 numba>=0.57,<1
 pandas>=2,<3
