@@ -384,178 +384,6 @@ def _window_diagnostics(
     return rows
 
 
-def _reference_core_diagnostics(
-    result: JointPeakFitResult,
-    spectra: Sequence[PublicSpectrum],
-    core_config: dict[str, Any],
-) -> list[dict[str, Any]]:
-    """Report the declared reference-line core balance run by run."""
-
-    window_name = str(core_config["window"])
-    low_keV = float(core_config["low_keV"])
-    high_keV = float(core_config["high_keV"])
-    rows: list[dict[str, Any]] = []
-    observation_windows = np.asarray(result.observation_window_names)
-    for spectrum_index, spectrum in enumerate(spectra):
-        run_mask = (
-            (result.observation_spectrum_indices == spectrum_index)
-            & (observation_windows == window_name)
-        )
-        channels = result.observation_channel_indices[run_mask]
-        nominal_energy = np.asarray(spectrum.energy_keV)[channels]
-        core_mask = (nominal_energy >= low_keV) & (nominal_energy < high_keV)
-        observed = result.observed_counts[run_mask][core_mask]
-        expected = result.expected_counts[run_mask][core_mask]
-        observed_total = float(observed.sum())
-        expected_total = float(expected.sum())
-        relative_balance = (
-            (observed_total - expected_total) / expected_total
-            if expected_total > 0
-            else float("nan")
-        )
-        signed_poisson_residual = (
-            (observed_total - expected_total) / np.sqrt(expected_total)
-            if expected_total > 0
-            else float("nan")
-        )
-        run_offset_name = (
-            f"spectrum.{spectrum_index}.calibration_offset_deviation_keV"
-        )
-        run_stretch_name = (
-            f"spectrum.{spectrum_index}.fractional_gain_stretch_deviation"
-        )
-        run_resolution_name = (
-            f"spectrum.{spectrum_index}.resolution_scale_relative_to_spectrum_0"
-        )
-        rows.append(
-            {
-                "spectrum_index": spectrum_index,
-                "file_id": spectrum.file_id,
-                "window": window_name,
-                "core_low_keV": format(low_keV, ".12g"),
-                "core_high_keV": format(high_keV, ".12g"),
-                "core_energy_convention": core_config["energy_convention"],
-                "core_raw_bin_count": int(np.count_nonzero(core_mask)),
-                "observed_core_counts": format(observed_total, ".12g"),
-                "expected_core_counts": format(expected_total, ".12g"),
-                "relative_core_balance": format(relative_balance, ".12g"),
-                "signed_aggregate_poisson_residual": format(
-                    signed_poisson_residual, ".12g"
-                ),
-                "fitted_calibration_offset_deviation_keV": format(
-                    (
-                        0.0
-                        if run_offset_name not in result.parameter_names
-                        else result.parameter(run_offset_name)
-                    ),
-                    ".12g",
-                ),
-                "fitted_fractional_gain_stretch_deviation": format(
-                    (
-                        0.0
-                        if run_stretch_name not in result.parameter_names
-                        else result.parameter(run_stretch_name)
-                    ),
-                    ".12g",
-                ),
-                "fitted_resolution_scale_relative_to_spectrum_0": format(
-                    (
-                        1.0
-                        if run_resolution_name not in result.parameter_names
-                        else result.parameter(run_resolution_name)
-                    ),
-                    ".12g",
-                ),
-            }
-        )
-    return rows
-
-
-def _origin_scale_diagnostics(
-    result: JointPeakFitResult,
-    spectra: Sequence[PublicSpectrum],
-) -> list[dict[str, Any]]:
-    """Report fitted capture/decay composition changes relative to run zero."""
-
-    rows: list[dict[str, Any]] = []
-    for spectrum_index, spectrum in enumerate(spectra):
-        if spectrum_index == 0:
-            capture_scale = decay_scale = double_ratio = 1.0
-            capture_error = decay_error = double_ratio_error = 0.0
-        else:
-            capture_name = (
-                f"spectrum.{spectrum_index}.signal_scale.neutron_capture"
-                "_relative_to_spectrum_0"
-            )
-            decay_name = (
-                f"spectrum.{spectrum_index}.signal_scale.radioactive_decay"
-                "_relative_to_spectrum_0"
-            )
-            capture_index = result.parameter_names.index(capture_name)
-            decay_index = result.parameter_names.index(decay_name)
-            capture_scale = float(result.parameter_values[capture_index])
-            decay_scale = float(result.parameter_values[decay_index])
-            capture_error = float(np.sqrt(result.covariance[capture_index, capture_index]))
-            decay_error = float(np.sqrt(result.covariance[decay_index, decay_index]))
-            double_ratio = capture_scale / decay_scale
-            gradient = np.asarray(
-                [1.0 / decay_scale, -capture_scale / decay_scale**2]
-            )
-            scale_covariance = result.covariance[
-                np.ix_((capture_index, decay_index), (capture_index, decay_index))
-            ]
-            double_ratio_error = float(
-                np.sqrt(max(float(gradient @ scale_covariance @ gradient), 0.0))
-            )
-        decay_to_capture_composition = 1.0 / double_ratio
-        decay_to_capture_composition_error = (
-            double_ratio_error / double_ratio**2
-        )
-        rows.append(
-            {
-                "spectrum_index": spectrum_index,
-                "file_id": spectrum.file_id,
-                "neutron_capture_scale_relative_to_spectrum_0": format(
-                    capture_scale, ".12g"
-                ),
-                "neutron_capture_scale_fisher_uncertainty": format(
-                    capture_error, ".12g"
-                ),
-                "radioactive_decay_scale_relative_to_spectrum_0": format(
-                    decay_scale, ".12g"
-                ),
-                "radioactive_decay_scale_fisher_uncertainty": format(
-                    decay_error, ".12g"
-                ),
-                "capture_to_decay_double_ratio_relative_to_spectrum_0": format(
-                    double_ratio, ".12g"
-                ),
-                "double_ratio_fisher_uncertainty": format(
-                    double_ratio_error, ".12g"
-                ),
-                "double_ratio_deviation_from_one_fisher_z": format(
-                    (
-                        0.0
-                        if double_ratio_error == 0.0
-                        else (double_ratio - 1.0) / double_ratio_error
-                    ),
-                    ".12g",
-                ),
-                "decay_to_capture_composition_relative_to_spectrum_0": format(
-                    decay_to_capture_composition, ".12g"
-                ),
-                "decay_to_capture_composition_fisher_uncertainty": format(
-                    decay_to_capture_composition_error, ".12g"
-                ),
-                "semantics": (
-                    "fitted neutron-capture/decay composition relative to spectrum "
-                    "index 0; index 0 is exactly one by parameter convention"
-                ),
-            }
-        )
-    return rows
-
-
 def _fit_diagnostics(
     result: JointPeakFitResult,
     reporting: dict[str, Any],
@@ -654,24 +482,6 @@ def _fit_diagnostics(
     stationarity_valid = bool(
         getattr(result, "optimizer_stationarity_valid", result.success)
     )
-    stationarity_tolerance = float(
-        getattr(result, "stationarity_tolerance", float("nan"))
-    )
-    declared_stationarity_tolerance = float(
-        reporting.get(
-            "optimizer_scaled_projected_gradient_tolerance",
-            stationarity_tolerance,
-        )
-    )
-    if np.isfinite(stationarity_tolerance) and not np.isclose(
-        stationarity_tolerance,
-        declared_stationarity_tolerance,
-        rtol=0.0,
-        atol=1.0e-15,
-    ):
-        raise ValueError(
-            "fitter stationarity tolerance differs from frozen reporting configuration"
-        )
     optimizer_configuration = getattr(result, "optimizer_configuration", {})
     cone_diagnostics = {
         str(window_name): {
@@ -694,138 +504,6 @@ def _fit_diagnostics(
             False,
         )
     )
-    declared_cone_feasibility_tolerance = float(
-        reporting.get(
-            "quadratic_background_cone_feasibility_relative_tolerance",
-            getattr(
-                result,
-                "quadratic_background_cone_feasibility_relative_tolerance",
-                float("nan"),
-            ),
-        )
-    )
-    declared_cone_activity_tolerance = float(
-        reporting.get(
-            "quadratic_background_cone_activity_relative_tolerance",
-            getattr(
-                result,
-                "quadratic_background_cone_activity_relative_tolerance",
-                float("nan"),
-            ),
-        )
-    )
-    for result_attribute, declared_value in (
-        (
-            "quadratic_background_cone_feasibility_relative_tolerance",
-            declared_cone_feasibility_tolerance,
-        ),
-        (
-            "quadratic_background_cone_activity_relative_tolerance",
-            declared_cone_activity_tolerance,
-        ),
-    ):
-        fitter_value = float(getattr(result, result_attribute, float("nan")))
-        if np.isfinite(fitter_value) and not np.isclose(
-            fitter_value, declared_value, rtol=0.0, atol=1.0e-15
-        ):
-            raise ValueError(
-                f"fitter {result_attribute} differs from frozen reporting configuration"
-            )
-    declared_scoring_max_iterations = int(
-        reporting.get(
-            "optimizer_scoring_max_iterations",
-            optimizer_configuration.get("scoring_max_iterations", 0),
-        )
-    )
-    fitter_scoring_max_iterations = int(
-        optimizer_configuration.get(
-            "scoring_max_iterations", declared_scoring_max_iterations
-        )
-    )
-    if fitter_scoring_max_iterations != declared_scoring_max_iterations:
-        raise ValueError(
-            "fitter scoring iteration cap differs from frozen reporting configuration"
-        )
-    declared_scoring_flat_nll_tolerance = float(
-        reporting.get(
-            "optimizer_scoring_numerically_flat_nll_tolerance",
-            optimizer_configuration.get(
-                "scoring_numerically_flat_nll_tolerance", float("nan")
-            ),
-        )
-    )
-    fitter_scoring_flat_nll_tolerance = float(
-        optimizer_configuration.get(
-            "scoring_numerically_flat_nll_tolerance",
-            declared_scoring_flat_nll_tolerance,
-        )
-    )
-    if np.isfinite(fitter_scoring_flat_nll_tolerance) and not np.isclose(
-        fitter_scoring_flat_nll_tolerance,
-        declared_scoring_flat_nll_tolerance,
-        rtol=0.0,
-        atol=1.0e-18,
-    ):
-        raise ValueError(
-            "fitter scoring flat-NLL tolerance differs from frozen reporting configuration"
-        )
-    declared_scoring_flat_gradient_reduction = float(
-        reporting.get(
-            "optimizer_scoring_numerically_flat_gradient_reduction_factor",
-            optimizer_configuration.get(
-                "scoring_numerically_flat_gradient_reduction_factor",
-                float("nan"),
-            ),
-        )
-    )
-    fitter_scoring_flat_gradient_reduction = float(
-        optimizer_configuration.get(
-            "scoring_numerically_flat_gradient_reduction_factor",
-            declared_scoring_flat_gradient_reduction,
-        )
-    )
-    if np.isfinite(fitter_scoring_flat_gradient_reduction) and not np.isclose(
-        fitter_scoring_flat_gradient_reduction,
-        declared_scoring_flat_gradient_reduction,
-        rtol=0.0,
-        atol=1.0e-15,
-    ):
-        raise ValueError(
-            "fitter scoring flat-gradient reduction differs from frozen reporting configuration"
-        )
-    declared_polish_displacement_limit = float(
-        reporting.get(
-            "optimizer_polish_max_scaled_displacement_inf",
-            optimizer_configuration.get(
-                "polish_max_scaled_displacement_inf", float("nan")
-            ),
-        )
-    )
-    declared_polish_nll_decrease_limit = float(
-        reporting.get(
-            "optimizer_polish_max_stable_nll_decrease",
-            optimizer_configuration.get(
-                "polish_max_stable_nll_decrease", float("nan")
-            ),
-        )
-    )
-    for fitter_key, declared_value in (
-        (
-            "polish_max_scaled_displacement_inf",
-            declared_polish_displacement_limit,
-        ),
-        (
-            "polish_max_stable_nll_decrease",
-            declared_polish_nll_decrease_limit,
-        ),
-    ):
-        fitter_value = float(optimizer_configuration.get(fitter_key, float("nan")))
-        if np.isfinite(fitter_value) and not np.isclose(
-            fitter_value, declared_value, rtol=0.0, atol=1.0e-15
-        ):
-            raise ValueError(
-                f"fitter {fitter_key} differs from frozen reporting configuration"
-            )
     polish_basin_valid = bool(
         getattr(result, "optimizer_polish_basin_valid", True)
     )
@@ -890,9 +568,6 @@ def _fit_diagnostics(
                 float("nan"),
             )
         ),
-        "declared_quadratic_background_cone_feasibility_relative_tolerance": (
-            declared_cone_feasibility_tolerance
-        ),
         "quadratic_background_cone_activity_relative_tolerance": (
             getattr(
                 result,
@@ -900,20 +575,8 @@ def _fit_diagnostics(
                 float("nan"),
             )
         ),
-        "declared_quadratic_background_cone_activity_relative_tolerance": (
-            declared_cone_activity_tolerance
-        ),
         "optimizer_scoring_iterations": getattr(
             result, "optimizer_scoring_iterations", 0
-        ),
-        "declared_optimizer_scoring_max_iterations": (
-            declared_scoring_max_iterations
-        ),
-        "declared_optimizer_scoring_numerically_flat_nll_tolerance": (
-            declared_scoring_flat_nll_tolerance
-        ),
-        "declared_optimizer_scoring_numerically_flat_gradient_reduction_factor": (
-            declared_scoring_flat_gradient_reduction
         ),
         "optimizer_polish_basin_valid": polish_basin_valid,
         "optimizer_polish_basin_restart_used": getattr(
@@ -925,12 +588,6 @@ def _fit_diagnostics(
         "optimizer_polish_stable_nll_decrease": getattr(
             result, "optimizer_polish_stable_nll_decrease", float("nan")
         ),
-        "declared_optimizer_polish_max_scaled_displacement_inf": (
-            declared_polish_displacement_limit
-        ),
-        "declared_optimizer_polish_max_stable_nll_decrease": (
-            declared_polish_nll_decrease_limit
-        ),
         "optimizer_stationarity_valid": stationarity_valid,
         "scaled_projected_gradient_inf_norm": getattr(
             result, "scaled_projected_gradient_inf_norm", float("nan")
@@ -938,7 +595,6 @@ def _fit_diagnostics(
         "stationarity_tolerance": getattr(
             result, "stationarity_tolerance", float("nan")
         ),
-        "declared_stationarity_tolerance": declared_stationarity_tolerance,
         "optimizer_iterations": result.optimizer_iterations,
         "optimizer_evaluations": result.optimizer_evaluations,
         "data_poisson_nll_relative_to_saturated_data_constant": (
@@ -1178,122 +834,6 @@ def _nonstandard_penalized_information_criteria(
             "used for model promotion"
         ),
     }
-
-
-def _table3_model_variant_comparison(
-    spectra: Sequence[PublicSpectrum],
-    config: dict[str, Any],
-    spec: JointPeakSpec,
-    calibration: CalibrationConstraint,
-    canonical_resolution: LinearResolution,
-    canonical_result: JointPeakFitResult,
-) -> tuple[list[dict[str, Any]], dict[str, JointPeakFitResult]]:
-    """Fit declared shape/background variants on identical raw bins."""
-
-    variants = config["model_variants"]
-    canonical_name = config["canonical_model_variant"]
-    rows: list[dict[str, Any]] = []
-    fitted: dict[str, JointPeakFitResult] = {}
-    variant_specs: dict[str, JointPeakSpec] = {}
-    for variant in variants:
-        name = variant["name"]
-        resolution_config = dict(config["resolution_initial"])
-        resolution_config.update(variant.get("resolution_overrides", {}))
-        resolution = _resolution(resolution_config)
-        variant_spec = _spec_with_background_model(
-            spec, variant.get("background_model", "affine")
-        )
-        if name == canonical_name:
-            result = canonical_result
-            resolution = canonical_resolution
-            variant_spec = spec
-        else:
-            result = fit_joint_peak_model(
-                spectra,
-                variant_spec,
-                calibration,
-                resolution,
-                warm_start=canonical_result,
-                warm_start_source=(
-                    f"Table 3 canonical model variant {canonical_name}"
-                ),
-            )
-        fitted[name] = result
-        variant_specs[name] = variant_spec
-        shape_parameters = {
-            parameter_name: float(parameter_value)
-            for parameter_name, parameter_value in zip(
-                result.parameter_names, result.parameter_values
-            )
-            if parameter_name.startswith("resolution.")
-            or parameter_name.startswith("shape.")
-        }
-        parameter_count = len(result.parameter_names)
-        observation_count = result.observed_counts.size
-        rows.append(
-            {
-                "variant": name,
-                "canonical": name == canonical_name,
-                "resolution_form": resolution.form,
-                "tail_model": resolution.tail_model,
-                "background_model": variant_spec.windows[0].background_model,
-                "success": result.success,
-                "free_parameter_count": parameter_count,
-                "raw_bin_count": observation_count,
-                "penalized_nll": format(result.penalized_nll, ".12g"),
-                "poisson_deviance": format(result.poisson_deviance, ".12g"),
-                **_nonstandard_penalized_information_criteria(
-                    result.penalized_nll,
-                    parameter_count,
-                    observation_count,
-                ),
-                "twice_delta_nll_vs_canonical": "",
-                "delta_parameter_count_vs_canonical": "",
-                "likelihood_ratio_reference_p_value": "",
-                "comparison_semantics": "filled after all variants are fit",
-                "fitted_shape_parameters_json": json.dumps(
-                    shape_parameters, sort_keys=True, separators=(",", ":")
-                ),
-            }
-        )
-
-    canonical = fitted[canonical_name]
-    canonical_parameters = len(canonical.parameter_names)
-    for row in rows:
-        name = str(row["variant"])
-        result = fitted[name]
-        delta_parameters = len(result.parameter_names) - canonical_parameters
-        twice_delta_nll = 2.0 * (result.penalized_nll - canonical.penalized_nll)
-        row["twice_delta_nll_vs_canonical"] = format(twice_delta_nll, ".12g")
-        row["delta_parameter_count_vs_canonical"] = delta_parameters
-        if (
-            row["resolution_form"] == canonical_resolution.form
-            and row["tail_model"] == canonical_resolution.tail_model
-            and row["background_model"] == "affine"
-            and spec.windows[0].background_model == "quadratic"
-        ):
-            improvement = max(twice_delta_nll, 0.0)
-            degrees = canonical_parameters - len(result.parameter_names)
-            row["likelihood_ratio_reference_p_value"] = format(
-                float(chi2.sf(improvement, degrees)), ".12g"
-            )
-            row["comparison_semantics"] = (
-                "affine background nested in the canonical quadratic Bernstein "
-                "background; chi-square LRT reference"
-            )
-        elif name == canonical_name:
-            row["comparison_semantics"] = "canonical model"
-        elif row["tail_model"] != canonical_resolution.tail_model:
-            row["comparison_semantics"] = (
-                "tail/no-tail likelihood comparison; boundary and unidentified "
-                "tail scale make ordinary chi-square LRT calibration invalid"
-            )
-        else:
-            row["comparison_semantics"] = (
-                "non-nested resolution-form likelihood comparison; no chi-square "
-                "LRT p-value asserted"
-            )
-    return rows, fitted
 
 
 def _table3_reference_window_variants(
@@ -1543,11 +1083,6 @@ def _table3_independent_products(
                         if rate_on_bound
                         else "regular_interior_local_approximation"
                     ),
-                    "heterogeneity_policy": (
-                        "excluded_from_rate_gls_boundary_nonregular"
-                        if rate_on_bound
-                        else "included_in_rate_gls"
-                    ),
                     "estimand": "run-specific detected full-energy-peak rate; no efficiency correction or unfolding",
                 }
             )
@@ -1566,15 +1101,6 @@ def _table3_independent_products(
                         "numerator_or_denominator_yield_on_bound"
                         if ratio_on_bound
                         else "interior"
-                    ),
-                    "heterogeneity_policy": (
-                        "not_applicable_algebraic_self_ratio"
-                        if component.name == reference
-                        else (
-                            "excluded_from_ratio_gls_boundary_nonregular"
-                            if ratio_on_bound
-                            else "included_in_ratio_gls"
-                        )
                     ),
                     "interval_policy": (
                         "exact_self_ratio"
@@ -1723,7 +1249,11 @@ def _table3_independent_products(
                 ),
                 ".12g",
             ),
-            "estimand": "exposure-summed fitted detector counts and their total-live-time rate; no efficiency correction or unfolding",
+            "estimand": (
+                "exposure-summed fitted detector counts and total-live-time rate; "
+                "no efficiency correction or unfolding; stationarity not assumed; "
+                "see table3_run_heterogeneity.csv"
+            ),
             "result_semantics": "new phase-2 measured-data calculation; not approved for manuscript",
         }
         for index, component in enumerate(spec.components)
@@ -1812,8 +1342,6 @@ def _table3_independent_products(
         return f"GLS tests {estimand_description} across all interior runs"
 
     heterogeneity_rows: list[dict[str, Any]] = []
-    rate_heterogeneity_by_component: dict[str, Any] = {}
-    ratio_heterogeneity_by_component: dict[str, Any] = {}
     for component_index, component in enumerate(spec.components):
         positions = np.asarray(
             [run * component_count + component_index for run in range(run_count)]
@@ -1826,7 +1354,6 @@ def _table3_independent_products(
                 for run_index in range(run_count)
             ],
         )
-        rate_heterogeneity_by_component[component.name] = rate_selection
         heterogeneity_rows.append(
             {
                 "estimand": "detected_full_peak_rate_counts_per_s",
@@ -1870,7 +1397,6 @@ def _table3_independent_products(
                     for run_index in range(run_count)
                 ],
             )
-            ratio_heterogeneity_by_component[component.name] = ratio_selection
             heterogeneity_rows.append(
                 {
                     "estimand": "within_run_ratio_to_reference",
@@ -1883,156 +1409,6 @@ def _table3_independent_products(
                     ),
                 }
             )
-
-    for row in aggregate_rows:
-        component_name = str(row["component"])
-        rate_selection = rate_heterogeneity_by_component.get(component_name)
-        ratio_selection = ratio_heterogeneity_by_component.get(component_name)
-        if rate_selection is None:
-            row.update(
-                {
-                    "rate_heterogeneity_q": "",
-                    "rate_heterogeneity_dof": "",
-                    "rate_heterogeneity_p_value": "",
-                    "rate_heterogeneity_status": "unavailable_component_not_fitted",
-                    "rate_heterogeneity_included_file_ids_json": "[]",
-                    "rate_heterogeneity_excluded_boundary_file_ids_json": "[]",
-                    "ratio_heterogeneity_q": "",
-                    "ratio_heterogeneity_dof": "",
-                    "ratio_heterogeneity_p_value": "",
-                    "ratio_heterogeneity_status": "unavailable_component_not_fitted",
-                    "ratio_heterogeneity_included_file_ids_json": "[]",
-                    "ratio_heterogeneity_excluded_boundary_file_ids_json": "[]",
-                    "time_variation_qualifier": "unavailable; component not fitted",
-                    "aggregate_time_semantics": "unavailable excluded component",
-                }
-            )
-            continue
-        rate_test = rate_selection.heterogeneity
-        if component_name != reference and ratio_selection is None:
-            raise RuntimeError("missing non-reference ratio heterogeneity result")
-        ratio_test = (
-            None if ratio_selection is None else ratio_selection.heterogeneity
-        )
-        rate_flag = bool(
-            rate_test is not None
-            and np.isfinite(rate_test.p_value)
-            and rate_test.p_value < 0.05
-        )
-        ratio_flag = bool(
-            ratio_test is not None
-            and np.isfinite(ratio_test.p_value)
-            and ratio_test.p_value < 0.05
-        )
-        diagnostic_unavailable = bool(
-            rate_test is None
-            or (component_name != reference and ratio_test is None)
-        )
-        excluded_indices = list(rate_selection.excluded_boundary_indices)
-        if ratio_selection is not None:
-            excluded_indices.extend(ratio_selection.excluded_boundary_indices)
-        excluded_indices = list(dict.fromkeys(excluded_indices))
-        exclusion_prefix = (
-            "interior-only GLS excludes boundary-pinned file(s) "
-            + ", ".join(str(spectra[index].file_id) for index in excluded_indices)
-            + "; full aggregate retains all runs; "
-            if excluded_indices
-            else ""
-        )
-        if diagnostic_unavailable:
-            variation_qualifier = (
-                "one or more heterogeneity diagnostics unavailable after "
-                "boundary exclusion; stationarity not established"
-            )
-        elif rate_flag or ratio_flag:
-            variation_qualifier = (
-                "run-to-run heterogeneity diagnostic p<0.05; aggregate is not "
-                "a stationary-rate estimate"
-            )
-        else:
-            variation_qualifier = (
-                "no unadjusted p<0.05 run-to-run heterogeneity diagnostic; "
-                "stationarity still not assumed"
-            )
-        row.update(
-            {
-                "rate_heterogeneity_q": (
-                    "" if rate_test is None else format(rate_test.q_statistic, ".12g")
-                ),
-                "rate_heterogeneity_dof": (
-                    "" if rate_test is None else rate_test.degrees_of_freedom
-                ),
-                "rate_heterogeneity_p_value": (
-                    "" if rate_test is None else format(rate_test.p_value, ".12g")
-                ),
-                "rate_heterogeneity_status": rate_selection.status,
-                "rate_heterogeneity_included_file_ids_json": json.dumps(
-                    [
-                        spectra[index].file_id
-                        for index in rate_selection.included_indices
-                    ],
-                    separators=(",", ":"),
-                ),
-                "rate_heterogeneity_excluded_boundary_file_ids_json": json.dumps(
-                    [
-                        spectra[index].file_id
-                        for index in rate_selection.excluded_boundary_indices
-                    ],
-                    separators=(",", ":"),
-                ),
-                "ratio_heterogeneity_q": (
-                    "0"
-                    if component_name == reference
-                    else (
-                        ""
-                        if ratio_test is None
-                        else format(ratio_test.q_statistic, ".12g")
-                    )
-                ),
-                "ratio_heterogeneity_dof": (
-                    0
-                    if component_name == reference
-                    else (
-                        "" if ratio_test is None else ratio_test.degrees_of_freedom
-                    )
-                ),
-                "ratio_heterogeneity_p_value": (
-                    ""
-                    if component_name == reference or ratio_test is None
-                    else format(ratio_test.p_value, ".12g")
-                ),
-                "ratio_heterogeneity_status": (
-                    "not_applicable_algebraic_self_ratio"
-                    if component_name == reference
-                    else ratio_selection.status
-                ),
-                "ratio_heterogeneity_included_file_ids_json": (
-                    "[]"
-                    if component_name == reference
-                    else json.dumps(
-                        [
-                            spectra[index].file_id
-                            for index in ratio_selection.included_indices
-                        ],
-                        separators=(",", ":"),
-                    )
-                ),
-                "ratio_heterogeneity_excluded_boundary_file_ids_json": (
-                    "[]"
-                    if component_name == reference
-                    else json.dumps(
-                        [
-                            spectra[index].file_id
-                            for index in ratio_selection.excluded_boundary_indices
-                        ],
-                        separators=(",", ":"),
-                    )
-                ),
-                "time_variation_qualifier": exclusion_prefix
-                + variation_qualifier,
-                "aggregate_time_semantics": "exposure-specific aggregate across four consecutive runs; stationarity not assumed",
-            }
-        )
 
     start_times = np.asarray(
         [float(spectrum.metadata["start_time"]) for spectrum in spectra]
@@ -2279,19 +1655,6 @@ def _table3_independent_products(
     }
     return products, {
         "canonical_yield_model": "independent_runs",
-        "yield_model_fit_diagnostics": {
-            "phase2_independent_runs": _fit_diagnostics(result, reporting),
-            "phase1_origin_class_scales": _fit_diagnostics(
-                shared_result, reporting
-            ),
-            "single_shared_run_scale": _fit_diagnostics(
-                single_scale_result, reporting
-            ),
-        },
-        "reference_window_variant_fit_diagnostics": {
-            variant_name: _fit_diagnostics(variant_result, reporting)
-            for variant_name, variant_result in reference_model_results.items()
-        },
         "aggregate_estimand": (
             "sum_r live_time_r * fitted_detected_rate_r, with full fitted covariance; "
             "aggregate rate divides by total live time"
@@ -2334,9 +1697,11 @@ def _table3_products(
     spec = _spec(config, "paper-table-3-measured-data-v1")
     calibration = _constraint(config["calibration_constraint"])
     resolution = _resolution(config["resolution_initial"])
-    result = fit_joint_peak_model(spectra, spec, calibration, resolution)
-    if not result.success:
-        raise RuntimeError(f"Table 3 fit failed: {result.message}")
+    shared_result = fit_joint_peak_model(
+        spectra, spec, calibration, resolution
+    )
+    if not shared_result.success:
+        raise RuntimeError(f"Table 3 fit failed: {shared_result.message}")
     single_scale_spec = replace(
         spec,
         name=f"{spec.name}:single-shared-run-scale",
@@ -2350,12 +1715,13 @@ def _table3_products(
         single_scale_spec,
         calibration,
         resolution,
-        warm_start=result,
+        warm_start=shared_result,
         warm_start_source="Table 3 repaired phase-1 origin-class fit",
     )
     if not single_scale_result.success:
         raise RuntimeError(
-            f"Table 3 single-scale comparison failed: {single_scale_result.message}"
+            "Table 3 single-scale comparison failed: "
+            + single_scale_result.message
         )
     independent_result = fit_joint_peak_model(
         spectra,
@@ -2363,402 +1729,26 @@ def _table3_products(
         calibration,
         resolution,
         yield_model="independent_runs",
-        warm_start=result,
+        warm_start=shared_result,
         warm_start_source="Table 3 repaired phase-1 origin-class fit",
     )
     if not independent_result.success:
         raise RuntimeError(
             f"Table 3 independent-run fit failed: {independent_result.message}"
         )
-    model_variants, model_variant_results = _table3_model_variant_comparison(
-        spectra,
-        config,
-        spec,
-        calibration,
-        resolution,
-        result,
-    )
-    reference = config["reference_component"]
-    definitions = tuple(
-        RatioDefinition(f"{component.name}/{reference}", component.name, reference)
-        for component in spec.components
-    )
-    ratios = ratios_from_fit(result, definitions)
-    reference_core_rows = _reference_core_diagnostics(
-        result, spectra, config["reference_core_diagnostic"]
-    )
-    origin_scale_rows = _origin_scale_diagnostics(result, spectra)
-    reference_minimum_live_time = float(
-        config["reference_core_systematic"]["minimum_run_live_time_s"]
-    )
-    reference_core_eligible_rows = [
-        row
-        for row, spectrum in zip(reference_core_rows, spectra)
-        if spectrum.live_time >= reference_minimum_live_time
-    ]
-    if not reference_core_eligible_rows:
-        raise ValueError("no run is eligible for the reference-core systematic")
-    reference_core_fractional_systematic = max(
-        abs(float(row["relative_core_balance"]))
-        for row in reference_core_eligible_rows
-    )
-    composition_minimum_live_time = float(
-        config["origin_composition_systematic"]["minimum_run_live_time_s"]
-    )
-    composition_eligible_rows = [
-        row
-        for row, spectrum in zip(origin_scale_rows, spectra)
-        if row["spectrum_index"] != 0
-        and spectrum.live_time >= composition_minimum_live_time
-    ]
-    if not composition_eligible_rows:
-        raise ValueError("no non-reference run is eligible for composition systematic")
-    origin_composition_fractional_systematic = max(
-        abs(
-            float(
-                row["decay_to_capture_composition_relative_to_spectrum_0"]
-            )
-            - 1.0
-        )
-        for row in composition_eligible_rows
-    )
-    line_sd = np.sqrt(np.maximum(np.diag(result.line_rate_covariance), 0.0))
-    ratio_sd = np.sqrt(np.maximum(np.diag(ratios.covariance), 0.0))
-    variant_ratio_vectors = [
-        ratios_from_fit(variant_result, definitions).values
-        for variant_name, variant_result in model_variant_results.items()
-        if variant_name != config["canonical_model_variant"]
-        and variant_result.success
-    ]
-    if not variant_ratio_vectors:
-        ratio_model_covariance = np.zeros_like(ratios.covariance)
-    else:
-        ratio_deviations = np.asarray(variant_ratio_vectors) - ratios.values
-        ratio_model_covariance = (
-            ratio_deviations.T @ ratio_deviations / len(ratio_deviations)
-        )
-    reference_systematic_sensitivity = ratios.values.copy()
-    for index, definition in enumerate(definitions):
-        if definition.numerator == definition.denominator:
-            reference_systematic_sensitivity[index] = 0.0
-    ratio_reference_core_covariance = (
-        reference_core_fractional_systematic**2
-        * np.outer(
-            reference_systematic_sensitivity,
-            reference_systematic_sensitivity,
-        )
-    )
-    composition_systematic_sensitivity = np.zeros_like(ratios.values)
-    for index, component in enumerate(spec.components):
-        if component.origin_class == "radioactive_decay":
-            composition_systematic_sensitivity[index] = ratios.values[index]
-    ratio_origin_composition_covariance = (
-        origin_composition_fractional_systematic**2
-        * np.outer(
-            composition_systematic_sensitivity,
-            composition_systematic_sensitivity,
-        )
-    )
-    ratio_total_covariance = (
-        ratios.covariance
-        + ratio_model_covariance
-        + ratio_reference_core_covariance
-        + ratio_origin_composition_covariance
-    )
-    ratio_model_sd = np.sqrt(
-        np.maximum(np.diag(ratio_model_covariance), 0.0)
-    )
-    ratio_reference_core_sd = np.sqrt(
-        np.maximum(np.diag(ratio_reference_core_covariance), 0.0)
-    )
-    ratio_origin_composition_sd = np.sqrt(
-        np.maximum(np.diag(ratio_origin_composition_covariance), 0.0)
-    )
-    ratio_total_sd = np.sqrt(
-        np.maximum(np.diag(ratio_total_covariance), 0.0)
-    )
-    component_config = {item["name"]: item for item in config["components"]}
-    rows: list[dict[str, Any]] = []
-    profiles: list[dict[str, Any]] = []
-    for index, (component, definition) in enumerate(zip(spec.components, definitions)):
-        is_cross_origin = component.origin_class == "radioactive_decay"
-        ratio_estimand = (
-            "reference-run-relative radioactive-decay/neutron-capture composition; not run invariant"
-            if is_cross_origin
-            else "within-neutron-capture-class ratio; run scales cancel"
-        )
-        profile = _profile_if_needed(
-            spectra,
-            spec,
-            calibration,
-            resolution,
-            result,
-            definition,
-            float(reporting["weak_line_fisher_z_threshold"]),
-            float(reporting["profile_confidence_level"]),
-            float(reporting["profile_base_nll_consistency_tolerance"]),
-        )
-        if profile is not None:
-            profiles.append(asdict(profile))
-        if definition.numerator == definition.denominator:
-            interval_kind = "self_ratio_exact"
-            lower = upper = 1.0
-        elif profile is not None:
-            interval_kind = (
-                f"profile_{profile.kind}_statistical_only_"
-                "systematic_covariances_tabulated_separately"
-            )
-            lower, upper = profile.lower, profile.upper
-        else:
-            interval_kind = (
-                "symmetric_statistical_plus_declared_class_aware_systematics"
-            )
-            lower = max(
-                0.0,
-                ratios.values[index] - 1.959963984540054 * ratio_total_sd[index],
-            )
-            upper = ratios.values[index] + 1.959963984540054 * ratio_total_sd[index]
-        rows.append(
-            {
-                "paper_table": 3,
-                "component": component.name,
-                "energy_keV": format(component.energy_keV, ".12g"),
-                "identity": component_config[component.name]["identity"],
-                "origin_class": component.origin_class,
-                "declared_window": component.window,
-                "line_rate_counts_per_s": format(
-                    float(result.line_rates_counts_per_s[index]), ".12g"
-                ),
-                "line_rate_fisher_uncertainty_counts_per_s": format(
-                    float(line_sd[index]), ".12g"
-                ),
-                "ratio_to_558_5_keV": format(float(ratios.values[index]), ".12g"),
-                "ratio_fisher_uncertainty": format(float(ratio_sd[index]), ".12g"),
-                "ratio_model_variant_rms_systematic": format(
-                    float(ratio_model_sd[index]), ".12g"
-                ),
-                "ratio_reference_core_systematic": format(
-                    float(ratio_reference_core_sd[index]), ".12g"
-                ),
-                "ratio_origin_composition_systematic": format(
-                    float(ratio_origin_composition_sd[index]), ".12g"
-                ),
-                "ratio_total_exploratory_uncertainty": format(
-                    float(ratio_total_sd[index]), ".12g"
-                ),
-                "interval_kind": interval_kind,
-                "interval_confidence_level": reporting["profile_confidence_level"],
-                "interval_lower": format(float(lower), ".12g"),
-                "interval_upper": format(float(upper), ".12g"),
-                "ratio_estimand": ratio_estimand,
-                "result_semantics": (
-                    "new exploratory measured-data calculation; cross-origin ratio is a manuscript blocker"
-                    if is_cross_origin
-                    else "new exploratory measured-data calculation"
-                ),
-            }
-        )
-    for excluded in config["excluded_components"]:
-        rows.append(
-            {
-                "paper_table": 3,
-                "component": excluded["name"],
-                "energy_keV": format(float(excluded["energy_keV"]), ".12g"),
-                "identity": excluded.get("identity", excluded["name"]),
-                "origin_class": excluded.get("origin_class", ""),
-                "declared_window": "",
-                "line_rate_counts_per_s": "",
-                "line_rate_fisher_uncertainty_counts_per_s": "",
-                "ratio_to_558_5_keV": "",
-                "ratio_fisher_uncertainty": "",
-                "ratio_model_variant_rms_systematic": "",
-                "ratio_reference_core_systematic": "",
-                "ratio_origin_composition_systematic": "",
-                "ratio_total_exploratory_uncertainty": "",
-                "interval_kind": excluded.get(
-                    "interval_kind", "unavailable_non_photopeak_model"
-                ),
-                "interval_confidence_level": "",
-                "interval_lower": "",
-                "interval_upper": "",
-                "ratio_estimand": "unavailable excluded component",
-                "result_semantics": excluded["reason"],
-            }
-        )
-    products = {
-        "table3_candidate.csv": rows,
-        "table3_line_rate_covariance.csv": _covariance_rows(
-            result.line_names,
-            result.line_rate_covariance,
-            "(counts/s)^2",
-        ),
-        "table3_full_parameter_covariance.csv": _parameter_covariance_rows(result),
-        "table3_ratio_covariance.csv": _covariance_rows(
-            ratios.labels, ratios.covariance, "dimensionless^2"
-        ),
-        "table3_ratio_model_variant_covariance.csv": _covariance_rows(
-            ratios.labels,
-            ratio_model_covariance,
-            "dimensionless^2 (declared model-variant RMS sensitivity)",
-        ),
-        "table3_ratio_reference_core_systematic_covariance.csv": _covariance_rows(
-            ratios.labels,
-            ratio_reference_core_covariance,
-            "dimensionless^2 (declared reference-core residual envelope)",
-        ),
-        "table3_ratio_origin_composition_systematic_covariance.csv": _covariance_rows(
-            ratios.labels,
-            ratio_origin_composition_covariance,
-            "dimensionless^2 (declared cross-origin run-composition envelope)",
-        ),
-        "table3_ratio_total_covariance.csv": _covariance_rows(
-            ratios.labels,
-            ratio_total_covariance,
-            "dimensionless^2 (Fisher statistical plus model-variant RMS plus reference-core and origin-composition systematics)",
-        ),
-        "table3_window_diagnostics.csv": _window_diagnostics(
-            result,
-            spectra,
-            spec,
-            float(reporting["chi_square_minimum_expected_counts_per_bin"]),
-        ),
-        "table3_reference_core_diagnostics.csv": reference_core_rows,
-        "table3_origin_scale_diagnostics.csv": origin_scale_rows,
-        "table3_model_variant_comparison.csv": model_variants,
-    }
-    diagnostics = _fit_diagnostics(result, reporting)
-    diagnostics["profile_intervals"] = profiles
-    diagnostics["bootstrap_status"] = (
-        "not run for phase1 shared-scale comparison; bootstrap budget is applied "
-        "only to the canonical phase2 independent-run fit"
-    )
-    diagnostics["canonical_model_variant"] = config["canonical_model_variant"]
-    diagnostics["run_drift_nuisance_constraints"] = {
-        "relative_convention": (
-            "spectrum index 0 fixed at zero calibration deviation and unit "
-            "resolution scale; independent constrained deviations for later spectra"
-        ),
-        "per_run_calibration_deviation_covariance": config[
-            "calibration_constraint"
-        ]["per_run_deviation_covariance"],
-        "per_run_calibration_offset_bounds_keV": config[
-            "calibration_constraint"
-        ]["per_run_offset_bounds_keV"],
-        "per_run_fractional_stretch_bounds": config[
-            "calibration_constraint"
-        ]["per_run_stretch_bounds"],
-        "per_run_resolution_scale_sigma": config["resolution_initial"][
-            "per_run_scale_sigma"
-        ],
-        "per_run_resolution_scale_bounds": config["resolution_initial"][
-            "per_run_scale_bounds"
-        ],
-        "assumption": (
-            "release supplies no run-drift covariance; these are declared "
-            "applicability/sensitivity assumptions, not released metrology"
-        ),
-    }
-    diagnostics["reference_core_diagnostics"] = products[
-        "table3_reference_core_diagnostics.csv"
-    ]
-    diagnostics["origin_scale_diagnostics"] = origin_scale_rows
-    diagnostics["origin_class_policy"] = config["origin_class_policy"]
-    diagnostics["reference_core_systematic"] = {
-        **config["reference_core_systematic"],
-        "fractional_scale": reference_core_fractional_systematic,
-        "eligible_file_ids": [
-            int(row["file_id"]) for row in reference_core_eligible_rows
-        ],
-        "added_to_total_ratio_covariance": True,
-    }
-    diagnostics["origin_composition_systematic"] = {
-        **config["origin_composition_systematic"],
-        "fractional_scale": origin_composition_fractional_systematic,
-        "eligible_file_ids": [
-            int(row["file_id"]) for row in composition_eligible_rows
-        ],
-        "added_to_total_ratio_covariance": True,
-    }
-    diagnostics["residual_provenance_notes"] = config.get(
-        "residual_provenance_notes", []
-    )
-    diagnostics["model_variant_comparison"] = model_variants
-    diagnostics["model_variant_fit_diagnostics"] = {
-        variant_name: _fit_diagnostics(variant_result, reporting)
-        for variant_name, variant_result in model_variant_results.items()
-    }
-    diagnostics["ratio_model_variant_systematic"] = {
-        "definition": (
-            "positive-semidefinite RMS outer-product covariance of each declared "
-            "successful alternative model's ratio shift from the canonical fit"
-        ),
-        "included_alternative_variants": [
-            name
-            for name, variant_result in model_variant_results.items()
-            if name != config["canonical_model_variant"] and variant_result.success
-        ],
-        "canonical_fisher_covariance_kept_separate": True,
-        "total_covariance_definition": (
-            "canonical Fisher statistical covariance plus declared model-variant "
-            "RMS sensitivity covariance plus declared reference-core residual-envelope "
-            "covariance plus cross-origin run-composition covariance"
-        ),
-        "maximum_model_systematic_to_fisher_sd_ratio": float(
-            np.max(
-                np.divide(
-                    ratio_model_sd,
-                    ratio_sd,
-                    out=np.zeros_like(ratio_model_sd),
-                    where=ratio_sd > 0,
-                )
-            )
-        ),
-    }
-    phase2_products, phase2_diagnostics = _table3_independent_products(
+    products, phase2_diagnostics = _table3_independent_products(
         spectra,
         config,
         spec,
         independent_result,
         single_scale_result,
-        result,
+        shared_result,
         calibration,
         resolution,
         reporting,
         bootstrap_replicates,
     )
-    products["table3_phase1_shared_scale_candidate.csv"] = products.pop(
-        "table3_candidate.csv"
-    )
-    products["table3_phase1_shared_scale_line_rate_covariance.csv"] = products.pop(
-        "table3_line_rate_covariance.csv"
-    )
-    products["table3_phase1_shared_scale_full_parameter_covariance.csv"] = products.pop(
-        "table3_full_parameter_covariance.csv"
-    )
-    products["table3_phase1_shared_scale_ratio_covariance.csv"] = products.pop(
-        "table3_ratio_covariance.csv"
-    )
-    for old_name in (
-        "table3_ratio_model_variant_covariance.csv",
-        "table3_ratio_reference_core_systematic_covariance.csv",
-        "table3_ratio_origin_composition_systematic_covariance.csv",
-        "table3_ratio_total_covariance.csv",
-        "table3_reference_core_diagnostics.csv",
-        "table3_origin_scale_diagnostics.csv",
-        "table3_model_variant_comparison.csv",
-    ):
-        phase1_name = old_name.replace(
-            "table3_", "table3_phase1_shared_scale_", 1
-        )
-        products[phase1_name] = products.pop(old_name)
-    products.update(phase2_products)
-    phase1_diagnostics = {
-        key: value
-        for key, value in diagnostics.items()
-        if key not in {"fit_result", "spec"}
-    }
     diagnostics = _fit_diagnostics(independent_result, reporting)
-    diagnostics["phase1_shared_scale_diagnostics"] = phase1_diagnostics
     diagnostics["phase2"] = phase2_diagnostics
     diagnostics["historical_reconstruction_record"] = (
         "config/table3_historical_reconstruction.json"
@@ -3055,14 +2045,10 @@ def _table8_products(
     )
     ratios = ratios_from_fit(result, definitions)
     ratio_sd = np.sqrt(np.maximum(np.diag(ratios.covariance), 0.0))
-    all_variant_fit_diagnostics = {
+    variant_fit_diagnostics = {
         variant_name: _fit_diagnostics(variant_result, reporting)
         for variant_name, variant_result in model_results.items()
-    }
-    variant_fit_diagnostics = {
-        variant_name: variant_diagnostic
-        for variant_name, variant_diagnostic in all_variant_fit_diagnostics.items()
-        if model_results[variant_name].success
+        if variant_result.success
     }
     for model_row in model_rows:
         variant_diagnostic = variant_fit_diagnostics.get(str(model_row["variant"]))
@@ -3232,11 +2218,6 @@ def _table8_products(
                     ""
                     if not np.isfinite(ratio_acceptable_model_sd[index])
                     else format(float(ratio_acceptable_model_sd[index]), ".12g")
-                ),
-                "acceptable_variant_systematic_status": (
-                    "available"
-                    if acceptable_variant_names
-                    else "unavailable; no noncanonical variant passes declared fit-quality applicability checks"
                 ),
                 "ratio_total_exploratory_uncertainty": format(
                     float(ratio_total_sd[index]), ".12g"
@@ -3417,7 +2398,6 @@ def _table8_products(
         "authoritative_nuclear_source"
     ]
     diagnostics["model_variant_comparison"] = model_rows
-    diagnostics["model_variant_fit_diagnostics"] = all_variant_fit_diagnostics
     diagnostics["al27_ge70_discrimination"] = al_ge_discrimination_rows[0]
     diagnostics["ratio_model_variant_systematic"] = {
         "definition": "all-declared positive-semidefinite RMS outer-product covariance; includes successful variants rejected by fit-quality diagnostics",

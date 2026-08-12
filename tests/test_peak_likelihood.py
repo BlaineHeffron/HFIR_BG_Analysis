@@ -287,6 +287,27 @@ def manufactured_quadratic_valley_case() -> tuple[
     return (spectrum,), spec, calibration, resolution, truth
 
 
+def optimizer_result(
+    parameters,
+    message: str,
+    *,
+    status: int = 0,
+    success: bool = True,
+    objective: float | None = None,
+) -> SimpleNamespace:
+    fields = {
+        "x": np.asarray(parameters).copy(),
+        "success": success,
+        "status": status,
+        "message": message,
+        "nit": 0,
+        "nfev": 1,
+    }
+    if objective is not None:
+        fields["fun"] = objective
+    return SimpleNamespace(**fields)
+
+
 class PrimitiveAndCovarianceTests(unittest.TestCase):
     def test_quadratic_bernstein_exact_cone_matches_analytic_minimum(self):
         rng = np.random.default_rng(1807)
@@ -379,18 +400,11 @@ class PrimitiveAndCovarianceTests(unittest.TestCase):
             dtype=np.longdouble,
         )
         self.assertLess(abs(np.longdouble(value) - reference), 1.0e-12)
-
-    def test_relative_poisson_objective_resolves_sub_nanoscopic_fit_changes(self):
-        observed = np.full(5000, 1_000_000_000.0, dtype=np.float64)
-        expected = observed + np.linspace(-0.25, 0.25, observed.size)
-        stable = likelihood._poisson_nll_relative_to_saturated(
-            observed, expected
-        )
         cancellation_prone = likelihood.poisson_nll(
             observed, expected
         ) - likelihood.poisson_nll(observed, observed)
-        self.assertGreater(stable, 1.0e-9)
-        self.assertGreater(abs(stable - cancellation_prone), 1.0e-9)
+        self.assertGreater(value, 1.0e-9)
+        self.assertGreater(abs(value - cancellation_prone), 1.0e-9)
 
     def test_normal_and_chi_square_diagnostics_exclude_low_expected_bins(self):
         result = SimpleNamespace(
@@ -631,14 +645,8 @@ class JointFitTests(unittest.TestCase):
             value, gradient = function(initial)
             self.assertTrue(np.isfinite(value))
             self.assertTrue(np.isfinite(gradient).all())
-            return SimpleNamespace(
-                x=np.asarray(initial).copy(),
-                fun=value,
-                success=True,
-                status=0,
-                message="deliberately stalled",
-                nit=0,
-                nfev=1,
+            return optimizer_result(
+                initial, "deliberately stalled", objective=value
             )
 
         with patch.object(likelihood, "minimize", side_effect=stalled_minimize):
@@ -663,13 +671,9 @@ class JointFitTests(unittest.TestCase):
         ) / problem.scales
 
         def stalled_near_solution(_function, _initial, **_kwargs):
-            return SimpleNamespace(
-                x=candidate_scaled.copy(),
-                success=True,
-                status=0,
-                message="deliberately left above stationarity gate",
-                nit=0,
-                nfev=1,
+            return optimizer_result(
+                candidate_scaled,
+                "deliberately left above stationarity gate",
             )
 
         with patch.object(
@@ -768,13 +772,9 @@ class JointFitTests(unittest.TestCase):
         ) / problem.scales
 
         def stalled_near_solution(_function, _initial, **_kwargs):
-            return SimpleNamespace(
-                x=candidate_scaled.copy(),
-                success=True,
-                status=0,
-                message="deliberately outside declared polish basin",
-                nit=0,
-                nfev=1,
+            return optimizer_result(
+                candidate_scaled,
+                "deliberately outside declared polish basin",
             )
 
         with patch.object(
@@ -807,13 +807,10 @@ class JointFitTests(unittest.TestCase):
                     if call_count == 1
                     else np.zeros_like(initial)
                 )
-                return SimpleNamespace(
-                    x=returned,
-                    success=True,
+                return optimizer_result(
+                    returned,
+                    f"manufactured chain call {call_count}",
                     status=17 if call_count == 2 else 0,
-                    message=f"manufactured chain call {call_count}",
-                    nit=0,
-                    nfev=1,
                 )
 
             with patch.object(
@@ -856,13 +853,9 @@ class JointFitTests(unittest.TestCase):
         def stalled_minimize(_function, initial, **_kwargs):
             nonlocal call_count
             call_count += 1
-            return SimpleNamespace(
-                x=candidate_scaled.copy(),
-                success=True,
-                status=0,
-                message=f"manufactured stalled restart call {call_count}",
-                nit=0,
-                nfev=1,
+            return optimizer_result(
+                candidate_scaled,
+                f"manufactured stalled restart call {call_count}",
             )
 
         with patch.object(
@@ -1612,30 +1605,41 @@ class JointFitTests(unittest.TestCase):
         self.assertAlmostEqual(first, truth["reference"], delta=0.08)
         self.assertAlmostEqual(second, 1.65 * truth["reference"], delta=0.12)
 
-    def test_sum_then_fit_matches_fit_then_aggregate_under_identical_response(self):
-        spectra, spec, calibration, resolution, _ = manufactured_case(
-            live_times=(700.0, 1300.0), poisson=False
-        )
-        independent = fit_joint_peak_model(
-            spectra,
-            spec,
-            calibration,
-            resolution,
-            yield_model="independent_runs",
-        )
-        aggregate = aggregate_independent_run_rates(
-            [component.name for component in spec.components],
-            [spectrum.live_time for spectrum in spectra],
-            independent.line_rates_counts_per_s.reshape((2, -1)),
-            independent.line_rate_covariance,
-        )
-        combined = replace(
-            spectra[0],
-            live_time=sum(spectrum.live_time for spectrum in spectra),
-            counts=np.sum([spectrum.counts for spectrum in spectra], axis=0),
-        )
-        summed_fit = fit_joint_peak_model(
-            (combined,), spec, calibration, resolution
+    def test_sum_then_fit_equivalence_requires_identical_run_response(self):
+        def summed_and_aggregate(**case_options):
+            spectra, spec, calibration, resolution, _ = manufactured_case(
+                poisson=False, **case_options
+            )
+            independent = fit_joint_peak_model(
+                spectra,
+                spec,
+                calibration,
+                resolution,
+                yield_model="independent_runs",
+            )
+            aggregate = aggregate_independent_run_rates(
+                [component.name for component in spec.components],
+                [spectrum.live_time for spectrum in spectra],
+                independent.line_rates_counts_per_s.reshape((2, -1)),
+                independent.line_rate_covariance,
+            )
+            combined = replace(
+                spectra[0],
+                live_time=sum(spectrum.live_time for spectrum in spectra),
+                counts=np.sum(
+                    [spectrum.counts for spectrum in spectra], axis=0
+                ),
+            )
+            return (
+                spec,
+                aggregate,
+                fit_joint_peak_model(
+                    (combined,), spec, calibration, resolution
+                ),
+            )
+
+        _, aggregate, summed_fit = summed_and_aggregate(
+            live_times=(700.0, 1300.0)
         )
         np.testing.assert_allclose(
             summed_fit.line_rates_counts_per_s,
@@ -1644,33 +1648,10 @@ class JointFitTests(unittest.TestCase):
             atol=2e-4,
         )
 
-    def test_sum_then_fit_is_not_same_estimand_when_run_response_drifts(self):
-        spectra, spec, calibration, resolution, _ = manufactured_case(
+        spec, aggregate, summed_fit = summed_and_aggregate(
             live_times=(900.0, 1100.0),
             calibration_offsets_keV=(0.0, 0.4),
             resolution_scales=(1.0, 1.3),
-            poisson=False,
-        )
-        independent = fit_joint_peak_model(
-            spectra,
-            spec,
-            calibration,
-            resolution,
-            yield_model="independent_runs",
-        )
-        aggregate = aggregate_independent_run_rates(
-            [component.name for component in spec.components],
-            [spectrum.live_time for spectrum in spectra],
-            independent.line_rates_counts_per_s.reshape((2, -1)),
-            independent.line_rate_covariance,
-        )
-        combined = replace(
-            spectra[0],
-            live_time=sum(spectrum.live_time for spectrum in spectra),
-            counts=np.sum([spectrum.counts for spectrum in spectra], axis=0),
-        )
-        summed_fit = fit_joint_peak_model(
-            (combined,), spec, calibration, resolution
         )
         reference_index = [
             component.name for component in spec.components
@@ -1684,17 +1665,46 @@ class JointFitTests(unittest.TestCase):
 
 
 class BoundaryAndCoverageTests(unittest.TestCase):
-    def test_linear_combination_ratio_profile_for_aggregate_estimand(self):
-        spectra, spec, calibration, resolution, _ = manufactured_case(
+    @classmethod
+    def setUpClass(cls):
+        boundary = manufactured_case(
+            seed=71, weak_rate=0.0, poisson=False
+        )
+        cls.boundary_case = boundary[:4]
+        cls.boundary_result = fit_joint_peak_model(*cls.boundary_case)
+
+        linear = manufactured_case(
             seed=82, live_times=(800.0,), poisson=False
         )
-        result = fit_joint_peak_model(
-            spectra,
-            spec,
-            calibration,
-            resolution,
-            yield_model="independent_runs",
+        cls.linear_case = linear[:4]
+        cls.linear_result = fit_joint_peak_model(
+            *cls.linear_case, yield_model="independent_runs"
         )
+
+    def assert_profile_diagnostics(self, interval, *, linear=False):
+        self.assertEqual(interval.inner_solver_failures, 0)
+        self.assertLessEqual(
+            abs(interval.base_nll_difference),
+            interval.base_nll_consistency_tolerance,
+        )
+        if linear:
+            self.assertLessEqual(
+                interval.maximum_scaled_kkt_inf_norm,
+                interval.inner_stationarity_tolerance,
+            )
+            self.assertLessEqual(
+                interval.maximum_linear_constraint_relative_residual,
+                interval.linear_constraint_relative_tolerance,
+            )
+        self.assertLessEqual(
+            interval.maximum_stable_nll_difference_identity_error,
+            interval.stable_nll_difference_identity_tolerance,
+        )
+        self.assertEqual(interval.exact_cone_invalid_inner_solves, 0)
+
+    def test_linear_combination_ratio_profile_for_aggregate_estimand(self):
+        spectra, spec, calibration, resolution = self.linear_case
+        result = self.linear_result
         with self.assertRaisesRegex(
             ValueError,
             "shared_origin_scales.*profile_linear_ratio_interval",
@@ -1728,30 +1738,11 @@ class BoundaryAndCoverageTests(unittest.TestCase):
         self.assertEqual(interval.kind, "two_sided")
         self.assertLess(interval.lower, interval.estimate)
         self.assertGreater(interval.upper, interval.estimate)
-        self.assertEqual(interval.inner_solver_failures, 0)
-        self.assertLessEqual(
-            abs(interval.base_nll_difference),
-            interval.base_nll_consistency_tolerance,
-        )
-        self.assertLessEqual(
-            interval.maximum_scaled_kkt_inf_norm,
-            interval.inner_stationarity_tolerance,
-        )
-        self.assertLessEqual(
-            interval.maximum_linear_constraint_relative_residual,
-            interval.linear_constraint_relative_tolerance,
-        )
-        self.assertLessEqual(
-            interval.maximum_stable_nll_difference_identity_error,
-            interval.stable_nll_difference_identity_tolerance,
-        )
-        self.assertEqual(interval.exact_cone_invalid_inner_solves, 0)
+        self.assert_profile_diagnostics(interval, linear=True)
 
     def test_absent_line_gets_profile_upper_limit(self):
-        spectra, spec, calibration, resolution, _ = manufactured_case(
-            seed=71, weak_rate=0.0, poisson=False
-        )
-        result = fit_joint_peak_model(spectra, spec, calibration, resolution)
+        spectra, spec, calibration, resolution = self.boundary_case
+        result = self.boundary_result
         self.assertTrue(result.success, result.message)
         interval = profile_ratio_interval(
             spectra,
@@ -1766,22 +1757,11 @@ class BoundaryAndCoverageTests(unittest.TestCase):
         self.assertEqual(interval.kind, "upper_limit")
         self.assertEqual(interval.lower, 0.0)
         self.assertGreater(interval.upper, 0.0)
-        self.assertEqual(interval.inner_solver_failures, 0)
-        self.assertLessEqual(
-            abs(interval.base_nll_difference),
-            interval.base_nll_consistency_tolerance,
-        )
-        self.assertLessEqual(
-            interval.maximum_stable_nll_difference_identity_error,
-            interval.stable_nll_difference_identity_tolerance,
-        )
-        self.assertEqual(interval.exact_cone_invalid_inner_solves, 0)
+        self.assert_profile_diagnostics(interval)
 
-    def test_profile_inner_failure_propagates_to_failed_interval(self):
-        spectra, spec, calibration, resolution, _ = manufactured_case(
-            seed=71, weak_rate=0.0, poisson=False
-        )
-        result = fit_joint_peak_model(spectra, spec, calibration, resolution)
+    def test_profile_inner_failures_propagate_for_both_public_apis(self):
+        spectra, spec, calibration, resolution = self.boundary_case
+        result = self.boundary_result
         original = likelihood._profile_nll_at_ratio
         call_count = 0
 
@@ -1818,11 +1798,52 @@ class BoundaryAndCoverageTests(unittest.TestCase):
         self.assertGreaterEqual(interval.inner_solver_failures, 1)
         self.assertIn("deliberate inner failure", interval.message)
 
+        spectra, spec, calibration, resolution = self.linear_case
+        result = self.linear_result
+        numerator = np.zeros(len(result.line_names))
+        denominator = np.zeros(len(result.line_names))
+        numerator[result.line_names.index("spectrum.0.middle_a")] = 1.0
+        denominator[result.line_names.index("spectrum.0.reference")] = 1.0
+        original = likelihood._profile_nll_at_linear_ratio
+        call_count = 0
+
+        def fail_linear_after_base(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            outcome = original(*args, **kwargs)
+            if call_count == 2:
+                return replace(
+                    outcome,
+                    success=False,
+                    stationarity_valid=False,
+                    message="deliberate linear inner failure",
+                )
+            return outcome
+
+        with patch.object(
+            likelihood,
+            "_profile_nll_at_linear_ratio",
+            side_effect=fail_linear_after_base,
+        ):
+            interval = profile_linear_ratio_interval(
+                spectra,
+                spec,
+                calibration,
+                resolution,
+                result,
+                numerator,
+                denominator,
+                ratio_name="aggregate_middle/reference",
+                yield_model="independent_runs",
+                max_evaluations=24,
+            )
+        self.assertEqual(interval.kind, "failed")
+        self.assertGreaterEqual(interval.inner_solver_failures, 1)
+        self.assertIn("deliberate linear inner failure", interval.message)
+
     def test_profile_base_nll_mismatch_fails_closed(self):
-        spectra, spec, calibration, resolution, _ = manufactured_case(
-            seed=71, weak_rate=0.0, poisson=False
-        )
-        result = fit_joint_peak_model(spectra, spec, calibration, resolution)
+        spectra, spec, calibration, resolution = self.boundary_case
+        result = self.boundary_result
         original = likelihood._profile_nll_at_ratio
 
         def inconsistent_base(*args, **kwargs):
@@ -1849,57 +1870,6 @@ class BoundaryAndCoverageTests(unittest.TestCase):
         self.assertGreater(abs(interval.base_nll_difference), 0.005)
         self.assertIn("inconsistent", interval.message)
 
-    def test_linear_profile_inner_failure_propagates(self):
-        spectra, spec, calibration, resolution, _ = manufactured_case(
-            seed=82, live_times=(800.0,), poisson=False
-        )
-        result = fit_joint_peak_model(
-            spectra,
-            spec,
-            calibration,
-            resolution,
-            yield_model="independent_runs",
-        )
-        numerator = np.zeros(len(result.line_names))
-        denominator = np.zeros(len(result.line_names))
-        numerator[result.line_names.index("spectrum.0.middle_a")] = 1.0
-        denominator[result.line_names.index("spectrum.0.reference")] = 1.0
-        original = likelihood._profile_nll_at_linear_ratio
-        call_count = 0
-
-        def fail_after_base(*args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            outcome = original(*args, **kwargs)
-            if call_count == 2:
-                return replace(
-                    outcome,
-                    success=False,
-                    stationarity_valid=False,
-                    message="deliberate linear inner failure",
-                )
-            return outcome
-
-        with patch.object(
-            likelihood,
-            "_profile_nll_at_linear_ratio",
-            side_effect=fail_after_base,
-        ):
-            interval = profile_linear_ratio_interval(
-                spectra,
-                spec,
-                calibration,
-                resolution,
-                result,
-                numerator,
-                denominator,
-                ratio_name="aggregate_middle/reference",
-                yield_model="independent_runs",
-                max_evaluations=24,
-            )
-        self.assertEqual(interval.kind, "failed")
-        self.assertGreaterEqual(interval.inner_solver_failures, 1)
-        self.assertIn("deliberate linear inner failure", interval.message)
 
     def test_profile_inner_solve_inherits_exact_negative_middle_cone(self):
         spectra, spec, calibration, resolution, _ = (

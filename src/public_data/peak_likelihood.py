@@ -23,7 +23,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from hashlib import sha256
 from math import isfinite
-from typing import Literal, Mapping, Sequence
+from typing import Callable, Literal, Mapping, Sequence
 
 import numpy as np
 from scipy.linalg import cho_factor, cho_solve
@@ -3032,6 +3032,301 @@ def _profile_nll_at_ratio(
     )
 
 
+def _validate_profile_interval_options(
+    confidence_level: float,
+    max_evaluations: int,
+    base_nll_consistency_tolerance: float,
+) -> None:
+    if not 0.5 < confidence_level < 1.0:
+        raise ValueError("confidence level must lie between 0.5 and 1")
+    if max_evaluations < 8:
+        raise ValueError("max_evaluations must be at least eight")
+    if (
+        not isfinite(base_nll_consistency_tolerance)
+        or base_nll_consistency_tolerance <= 0.0
+    ):
+        raise ValueError("base-NLL consistency tolerance must be positive")
+
+
+def _profile_diagnostic_fields(
+    outcomes: Mapping[float, _ProfileOptimizationOutcome],
+    *,
+    profile_base_nll: float,
+    fit_base_nll: float,
+    base_nll_consistency_tolerance: float,
+    linear_constraint: bool,
+) -> dict[str, float | int]:
+    finite_kkt = [
+        outcome.scaled_kkt_inf_norm
+        for outcome in outcomes.values()
+        if np.isfinite(outcome.scaled_kkt_inf_norm)
+    ]
+    finite_identity_errors = [
+        outcome.stable_difference_identity_error
+        for outcome in outcomes.values()
+        if np.isfinite(outcome.stable_difference_identity_error)
+    ]
+    fields: dict[str, float | int] = {
+        "profile_base_penalized_nll": profile_base_nll,
+        "fit_penalized_nll": fit_base_nll,
+        "base_nll_difference": profile_base_nll - fit_base_nll,
+        "base_nll_consistency_tolerance": base_nll_consistency_tolerance,
+        "inner_solver_failures": sum(
+            not outcome.success for outcome in outcomes.values()
+        ),
+        "maximum_scaled_kkt_inf_norm": (
+            max(finite_kkt) if finite_kkt else float("nan")
+        ),
+        "inner_stationarity_tolerance": _PROFILE_STATIONARITY_TOLERANCE,
+        "maximum_stable_nll_difference_identity_error": (
+            max(finite_identity_errors)
+            if finite_identity_errors
+            else float("nan")
+        ),
+        "stable_nll_difference_identity_tolerance": (
+            _NLL_DIFFERENCE_IDENTITY_TOLERANCE
+        ),
+        "exact_cone_invalid_inner_solves": sum(
+            not outcome.exact_cone_valid for outcome in outcomes.values()
+        ),
+        "exact_cone_feasibility_relative_tolerance": (
+            _EXACT_CONE_FEASIBILITY_RELATIVE_TOLERANCE
+        ),
+    }
+    if linear_constraint:
+        finite_residuals = [
+            outcome.linear_constraint_relative_residual
+            for outcome in outcomes.values()
+            if np.isfinite(outcome.linear_constraint_relative_residual)
+        ]
+        fields.update(
+            {
+                "maximum_linear_constraint_relative_residual": (
+                    max(finite_residuals)
+                    if finite_residuals
+                    else float("nan")
+                ),
+                "linear_constraint_relative_tolerance": (
+                    _PROFILE_LINEAR_CONSTRAINT_RELATIVE_TOLERANCE
+                ),
+            }
+        )
+    return fields
+
+
+def _profile_interval_from_inner_solves(
+    *,
+    ratio_name: str,
+    estimate: float,
+    confidence_level: float,
+    boundary: bool,
+    max_evaluations: int,
+    base_nll_consistency_tolerance: float,
+    fit_base_nll: float,
+    inner_solve: Callable[[float], _ProfileOptimizationOutcome],
+    linear_constraint: bool,
+    infer_upper_limit_from_zero: bool,
+) -> ProfileInterval:
+    """Apply common profile caching, bracketing, and fail-closed diagnostics."""
+
+    threshold = 0.5 * float(
+        chi2.ppf(
+            2.0 * confidence_level - 1.0 if boundary else confidence_level,
+            1,
+        )
+    )
+    base_outcome = inner_solve(estimate)
+    evaluations = 1
+    cache = {float(estimate): base_outcome}
+    profile_label = "linear-ratio profile" if linear_constraint else "profile"
+
+    def diagnostic_fields(
+        profile_base_nll: float,
+    ) -> dict[str, float | int]:
+        return _profile_diagnostic_fields(
+            cache,
+            profile_base_nll=profile_base_nll,
+            fit_base_nll=fit_base_nll,
+            base_nll_consistency_tolerance=base_nll_consistency_tolerance,
+            linear_constraint=linear_constraint,
+        )
+
+    if not base_outcome.success:
+        return ProfileInterval(
+            ratio_name,
+            estimate,
+            confidence_level,
+            "failed",
+            float("nan"),
+            float("nan"),
+            threshold,
+            evaluations,
+            f"{profile_label} inner solve failed at the fitted ratio: "
+            + base_outcome.message,
+            **diagnostic_fields(base_outcome.nll),
+        )
+    profile_base_nll = base_outcome.nll
+    base_nll_difference = profile_base_nll - fit_base_nll
+    if abs(base_nll_difference) > base_nll_consistency_tolerance:
+        return ProfileInterval(
+            ratio_name,
+            estimate,
+            confidence_level,
+            "failed",
+            float("nan"),
+            float("nan"),
+            threshold,
+            evaluations,
+            (
+                f"tight {profile_label} base is inconsistent with the fitted "
+                f"NLL: delta={base_nll_difference:.6g}, tolerance="
+                f"{base_nll_consistency_tolerance:.6g}"
+            ),
+            **diagnostic_fields(profile_base_nll),
+        )
+    failure_messages: list[str] = []
+
+    def delta(value: float) -> float:
+        nonlocal evaluations
+        key = float(value)
+        if key not in cache:
+            if evaluations >= max_evaluations:
+                return float("nan")
+            cache[key] = inner_solve(key)
+            evaluations += 1
+        outcome = cache[key]
+        if not outcome.success:
+            failure_messages.append(f"ratio={key:.12g}: {outcome.message}")
+            return float("nan")
+        return outcome.nll - profile_base_nll - threshold
+
+    def bisect(left: float, right: float) -> float:
+        f_left = delta(left)
+        f_right = delta(right)
+        if (
+            not np.isfinite(f_left)
+            or not np.isfinite(f_right)
+            or f_left * f_right > 0
+        ):
+            return float("nan")
+        for _ in range(40):
+            if evaluations >= max_evaluations:
+                break
+            middle = 0.5 * (left + right)
+            f_middle = delta(middle)
+            if not np.isfinite(f_middle):
+                break
+            if (
+                abs(f_middle) < 2e-3
+                or right - left <= 1e-5 * max(1.0, estimate)
+            ):
+                return middle
+            if f_left * f_middle <= 0:
+                right = middle
+                f_right = f_middle
+            else:
+                left = middle
+                f_left = f_middle
+        return 0.5 * (left + right)
+
+    zero_delta = delta(0.0)
+    if not np.isfinite(zero_delta) and failure_messages:
+        return ProfileInterval(
+            ratio_name,
+            estimate,
+            confidence_level,
+            "failed",
+            float("nan"),
+            float("nan"),
+            threshold,
+            evaluations,
+            f"{profile_label} inner solve failed at zero ratio: "
+            + failure_messages[0],
+            **diagnostic_fields(profile_base_nll),
+        )
+    is_upper_limit = boundary or (
+        infer_upper_limit_from_zero
+        and np.isfinite(zero_delta)
+        and zero_delta <= 0
+    )
+    if is_upper_limit and not boundary:
+        threshold = 0.5 * float(
+            chi2.ppf(2.0 * confidence_level - 1.0, 1)
+        )
+        zero_delta = delta(0.0)
+    lower = 0.0
+    if not is_upper_limit and estimate > 0:
+        if np.isfinite(zero_delta) and zero_delta >= 0:
+            lower = bisect(0.0, estimate)
+        elif infer_upper_limit_from_zero:
+            is_upper_limit = True
+
+    upper_trial = max(estimate * 1.5, estimate + 0.05, 0.05)
+    upper_delta = delta(upper_trial)
+    while (
+        np.isfinite(upper_delta)
+        and upper_delta < 0
+        and evaluations < max_evaluations - 1
+    ):
+        upper_trial *= 2.0
+        upper_delta = delta(upper_trial)
+    upper = (
+        bisect(estimate, upper_trial)
+        if np.isfinite(upper_delta) and upper_delta >= 0
+        else float("nan")
+    )
+    if not np.isfinite(lower) or not np.isfinite(upper):
+        budget_suffix = (
+            " within the evaluation budget" if not linear_constraint else ""
+        )
+        return ProfileInterval(
+            ratio_name,
+            estimate,
+            confidence_level,
+            "failed",
+            float("nan"),
+            float("nan"),
+            threshold,
+            evaluations,
+            (
+                f"{profile_label} threshold was not bracketed{budget_suffix}"
+                + (
+                    "; first inner failure: " + failure_messages[0]
+                    if failure_messages
+                    else ""
+                )
+            ),
+            **diagnostic_fields(profile_base_nll),
+        )
+    return ProfileInterval(
+        ratio_name,
+        estimate,
+        confidence_level,
+        "upper_limit" if is_upper_limit else "two_sided",
+        0.0 if is_upper_limit else lower,
+        upper,
+        threshold,
+        evaluations,
+        (
+            (
+                "one-sided boundary profile of all run yields and shared "
+                "nuisances"
+            )
+            if linear_constraint and is_upper_limit
+            else (
+                "two-sided profile of all run yields and shared nuisances"
+                if linear_constraint
+                else (
+                    "one-sided boundary construction"
+                    if is_upper_limit
+                    else "two-sided profile-likelihood interval"
+                )
+            )
+        ),
+        **diagnostic_fields(profile_base_nll),
+    )
+
+
 def profile_ratio_interval(
     spectra: Sequence[PublicSpectrum],
     spec: JointPeakSpec,
@@ -3058,15 +3353,11 @@ def profile_ratio_interval(
             "profile_linear_ratio_interval with yield_model='independent_runs' "
             "for independent-run fits"
         )
-    if not 0.5 < confidence_level < 1.0:
-        raise ValueError("confidence level must lie between 0.5 and 1")
-    if max_evaluations < 8:
-        raise ValueError("max_evaluations must be at least eight")
-    if (
-        not isfinite(base_nll_consistency_tolerance)
-        or base_nll_consistency_tolerance <= 0.0
-    ):
-        raise ValueError("base-NLL consistency tolerance must be positive")
+    _validate_profile_interval_options(
+        confidence_level,
+        max_evaluations,
+        base_nll_consistency_tolerance,
+    )
     if definition.numerator == definition.denominator:
         return ProfileInterval(
             definition.name,
@@ -3117,260 +3408,24 @@ def profile_ratio_interval(
         )
     active_name = problem.parameter_names[numerator_index]
     boundary = active_name in result.active_bounds or numerator <= 1e-10
-    threshold = 0.5 * float(
-        chi2.ppf(2.0 * confidence_level - 1.0 if boundary else confidence_level, 1)
-    )
-    fit_base_nll = result.penalized_nll
-    base_outcome = _profile_nll_at_ratio(
-        problem,
-        result.parameter_values,
-        numerator_index,
-        denominator_index,
-        estimate,
-    )
-    evaluations = 1
-    if not base_outcome.success:
-        return ProfileInterval(
-            definition.name,
-            estimate,
-            confidence_level,
-            "failed",
-            float("nan"),
-            float("nan"),
-            threshold,
-            evaluations,
-            "profile inner solve failed at the fitted ratio: "
-            + base_outcome.message,
-            fit_penalized_nll=fit_base_nll,
-            profile_base_penalized_nll=base_outcome.nll,
-            base_nll_difference=(base_outcome.nll - fit_base_nll),
-            base_nll_consistency_tolerance=(
-                base_nll_consistency_tolerance
-            ),
-            inner_solver_failures=1,
-            maximum_scaled_kkt_inf_norm=(
-                base_outcome.scaled_kkt_inf_norm
-            ),
-            inner_stationarity_tolerance=_PROFILE_STATIONARITY_TOLERANCE,
-            maximum_stable_nll_difference_identity_error=(
-                base_outcome.stable_difference_identity_error
-            ),
-            stable_nll_difference_identity_tolerance=(
-                _NLL_DIFFERENCE_IDENTITY_TOLERANCE
-            ),
-            exact_cone_invalid_inner_solves=int(
-                not base_outcome.exact_cone_valid
-            ),
-            exact_cone_feasibility_relative_tolerance=(
-                _EXACT_CONE_FEASIBILITY_RELATIVE_TOLERANCE
-            ),
-        )
-    profile_base_nll = base_outcome.nll
-    base_nll_difference = profile_base_nll - fit_base_nll
-    if abs(base_nll_difference) > base_nll_consistency_tolerance:
-        return ProfileInterval(
-            definition.name,
-            estimate,
-            confidence_level,
-            "failed",
-            float("nan"),
-            float("nan"),
-            threshold,
-            evaluations,
-            (
-                "tight profile base is inconsistent with the fitted NLL: "
-                f"delta={base_nll_difference:.6g}, tolerance="
-                f"{base_nll_consistency_tolerance:.6g}"
-            ),
-            profile_base_penalized_nll=profile_base_nll,
-            fit_penalized_nll=fit_base_nll,
-            base_nll_difference=base_nll_difference,
-            base_nll_consistency_tolerance=(
-                base_nll_consistency_tolerance
-            ),
-            maximum_scaled_kkt_inf_norm=(
-                base_outcome.scaled_kkt_inf_norm
-            ),
-            inner_stationarity_tolerance=_PROFILE_STATIONARITY_TOLERANCE,
-            maximum_stable_nll_difference_identity_error=(
-                base_outcome.stable_difference_identity_error
-            ),
-            stable_nll_difference_identity_tolerance=(
-                _NLL_DIFFERENCE_IDENTITY_TOLERANCE
-            ),
-            exact_cone_invalid_inner_solves=int(
-                not base_outcome.exact_cone_valid
-            ),
-            exact_cone_feasibility_relative_tolerance=(
-                _EXACT_CONE_FEASIBILITY_RELATIVE_TOLERANCE
-            ),
-        )
-    cache: dict[float, _ProfileOptimizationOutcome] = {
-        float(estimate): base_outcome
-    }
-    failure_messages: list[str] = []
-
-    def delta(value: float) -> float:
-        nonlocal evaluations
-        key = float(value)
-        if key not in cache:
-            if evaluations >= max_evaluations:
-                return float("nan")
-            cache[key] = _profile_nll_at_ratio(
-                problem,
-                result.parameter_values,
-                numerator_index,
-                denominator_index,
-                key,
-            )
-            evaluations += 1
-        outcome = cache[key]
-        if not outcome.success:
-            failure_messages.append(
-                f"ratio={key:.12g}: {outcome.message}"
-            )
-            return float("nan")
-        return outcome.nll - profile_base_nll - threshold
-
-    def diagnostic_kwargs() -> dict[str, float | int]:
-        finite_kkt = [
-            outcome.scaled_kkt_inf_norm
-            for outcome in cache.values()
-            if np.isfinite(outcome.scaled_kkt_inf_norm)
-        ]
-        finite_identity_errors = [
-            outcome.stable_difference_identity_error
-            for outcome in cache.values()
-            if np.isfinite(outcome.stable_difference_identity_error)
-        ]
-        return {
-            "profile_base_penalized_nll": profile_base_nll,
-            "fit_penalized_nll": fit_base_nll,
-            "base_nll_difference": base_nll_difference,
-            "base_nll_consistency_tolerance": (
-                base_nll_consistency_tolerance
-            ),
-            "inner_solver_failures": sum(
-                not outcome.success for outcome in cache.values()
-            ),
-            "maximum_scaled_kkt_inf_norm": (
-                max(finite_kkt) if finite_kkt else float("nan")
-            ),
-            "inner_stationarity_tolerance": (
-                _PROFILE_STATIONARITY_TOLERANCE
-            ),
-            "maximum_stable_nll_difference_identity_error": (
-                max(finite_identity_errors)
-                if finite_identity_errors
-                else float("nan")
-            ),
-            "stable_nll_difference_identity_tolerance": (
-                _NLL_DIFFERENCE_IDENTITY_TOLERANCE
-            ),
-            "exact_cone_invalid_inner_solves": sum(
-                not outcome.exact_cone_valid for outcome in cache.values()
-            ),
-            "exact_cone_feasibility_relative_tolerance": (
-                _EXACT_CONE_FEASIBILITY_RELATIVE_TOLERANCE
-            ),
-        }
-
-    def bisect(left: float, right: float) -> float:
-        f_left = delta(left)
-        f_right = delta(right)
-        if not np.isfinite(f_left) or not np.isfinite(f_right) or f_left * f_right > 0:
-            return float("nan")
-        for _ in range(40):
-            if evaluations >= max_evaluations:
-                break
-            middle = 0.5 * (left + right)
-            f_middle = delta(middle)
-            if not np.isfinite(f_middle):
-                break
-            if abs(f_middle) < 2e-3 or right - left <= 1e-5 * max(1.0, estimate):
-                return middle
-            if f_left * f_middle <= 0:
-                right = middle
-                f_right = f_middle
-            else:
-                left = middle
-                f_left = f_middle
-        return 0.5 * (left + right)
-
-    zero_delta = delta(0.0)
-    if not np.isfinite(zero_delta) and failure_messages:
-        return ProfileInterval(
-            definition.name,
-            estimate,
-            confidence_level,
-            "failed",
-            float("nan"),
-            float("nan"),
-            threshold,
-            evaluations,
-            "profile inner solve failed at zero ratio: "
-            + failure_messages[0],
-            **diagnostic_kwargs(),
-        )
-    is_upper_limit = boundary or (np.isfinite(zero_delta) and zero_delta <= 0)
-    if is_upper_limit and not boundary:
-        threshold = 0.5 * float(chi2.ppf(2.0 * confidence_level - 1.0, 1))
-        zero_delta = delta(0.0)
-    lower_value = 0.0
-    if not is_upper_limit and estimate > 0:
-        if np.isfinite(zero_delta) and zero_delta >= 0:
-            lower_value = bisect(0.0, estimate)
-        else:
-            is_upper_limit = True
-
-    right = max(estimate * 1.5, estimate + 0.05, 0.05)
-    right_delta = delta(right)
-    while (
-        np.isfinite(right_delta)
-        and right_delta < 0
-        and evaluations < max_evaluations - 1
-    ):
-        right *= 2.0
-        right_delta = delta(right)
-    upper_value = bisect(estimate, right) if np.isfinite(right_delta) and right_delta >= 0 else float("nan")
-    if not np.isfinite(upper_value) or (not is_upper_limit and not np.isfinite(lower_value)):
-        return ProfileInterval(
-            definition.name,
-            estimate,
-            confidence_level,
-            "failed",
-            float("nan"),
-            float("nan"),
-            threshold,
-            evaluations,
-            (
-                "profile threshold was not bracketed within the evaluation "
-                "budget"
-                + (
-                    "; first inner failure: " + failure_messages[0]
-                    if failure_messages
-                    else ""
-                )
-            ),
-            **diagnostic_kwargs(),
-        )
-    return ProfileInterval(
-        definition.name,
-        estimate,
-        confidence_level,
-        "upper_limit" if is_upper_limit else "two_sided",
-        0.0 if is_upper_limit else lower_value,
-        upper_value,
-        threshold,
-        evaluations,
-        (
-            "one-sided boundary construction"
-            if is_upper_limit
-            else "two-sided profile-likelihood interval"
+    return _profile_interval_from_inner_solves(
+        ratio_name=definition.name,
+        estimate=float(estimate),
+        confidence_level=confidence_level,
+        boundary=boundary,
+        max_evaluations=max_evaluations,
+        base_nll_consistency_tolerance=base_nll_consistency_tolerance,
+        fit_base_nll=result.penalized_nll,
+        inner_solve=lambda value: _profile_nll_at_ratio(
+            problem,
+            result.parameter_values,
+            numerator_index,
+            denominator_index,
+            value,
         ),
-        **diagnostic_kwargs(),
+        linear_constraint=False,
+        infer_upper_limit_from_zero=True,
     )
-
 
 def _profile_equality_multiplier(
     coordinates: np.ndarray,
@@ -3963,15 +4018,11 @@ def profile_linear_ratio_interval(
 ) -> ProfileInterval:
     """Profile a ratio of two linear combinations of fitted line rates."""
 
-    if not 0.5 < confidence_level < 1.0:
-        raise ValueError("confidence level must lie between 0.5 and 1")
-    if max_evaluations < 8:
-        raise ValueError("max_evaluations must be at least eight")
-    if (
-        not isfinite(base_nll_consistency_tolerance)
-        or base_nll_consistency_tolerance <= 0.0
-    ):
-        raise ValueError("base-NLL consistency tolerance must be positive")
+    _validate_profile_interval_options(
+        confidence_level,
+        max_evaluations,
+        base_nll_consistency_tolerance,
+    )
     numerator_weights = np.asarray(numerator_line_weights, dtype=np.float64)
     denominator_weights = np.asarray(denominator_line_weights, dtype=np.float64)
     if (
@@ -4034,290 +4085,24 @@ def profile_linear_ratio_interval(
         )
     estimate = numerator / denominator
     boundary = numerator <= 1e-10
-    threshold = 0.5 * float(
-        chi2.ppf(
-            2.0 * confidence_level - 1.0 if boundary else confidence_level,
-            1,
-        )
-    )
-    fit_base_nll = result.penalized_nll
-    base_outcome = _profile_nll_at_linear_ratio(
-        problem,
-        result.parameter_values,
-        numerator_coefficients,
-        denominator_coefficients,
-        estimate,
-    )
-    evaluations = 1
-    if not base_outcome.success:
-        return ProfileInterval(
-            ratio_name,
-            estimate,
-            confidence_level,
-            "failed",
-            float("nan"),
-            float("nan"),
-            threshold,
-            evaluations,
-            "linear-ratio profile inner solve failed at the fitted ratio: "
-            + base_outcome.message,
-            fit_penalized_nll=fit_base_nll,
-            profile_base_penalized_nll=base_outcome.nll,
-            base_nll_difference=(base_outcome.nll - fit_base_nll),
-            base_nll_consistency_tolerance=(
-                base_nll_consistency_tolerance
-            ),
-            inner_solver_failures=1,
-            maximum_scaled_kkt_inf_norm=(
-                base_outcome.scaled_kkt_inf_norm
-            ),
-            inner_stationarity_tolerance=_PROFILE_STATIONARITY_TOLERANCE,
-            maximum_linear_constraint_relative_residual=(
-                base_outcome.linear_constraint_relative_residual
-            ),
-            linear_constraint_relative_tolerance=(
-                _PROFILE_LINEAR_CONSTRAINT_RELATIVE_TOLERANCE
-            ),
-            maximum_stable_nll_difference_identity_error=(
-                base_outcome.stable_difference_identity_error
-            ),
-            stable_nll_difference_identity_tolerance=(
-                _NLL_DIFFERENCE_IDENTITY_TOLERANCE
-            ),
-            exact_cone_invalid_inner_solves=int(
-                not base_outcome.exact_cone_valid
-            ),
-            exact_cone_feasibility_relative_tolerance=(
-                _EXACT_CONE_FEASIBILITY_RELATIVE_TOLERANCE
-            ),
-        )
-    profile_base_nll = base_outcome.nll
-    base_nll_difference = profile_base_nll - fit_base_nll
-    if abs(base_nll_difference) > base_nll_consistency_tolerance:
-        return ProfileInterval(
-            ratio_name,
-            estimate,
-            confidence_level,
-            "failed",
-            float("nan"),
-            float("nan"),
-            threshold,
-            evaluations,
-            (
-                "tight linear-ratio profile base is inconsistent with the "
-                f"fitted NLL: delta={base_nll_difference:.6g}, tolerance="
-                f"{base_nll_consistency_tolerance:.6g}"
-            ),
-            profile_base_penalized_nll=profile_base_nll,
-            fit_penalized_nll=fit_base_nll,
-            base_nll_difference=base_nll_difference,
-            base_nll_consistency_tolerance=(
-                base_nll_consistency_tolerance
-            ),
-            maximum_scaled_kkt_inf_norm=(
-                base_outcome.scaled_kkt_inf_norm
-            ),
-            inner_stationarity_tolerance=_PROFILE_STATIONARITY_TOLERANCE,
-            maximum_linear_constraint_relative_residual=(
-                base_outcome.linear_constraint_relative_residual
-            ),
-            linear_constraint_relative_tolerance=(
-                _PROFILE_LINEAR_CONSTRAINT_RELATIVE_TOLERANCE
-            ),
-            maximum_stable_nll_difference_identity_error=(
-                base_outcome.stable_difference_identity_error
-            ),
-            stable_nll_difference_identity_tolerance=(
-                _NLL_DIFFERENCE_IDENTITY_TOLERANCE
-            ),
-            exact_cone_invalid_inner_solves=int(
-                not base_outcome.exact_cone_valid
-            ),
-            exact_cone_feasibility_relative_tolerance=(
-                _EXACT_CONE_FEASIBILITY_RELATIVE_TOLERANCE
-            ),
-        )
-    cache: dict[float, _ProfileOptimizationOutcome] = {
-        float(estimate): base_outcome
-    }
-    failure_messages: list[str] = []
-
-    def delta(value: float) -> float:
-        nonlocal evaluations
-        key = float(value)
-        if key not in cache:
-            if evaluations >= max_evaluations:
-                return float("nan")
-            cache[key] = _profile_nll_at_linear_ratio(
-                problem,
-                result.parameter_values,
-                numerator_coefficients,
-                denominator_coefficients,
-                key,
-            )
-            evaluations += 1
-        outcome = cache[key]
-        if not outcome.success:
-            failure_messages.append(
-                f"ratio={key:.12g}: {outcome.message}"
-            )
-            return float("nan")
-        return outcome.nll - profile_base_nll - threshold
-
-    def diagnostic_kwargs() -> dict[str, float | int]:
-        finite_kkt = [
-            outcome.scaled_kkt_inf_norm
-            for outcome in cache.values()
-            if np.isfinite(outcome.scaled_kkt_inf_norm)
-        ]
-        finite_residuals = [
-            outcome.linear_constraint_relative_residual
-            for outcome in cache.values()
-            if np.isfinite(
-                outcome.linear_constraint_relative_residual
-            )
-        ]
-        finite_identity_errors = [
-            outcome.stable_difference_identity_error
-            for outcome in cache.values()
-            if np.isfinite(outcome.stable_difference_identity_error)
-        ]
-        return {
-            "profile_base_penalized_nll": profile_base_nll,
-            "fit_penalized_nll": fit_base_nll,
-            "base_nll_difference": base_nll_difference,
-            "base_nll_consistency_tolerance": (
-                base_nll_consistency_tolerance
-            ),
-            "inner_solver_failures": sum(
-                not outcome.success for outcome in cache.values()
-            ),
-            "maximum_scaled_kkt_inf_norm": (
-                max(finite_kkt) if finite_kkt else float("nan")
-            ),
-            "inner_stationarity_tolerance": (
-                _PROFILE_STATIONARITY_TOLERANCE
-            ),
-            "maximum_linear_constraint_relative_residual": (
-                max(finite_residuals)
-                if finite_residuals
-                else float("nan")
-            ),
-            "linear_constraint_relative_tolerance": (
-                _PROFILE_LINEAR_CONSTRAINT_RELATIVE_TOLERANCE
-            ),
-            "maximum_stable_nll_difference_identity_error": (
-                max(finite_identity_errors)
-                if finite_identity_errors
-                else float("nan")
-            ),
-            "stable_nll_difference_identity_tolerance": (
-                _NLL_DIFFERENCE_IDENTITY_TOLERANCE
-            ),
-            "exact_cone_invalid_inner_solves": sum(
-                not outcome.exact_cone_valid for outcome in cache.values()
-            ),
-            "exact_cone_feasibility_relative_tolerance": (
-                _EXACT_CONE_FEASIBILITY_RELATIVE_TOLERANCE
-            ),
-        }
-
-    def bisect(left: float, right: float) -> float:
-        f_left = delta(left)
-        f_right = delta(right)
-        if not np.isfinite(f_left) or not np.isfinite(f_right) or f_left * f_right > 0:
-            return float("nan")
-        for _ in range(40):
-            if evaluations >= max_evaluations:
-                break
-            middle = 0.5 * (left + right)
-            f_middle = delta(middle)
-            if not np.isfinite(f_middle):
-                break
-            if abs(f_middle) < 2e-3 or right - left <= 1e-5 * max(1.0, estimate):
-                return middle
-            if f_left * f_middle <= 0:
-                right = middle
-                f_right = f_middle
-            else:
-                left = middle
-                f_left = f_middle
-        return 0.5 * (left + right)
-
-    zero_delta = delta(0.0)
-    if not np.isfinite(zero_delta) and failure_messages:
-        return ProfileInterval(
-            ratio_name,
-            estimate,
-            confidence_level,
-            "failed",
-            float("nan"),
-            float("nan"),
-            threshold,
-            evaluations,
-            "linear-ratio profile inner solve failed at zero ratio: "
-            + failure_messages[0],
-            **diagnostic_kwargs(),
-        )
-    lower = (
-        bisect(0.0, estimate)
-        if not boundary
-        and np.isfinite(zero_delta)
-        and zero_delta >= 0
-        and estimate > 0
-        else 0.0
-    )
-    upper_trial = max(estimate * 1.5, estimate + 0.05, 0.05)
-    upper_delta = delta(upper_trial)
-    while (
-        np.isfinite(upper_delta)
-        and upper_delta < 0
-        and evaluations < max_evaluations - 1
-    ):
-        upper_trial *= 2.0
-        upper_delta = delta(upper_trial)
-    upper = (
-        bisect(estimate, upper_trial)
-        if np.isfinite(upper_delta) and upper_delta >= 0
-        else float("nan")
-    )
-    if not np.isfinite(lower) or not np.isfinite(upper):
-        return ProfileInterval(
-            ratio_name,
-            estimate,
-            confidence_level,
-            "failed",
-            float("nan"),
-            float("nan"),
-            threshold,
-            evaluations,
-            (
-                "linear-ratio profile threshold was not bracketed"
-                + (
-                    "; first inner failure: " + failure_messages[0]
-                    if failure_messages
-                    else ""
-                )
-            ),
-            **diagnostic_kwargs(),
-        )
-    return ProfileInterval(
-        ratio_name,
-        estimate,
-        confidence_level,
-        "upper_limit" if boundary else "two_sided",
-        lower,
-        upper,
-        threshold,
-        evaluations,
-        (
-            "one-sided boundary profile of all run yields and shared nuisances"
-            if boundary
-            else "two-sided profile of all run yields and shared nuisances"
+    return _profile_interval_from_inner_solves(
+        ratio_name=ratio_name,
+        estimate=estimate,
+        confidence_level=confidence_level,
+        boundary=boundary,
+        max_evaluations=max_evaluations,
+        base_nll_consistency_tolerance=base_nll_consistency_tolerance,
+        fit_base_nll=result.penalized_nll,
+        inner_solve=lambda value: _profile_nll_at_linear_ratio(
+            problem,
+            result.parameter_values,
+            numerator_coefficients,
+            denominator_coefficients,
+            value,
         ),
-        **diagnostic_kwargs(),
+        linear_constraint=True,
+        infer_upper_limit_from_zero=False,
     )
-
 
 def parametric_bootstrap(
     spectra: Sequence[PublicSpectrum],

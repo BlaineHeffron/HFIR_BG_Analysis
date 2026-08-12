@@ -141,8 +141,9 @@ models both fail the declared fit-quality criteria. Those diagnostics have not
 yet been applied to the historical paper procedure, so this failure does not
 show that the legacy model is adequate. Table 3 phase 2 fits one
 yield per run/component, then writes exposure-summed detector counts/rates,
-per-run and aggregate ratios, full propagated covariance, heterogeneity tests,
-temporal-model identifiability, and an exact historical reconstruction record.
+per-run and aggregate ratios, full propagated covariance, one normalized
+heterogeneity table, temporal-model identifiability, a compact yield-model
+comparison, and an exact historical reconstruction record.
 Table 8 uses a Fe/Cu canonical component set, treats the overlapping Al-27 and
 Ge-70 hypotheses as equal-status noncanonical sensitivities, and writes both
 all-declared and fit-quality-acceptable model-sensitivity covariance. No output

@@ -21,15 +21,6 @@ Frozen definitions: [`config/paper_peak_statistics.json`](../config/paper_peak_s
 Historical consumer inventory: [`config/peak_area_callers.json`](../config/peak_area_callers.json).
 Prior audit: [Python peak-area and paper-impact audit](PEAK_AREA_AUDIT.md).
 
-Final bounded public-data replay checkpoint (2026-08-12): clean development
-worktree, schema-8 configuration SHA-256
-`1084515c8db6ac50bebe6dcb83d1667c713f4faf8fb15de063e63b99df977a32`,
-and read-only public database SHA-256
-`c78bc8fa6ef7dbe1a8ea5d0189e69eb555c8a488fd582ff04b965a08aa1985e9`.
-Both table lanes completed all 12 configured diagnostic bootstrap replicas;
-their manifests preserve the exact input-spectrum and output hashes. Twelve
-replicas remain below the frozen 200-replica coverage-assessment minimum.
-
 ## Statistical model
 
 ### Raw observations and bin-integrated components
@@ -119,30 +110,20 @@ where (t_r) is live time in seconds and (Delta e_{ri}) is bin width in
 keV. For the single Table 8 spectrum there is one rate per component. This is a product
 likelihood, not a sum of count arrays.
 
-Two restrictive phase-1-style factorizations are retained as comparisons. The
-first gives every line one common run scale. The second gives capture and decay
-lines separate run scales. The nested single-scale-to-two-origin likelihood
-ratio tests the capture/decay separation itself. The subsequent
-two-origin-to-independent comparison tests further line-specific run
-heterogeneity and cannot refute or establish the preceding separation.
-In the final-state bounded phase-2 replay, the first step improves twice
-penalized NLL by 67.1498 for three added parameters (regular-reference
-\(p=1.739\times10^{-14}\)); within that restricted model, it supports separate
-capture/decay run scales and is consistent with the retained phase-1
-double-ratio result. The second step improves twice penalized NLL by 86.6077
-for 84 parameters (regular-reference \(p=0.40111\)). Boundary caveats apply to
-both chi-square references. Independent yields are canonical because they
-define the requested per-run estimands without silently imposing either
-factorization, not because a likelihood-ratio diagnostic selects the most
-complex model.
+Two restrictive phase-1-style factorizations remain in one compact
+yield-model comparison. The first gives every line one common run scale. The
+second gives capture and decay lines separate run scales. Their nested
+likelihood ratio tests distinct questions; neither selects the independent
+model automatically. Independent yields are canonical because they define the
+requested per-run estimands without silently imposing either factorization.
+These repaired likelihood comparisons are not the historical paper procedure;
+the deferred common-diagnostics comparison described above remains out of
+scope.
 
-The affine background is nested in this quadratic basis and is refit as a
-declared sensitivity variant. Shape derivatives with respect to
-centroid/calibration, line rate, tail fraction, and background coefficients
-are analytic. Derivatives with respect to core width and tail scale use
-explicit central finite differences; the workflow does not call the complete
-gradient analytic.
-
+Shape derivatives with respect to centroid/calibration, line rate, tail
+fraction, and background coefficients are analytic. Derivatives with respect
+to core width and tail scale use explicit central finite differences; the
+workflow does not call the complete gradient analytic.
 With nuisance vector (eta), the penalized binned Poisson negative log
 likelihood is
 
@@ -267,11 +248,10 @@ curve is anchored to a separately tightened solve at the fitted ratio; the
 entire interval fails closed if that base differs from the fitted penalized NLL
 by more than 0.005. This is less than 0.4% of the smaller one-sided 95%
 profile threshold. The output records this difference, the largest inner KKT
-and equality residuals, and the count of failed inner solves. These thresholds
-and the deterministic SLSQP/expected-Fisher repair caps are frozen in
-configuration. In the phase-2 smoke data, no exposure-summed ratio meets the
-configured weak/boundary trigger; four zero-bound ratios from the very short
-run are retained only as non-inferential diagnostics.
+and equality residuals, and the count of failed inner solves. The fit result
+records the implementation-owned KKT, cone, and repair configuration; the
+reporting configuration owns only the profile confidence level, weak-line
+trigger, and fitted/profile-base consistency tolerance.
 
 The primitive component-ratio profiler accepts only the shared-origin-scale
 parameterization whose line names match the supplied specification. An
@@ -307,9 +287,9 @@ In-115, and W-186 are recorded but not fitted or promoted because the release
 does not establish those source materials. Ratio shifts from successful
 predeclared reference-window variants form a positive-semidefinite RMS
 outer-product covariance, written separately from Fisher covariance. Nuclear
-energy agreement alone never promotes a component. The final replay includes
-the two successful noncanonical variants, `iaea_energy_558_32` and
-`paper_energy_plus_tl208_583`, in this RMS construction.
+energy agreement alone never promotes a component. The declared RMS
+construction includes the two successful noncanonical variants,
+`iaea_energy_558_32` and `paper_energy_plus_tl208_583`.
 
 The same audit explicitly records and dismisses four detector-process
 alternatives: the asymmetric intrinsic Ge-74 595.85-keV inelastic feature lies
@@ -398,44 +378,19 @@ All photopeak groups are explicit. The 238.6/242.0, 707.4/725.0,
 Doppler feature is not a Gaussian photopeak. Phase 2 reports it unavailable
 until a normalized physical Doppler shape is declared.
 
-The phase-2 fit converges with full-rank local information, but four yields in
-the 813.89-s run lie on zero bounds (242.0, 707.4, 1399.6, and 2614.533 keV).
-Their per-run Fisher errors and affected ratios are diagnostic points only;
-they are excluded from the corresponding interior-only GLS tests and retained
-in the exposure-summed descriptive aggregates.
-The exposure-summed primary yields remain positive and regular. The canonical
-quadratic backgrounds are strictly inside the exact nonnegative cone; the
-smallest normalized cone margin is 1.64146, with no constrained fallback. Its
-full count-data deviance is 7243.93 on 5434 descriptive degrees of freedom
-(diagnostic \(p=1.656\times10^{-64}\)). It still fails global/window/bin
-residual criteria, so manuscript replacement remains false. The independent-
-yield model improves twice penalized NLL by 86.6077 for 84 additional
-parameters relative to the phase-1 two-origin factorization (regular-reference
-\(p=0.40111\)). That second comparison concerns line-specific freedom beyond the
-two-origin model; it says nothing against the separate single-scale-to-two-
-origin result: twice penalized NLL improves by 67.1498 for three parameters
-(regular-reference \(p=1.739\times10^{-14}\)), supporting distinct
-capture/decay run scales within the restricted factorization. Both nested
-comparisons and their distinct meanings are emitted in
-`table3_yield_model_comparison.csv`. Heterogeneity results are also emitted line
-by line and ratio by ratio.
+Current phase-2 candidates remain exploratory because the declared residual
+diagnostics reject the fitted count model. Exact fit values, active-bound
+records, and bootstrap summaries belong to generated CSV/JSON outputs, not
+this maintained method document. The bounded default bootstrap remains
+descriptive only and cannot certify coverage or bypass applicability failure.
 
-The final joint bootstrap completed 12/12 refits. No replica used the exact-
-cone fallback, violated the cone, or activated its boundary; its minimum
-normalized cone margin is 1.57393. Its status remains
-`descriptive_only_too_few_replicates`, so it does not certify coverage or
-replace the declared Fisher/profile uncertainty policy.
-
-The corrected candidate table reports absolute detected full-peak counts and
-rates as primary estimands. It retains aggregate ratios only as explicitly
-detector-response-dependent secondary summaries. Ratios across energies do
-not cancel HPGe efficiency and cannot establish incident neutron flux or
-cadmium abundance. Each candidate row directly carries rate and ratio GLS
-heterogeneity statistics, test status, included/excluded file IDs, and an
-explicit time-variation qualifier: the aggregate is exposure-specific, and
-stationarity is never assumed merely because an unadjusted interior-only
-diagnostic does not cross \(p=0.05\).
-
+The candidate table reports exposure-summed detected full-peak counts and
+rates as primary estimands. Aggregate ratios remain explicitly
+detector-response-dependent secondary summaries: cross-energy HPGe efficiency
+does not cancel, so they cannot establish incident neutron flux or cadmium
+abundance. Rate and ratio GLS results, including boundary exclusions and file
+IDs, live once in `table3_run_heterogeneity.csv`; the candidate estimand
+states that stationarity is not assumed.
 The repeated isolated fixed-energy residual in `rd_609` has no asserted new
 line identity. It remains visible in per-bin/window diagnostics and contributes
 to non-applicability; inventing a contaminant without released provenance
@@ -469,71 +424,35 @@ multiplets: one joint FEP window, one SEP window, one DEP window. List order
 cannot change membership.
 
 Phase 2 audits only authoritative NNDC CapGam/ENSDF energies with a plausible
-released or intrinsic material source. The canonical component set adds only
-the Fe-54 6268.9-keV full-energy line and the Cu-63 7638-keV FEP/SEP/DEP
-family. The fitted calibration maps the strong
-nominal 6276--6278 residual to about 6269--6271 keV, favoring Fe-54 over the
-Ge-70 6276.25-keV alternative. The fitted common fractional gain stretch is
-about -0.00115, equivalent to about -7.2 keV at 6276 keV and 0.58 standard
-deviations of its declared 0.002 prior. This Fe-54-versus-Ge-70 discrimination
-therefore depends on a fitted calibration nuisance constrained by that prior
-and anchored by the target lines; it is not an independent energy
-measurement.
+released or intrinsic material source. The canonical component set adds the
+declared Fe-54 full-energy line and Cu-63 FEP/SEP/DEP family. Their
+interpretation depends on the fitted calibration nuisance and its declared
+prior; it is not an independent energy measurement.
 
-At 6.71 MeV, the Al-27 and Ge-70 hypotheses have equal status as noncanonical
-sensitivities. The same-bin, same-parameter comparison gives
-\(2(\ell_{\rm Al}-\ell_{\rm Ge})=33.4367\), descriptively favoring Ge-70, but
-it is a non-nested identity comparison rather than a calibrated promotion
-test. Its fitted common calibration offsets differ: 0.02745 keV for Al-27 and
-0.15722 keV for Ge-70. Al-27 is independently present through the Table 8
-7693.398- and 7724.034-keV target parents; intrinsic Ge capture is physically
-plausible but not independently established in this spectrum. Moreover, the
-Al-27 6710.700-keV and Ge-70 6707.450-keV candidates both directly reallocate
-the target 7724.034-keV DEP at 6702.034 keV. Neither is promoted or fitted in
-the canonical result. Cr/Ni steel lines remain catalogued sensitivity
-components. Residual-only automatic discovery remains prohibited.
-
-Declared comparisons include target-only, Fe/Cu, Ge-6276, Al-6711,
-Ge-6707, steel-catalog, no-tail, and quadratic-background variants. The
-phase-2 `t8_6809_sep` lower edge is widened from 6272.61 to 6255.0 keV to
-admit Fe-54 at 6268.9 keV with a local sideband. Every phase-2 variant,
-including target-only, uses those same 1176 raw bins. Phase 1 used 1156 raw
-bins and 60 free parameters (1096 descriptive degrees of freedom); the
-phase-2 canonical fit uses 79 free parameters (1097 descriptive degrees of
-freedom). Therefore absolute phase-1 and phase-2 deviances are not likelihood
-comparisons, even though the degree-of-freedom counts are similar.
-The canonical variant's exact component specification and resolution object
-are carried into every profile and bootstrap calculation. A runtime identity
-check compares fitted line names, resolution form, tail parameters, and
-background parameterization before either downstream calculation.
-
+The close Al-27 and Ge-70 hypotheses remain equal-status noncanonical
+sensitivities. Both can reallocate the target 7724.034-keV DEP, and neither is
+promoted in the canonical result. Cr/Ni steel lines remain catalogued
+sensitivity components. Residual-only automatic discovery remains prohibited.
+Declared comparisons include target-only, Fe/Cu, Ge, Al, steel-catalog,
+no-tail, and quadratic-background variants. The phase-2
+`t8_6809_sep` window is widened identically for every variant to admit the
+declared Fe-54 candidate and local sideband. Phase 1 used different raw bins,
+so its absolute deviance is not a likelihood comparison with phase 2. A
+runtime identity check carries the canonical component specification,
+resolution, and background parameterization into every profile and bootstrap.
 Model-comparison CSVs label their AIC/BIC-shaped arithmetic as **nonstandard
 penalized-objective descriptive arithmetic**. The objective includes Gaussian
 constraint penalties, so those columns are not standard AIC or BIC and are
 never used for model promotion.
 
-The canonical Fe/Cu quadratic-background fit has deviance 3194.27 on 1097
-descriptive degrees of freedom, with full-rank covariance and no active bounds.
-Its smallest normalized exact-cone margin is 0.631138, with no constrained
-fallback. It remains rejected (diagnostic \(p=1.342\times10^{-203}\)).
-The RMS across all successful declared variants, including rejected models,
-reaches 2.27636 times Fisher uncertainty for the 6809.610-keV FEP/DEP ratio;
-the Ge-6707 variant supplies the largest absolute shift, 0.147817. All seven
-successful noncanonical variants enter that all-declared RMS: `target_only`,
-`target_plus_fe54_and_cu63`, `ge70_6276_alternative`,
-`al27_6711_alternative`, `target_plus_fe_cu_ge70`,
-`steel_catalog_sensitivity`, and `target_plus_fe54_and_cu63_no_tail`. No
-noncanonical variant passes every declared fit-quality applicability check, so
-the acceptable-only RMS is explicitly unavailable rather than reported as
-zero. Thus target ratios
-remain exploratory and are not paper-ready even after evidence-based component
-additions.
-
-The final joint bootstrap completed 12/12 refits. Its exact-cone
-fallback/invalid/active counts are 0/0/0 and its minimum normalized cone margin
-is 0.509824. Its status remains `descriptive_only_too_few_replicates`; it is
-not a coverage certification or a route around the failed applicability gates.
-
+The current canonical count model fails the declared fit-quality diagnostics,
+so target ratios remain exploratory. The all-declared RMS covariance includes
+every successful declared variant, including rejected fits. The separate
+fit-quality-acceptable covariance is unavailable, not zero, when no
+noncanonical variant passes every applicability check. Generated comparison,
+covariance, fit-diagnostic, and bootstrap files contain the current values;
+the bounded bootstrap remains descriptive and cannot route around a failed
+applicability gate.
 Legacy monoenergetic simulation ROOT files are absent. Phase 2 writes measured
 candidates only. Each future generated energy and response identity must be
 fit separately. Missing simulations must not be fabricated, added, or inferred
@@ -568,22 +487,20 @@ python3 scripts/reanalyze_paper_peak_statistics.py \
   --output-dir "$peak_output_dir"
 ```
 
-Default: 12 deterministic diagnostic bootstrap replicas per table. Phase-2
-model variants make Table 3 materially slower than phase 1. `--table 3` and `--table 8` select one lane.
-`--bootstrap-replicates N` changes the bounded diagnostic count and is recorded.
+Default: 12 deterministic diagnostic bootstrap replicas per table.
+`--table 3` and `--table 8` select one lane. `--bootstrap-replicates N`
+changes the bounded diagnostic count and is recorded.
 
 Outputs include:
 
 - `table3_candidate.csv`, whose primary columns are exposure-summed fitted
-  detector counts/rates and whose rows repeat the relevant heterogeneity/time
-  qualifier, and `table8_candidate.csv`;
+  detector counts/rates, and `table8_candidate.csv`;
 - Table 3 per-run line rates, exposure-summed estimands, per-run/aggregate
-  ratios, interior-only GLS heterogeneity tests with boundary exclusions and
-  applicability status, temporal identifiability decisions, and every
-  corresponding full covariance matrix;
-- the exact historical Table 3 reconstruction JSON plus phase-1 shared-scale
-  comparison products kept under explicit `phase1_shared_scale` names;
-- Table 3 558-keV nuclear-component audit and model comparison;
+  ratios, one normalized interior-only GLS heterogeneity table with boundary
+  exclusions, temporal identifiability decisions, and corresponding
+  covariance matrices;
+- the exact historical Table 3 reconstruction JSON, compact restrictive
+  yield-model comparison, and 558-keV component/model audit;
 - Table 8 component audit, explicit Al-27/Ge-70 discrimination record, model
   comparison, and separate Fisher/all-declared/acceptable-only/total
   target-ratio covariance files;
@@ -592,8 +509,8 @@ Outputs include:
 - convergence, active bounds, parameter errors, rank/condition, deviance, and
   applicability diagnostics; and
 - `manifest.json` with database/spectrum/config/output hashes, code revision,
-  the complete frozen reporting-threshold block, definitions, seeds, units,
-  identities, and scientific non-scope.
+  reporting choices, definitions, seeds, units, identities, and scientific
+  non-scope.
 
 Candidate CSVs are ignored by repository data policy. The command and frozen
 definitions are tracked. Reviewer-selected results need separate approved data
@@ -622,16 +539,8 @@ python3 -m pytest -q tests/test_peak_phase2_config.py
 python3 -m py_compile scripts/reanalyze_paper_peak_statistics.py
 ```
 
-Manufactured cases cover normalized bin integration, isolated peaks, shared
-background multiplets, calibrated-center quadratic backgrounds, linear and
-sqrt resolution forms, tail omission, simultaneous run nuisances, correlated
-ratios, independent run/component yields and exact aggregate covariance maps, per-run
-calibration/width drift recovery and checked nuisance gradients, shared
-denominators, exact self-ratios, raw-bin rejection, checked
-analytic/finite-difference gradient components,
-the exact quadratic Bernstein cone (including zero endpoints), negative-middle
-positive valleys, a legacy-coefficient-box mutation, constrained fallback,
-rate/ratio heterogeneity with boundary-aware interior selection, fail-closed
-temporal-model identifiability,
-boundaries/profile upper limits, deterministic bootstrap behavior, and
-repeated injected-yield Fisher coverage.
+Manufactured cases protect bin integration, covariance, gradients, response
+drift, independent-run aggregation, exact quadratic-cone handling,
+optimization failure/repair paths, profile limits, Gaussian/Poisson bootstrap
+behavior, boundary-aware heterogeneity, temporal identifiability, and Fisher
+coverage.

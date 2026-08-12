@@ -63,58 +63,7 @@
       "per_run_scale_warning": "The release supplies no run-specific resolution uncertainty. Relative scales for spectra after index 0 have independent Gaussian constraints centered at 1 with sigma 0.12; this is a declared sensitivity assumption."
     },
     "background_model": "quadratic",
-    "canonical_model_variant": "sqrt_no_tail_quadratic_background",
-    "model_variants": [
-      {
-        "name": "sqrt_no_tail_quadratic_background",
-        "background_model": "quadratic",
-        "resolution_overrides": {"form": "sqrt", "tail_model": "none"}
-      },
-      {
-        "name": "sqrt_no_tail_affine_background",
-        "background_model": "affine",
-        "resolution_overrides": {"form": "sqrt", "tail_model": "none"}
-      },
-      {
-        "name": "sqrt_constant_tail_quadratic_background",
-        "background_model": "quadratic",
-        "resolution_overrides": {"form": "sqrt", "tail_model": "constant", "tail_fraction": 0.1, "tail_scale_in_sigma": 2.0}
-      },
-      {
-        "name": "linear_no_tail_quadratic_background",
-        "background_model": "quadratic",
-        "resolution_overrides": {"form": "linear", "tail_model": "none", "intercept_keV": 0.6, "slope": 0.00015}
-      }
-    ],
     "reference_component": "rd_558_5_reference",
-    "reference_core_diagnostic": {
-      "window": "rd_558",
-      "low_keV": 556.8,
-      "high_keV": 559.6,
-      "energy_convention": "released nominal calibrated bin centers; half-open interval"
-    },
-    "reference_core_systematic": {
-      "status": "phase1_shared_scale_comparison_only; excluded from canonical phase2 covariance",
-      "method": "maximum absolute run-level fractional observed-minus-expected balance in the declared reference core after the per-run origin-scale and drift-nuisance refit, restricted to long runs",
-      "minimum_run_live_time_s": 10000.0,
-      "covariance": "rank-one fully correlated denominator-scale covariance across every non-self ratio; the self-ratio sensitivity is exactly zero",
-      "reason": "Separate capture/decay run scales cure the coherent long-run reference-core imbalance, but the rd_558 window still rejects the model; the remaining long-run core residual envelope is retained as an explicit exploratory denominator sensitivity. The 813.89 s run is reported but excluded from envelope estimation because its core has only about 70 expected counts."
-    },
-    "origin_composition_systematic": {
-      "status": "phase1_shared_scale_comparison_only; excluded from canonical phase2 covariance",
-      "method": "maximum absolute fitted radioactive-decay-to-neutron-capture composition change among non-reference long runs, computed as the inverse capture-to-decay double ratio minus one to match the reported ratio orientation",
-      "minimum_run_live_time_s": 10000.0,
-      "applies_to": "radioactive_decay numerator divided by neutron_capture reference only",
-      "covariance": "rank-one fully correlated across cross-origin ratios; zero for neutron-capture self-class ratios",
-      "reason": "Capture and radioactive-decay intensities vary independently between runs, so cross-origin ratios are reference-run-relative rather than run-invariant observables."
-    },
-    "residual_provenance_notes": [
-      {
-        "window": "rd_609",
-        "observation": "Reviewer residual audit found a repeated isolated fixed-energy residual near the modeled 609.3 keV line.",
-        "treatment": "No extra line is asserted without released identity/provenance; the residual remains visible in per-bin and window diagnostics and contributes to non-applicability."
-      }
-    ],
     "reference_window_component_audit": {
       "authoritative_sources": [
         {"name": "IAEA PGAA energy-ordered database", "url": "https://www-nds.iaea.org/pgaa/data/eodoc.pdf"},
@@ -353,28 +302,12 @@
     "weak_line_fisher_z_threshold": 3.0,
     "profile_confidence_level": 0.95,
     "profile_base_nll_consistency_tolerance": 0.005,
-    "profile_scaled_kkt_tolerance": 0.001,
-    "profile_linear_constraint_relative_tolerance": 1e-8,
-    "profile_slsqp_max_chains": 3,
-    "profile_slsqp_max_iterations_per_chain": 3000,
-    "profile_slsqp_ftol": 1e-12,
-    "profile_scoring_max_iterations_per_chain": 8,
-    "profile_stable_nll_difference_identity_tolerance": 1e-9,
     "default_bootstrap_replicates": 12,
-    "bootstrap_gaussian_pseudo_observation_seed_domain": "gaussian-pseudo-observations-v1",
     "minimum_bootstrap_replicates_for_coverage_assessment": 200,
     "global_deviance_p_value_minimum": 0.001,
     "familywise_diagnostic_alpha": 0.01,
     "chi_square_minimum_expected_counts_per_bin": 5.0,
     "per_bin_outlier_sigma_thresholds": [4.0, 5.0],
-    "optimizer_scaled_projected_gradient_tolerance": 0.001,
-    "optimizer_scoring_max_iterations": 8,
-    "optimizer_scoring_numerically_flat_nll_tolerance": 1e-9,
-    "optimizer_scoring_numerically_flat_gradient_reduction_factor": 0.5,
-    "optimizer_polish_max_scaled_displacement_inf": 10.0,
-    "optimizer_polish_max_stable_nll_decrease": 1.0,
-    "quadratic_background_cone_feasibility_relative_tolerance": 1e-10,
-    "quadratic_background_cone_activity_relative_tolerance": 1e-6,
     "candidate_status": "exploratory pending reviewer inspection of every window diagnostic and bootstrap coverage"
   }
 }

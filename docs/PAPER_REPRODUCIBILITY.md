@@ -16,14 +16,14 @@ legacy Gaussian peak-window path.
 
 The [phase-2 peak-statistics correction](PEAK_STATISTICS_CORRECTION.md) defines
 the separate exploratory simultaneous-Poisson workflow for the measured-data
-parts of Tables 3 and 8. The final bounded replay completed all 12 configured
-diagnostic bootstrap refits for each table, below the 200-replica coverage
-assessment minimum. Candidate numbers remain not approved as manuscript
-replacements; both measured-data models fail the declared calibrated
-global/window/bin fit-quality criteria. Table 3 reports independent per-run
-detected yields, aggregate detector counts/rates, covariance-aware
-interior-only heterogeneity with boundary exclusions, temporal-model
-identifiability, and an exact historical record.
+parts of Tables 3 and 8. Candidate numbers remain unapproved manuscript
+replacements; both measured-data models currently fail the declared
+fit-quality criteria. That failure does not validate the historical method:
+the common-diagnostics comparison is a separate future lane. Table 3 reports
+independent per-run detected yields, aggregate detector counts/rates, one
+normalized covariance-aware heterogeneity table with boundary exclusions,
+temporal-model identifiability, a compact yield-model comparison, and an exact
+historical record.
 Table 8 adds an authoritative Fe/Cu component audit, equal-status Al-27/Ge-70
 sensitivities, and separate all-declared versus fit-quality-acceptable model
 sensitivity.
