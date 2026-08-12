@@ -8,15 +8,19 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import numpy as np
+from scipy.integrate import quad
 
+from scripts.audit_peak_area_impact import _fitted_full_line_area
 from scripts.rd_peak_fitter import fit_relative_areas
 from src.analysis.Spectrum import (
     MultiPeakFit,
     PEAK_AREA_LEGACY_DENSITY,
     PEAK_AREA_NET_COUNTS,
     PeakFit,
+    gauss,
     ge_multi_peak_function,
     ge_peak_function,
+    skewguass,
 )
 
 
@@ -114,6 +118,74 @@ class PeakAreaUnitTests(unittest.TestCase):
     def test_invalid_mode_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "peak area mode"):
             _single_peak(0.25, 1.0).area(mode="area-ish")
+
+    def test_full_line_signal_integral_and_covariance_include_tail_correlations(self):
+        bin_width = 0.7
+        standard_deviations = np.array(
+            [1.5, 0.025, 0.08, 0.04, 0.06, 0.2, 0.01, 0.001]
+        )
+        correlation = np.eye(8)
+        correlation[0, 1] = correlation[1, 0] = -0.30
+        correlation[0, 3] = correlation[3, 0] = 0.20
+        correlation[1, 4] = correlation[4, 1] = -0.25
+        correlation[3, 4] = correlation[4, 3] = 0.15
+        covariance = (
+            standard_deviations[:, None]
+            * correlation
+            * standard_deviations[None, :]
+        )
+        cases = (
+            np.array([37.0, 0.0, 100.0, 1.7, 3.1, 2.0, 0.0, 0.0]),
+            np.array([37.0, 0.28, 100.0, 1.7, 3.1, 2.0, 0.0, 0.0]),
+        )
+        for parameters in cases:
+            with self.subTest(tail_fraction=parameters[1]):
+                area, uncertainty, gradient = _fitted_full_line_area(
+                    parameters, covariance, bin_width
+                )
+                height, tail_fraction, centroid, sigma, tail_scale = parameters[:5]
+                numerical_integral = quad(
+                    lambda energy: gauss(
+                        energy, height, tail_fraction, centroid, sigma
+                    )
+                    + skewguass(
+                        energy,
+                        height,
+                        tail_fraction,
+                        centroid,
+                        sigma,
+                        tail_scale,
+                    ),
+                    centroid - 100.0,
+                    centroid + 100.0,
+                    epsabs=1e-9,
+                    epsrel=1e-10,
+                )[0] / bin_width
+                self.assertAlmostEqual(area, numerical_integral, places=8)
+
+                for index in (0, 1, 3, 4):
+                    step = 1e-5 * max(abs(parameters[index]), 1.0)
+                    plus = parameters.copy()
+                    minus = parameters.copy()
+                    plus[index] += step
+                    minus[index] -= step
+                    plus_area = _fitted_full_line_area(
+                        plus, covariance, bin_width
+                    )[0]
+                    minus_area = _fitted_full_line_area(
+                        minus, covariance, bin_width
+                    )[0]
+                    numerical_derivative = (plus_area - minus_area) / (2.0 * step)
+                    if abs(numerical_derivative) < 1e-10:
+                        self.assertAlmostEqual(gradient[index], 0.0, places=10)
+                    else:
+                        self.assertAlmostEqual(
+                            gradient[index] / numerical_derivative,
+                            1.0,
+                            places=7,
+                        )
+                expected_variance = float(gradient @ covariance @ gradient)
+                self.assertAlmostEqual(uncertainty**2, expected_variance, places=10)
 
 
 class _FakePeakFit:
