@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "record_kind": "paper-exact historical reconstruction",
+  "paper_table": 3,
+  "paper_caption_cycle": 498,
+  "reconstructed_input_cycle": 493,
+  "caption_input_conflict": "The released historical script selects Cycle493_RD_low_gain. The public bundle contains no Cycle498 baseline spectrum matching the caption. Exact numerical replay therefore does not validate the caption's Cycle498 claim.",
+  "historical_revision": {
+    "commit": "cdabda2dcafce176bad62ea3ca19a9f085b2986b",
+    "date": "2025-09-30",
+    "reason": "First revision of scripts/rd_peak_fitter.py using PeakFit.get_areas; predates the paper repository and reproduces every displayed numerical row.",
+    "git_blobs": {
+      "scripts/rd_peak_fitter.py": "613d702e53c10d0de5149c67048abbd2b47c289e",
+      "src/analysis/Spectrum.py": "89750ec095f5c52874f2bc322050f42b474173ee",
+      "src/utilities/util.py": "cd8b59836f4a2429e56bf7157704ecfd2720db1b",
+      "src/database/HFIRBG_DB.py": "e2eb07d661c8934f82e5a49b0159d26d3b1c9c06"
+    }
+  },
+  "public_release": {
+    "name": "HFIRBG_public_data_v1.1.0",
+    "database_sha256": "c78bc8fa6ef7dbe1a8ea5d0189e69eb555c8a488fd582ff04b965a08aa1985e9"
+  },
+  "selection_and_order": {
+    "run_id": 319,
+    "run_name": "Cycle493_RD_low_gain",
+    "rxon_only": true,
+    "eligible_run_names_before_rxon_filter": ["Cycle493_RD_low_gain", "PreCycle494_RD_low_gain"],
+    "note": "The historical code queried without SQL ORDER BY and combined before fitting. This reconstruction freezes chronological/file order. Counts are nonnegative integers on identical axes, so the accumulated count vector is exactly invariant to addition order.",
+    "files": [
+      {"order": 0, "file_id": 1716, "file_name": "00003051", "start_time_utc": "2021-07-09T15:17:59Z", "live_time_s": 86400.0, "spectrum_sha256": "c234c31dfae150018b5aab69896fd654e94d9adc6b46fdc1083fc2dc69f9bed5"},
+      {"order": 1, "file_id": 1765, "file_name": "00003052", "start_time_utc": "2021-07-10T15:18:00Z", "live_time_s": 86400.0, "spectrum_sha256": "a831cb51f6a71285b2d36457900e404c810ddb189395da95a2abe2868f685638"},
+      {"order": 2, "file_id": 334, "file_name": "00003053", "start_time_utc": "2021-07-11T15:18:01Z", "live_time_s": 86400.0, "spectrum_sha256": "ffaf793b2604bd07d8f85434ec81d527cc9a0662c396a520f59eda3d1aaaf2ce"},
+      {"order": 3, "file_id": 1676, "file_name": "00003054", "start_time_utc": "2021-07-12T15:18:03Z", "live_time_s": 813.89, "spectrum_sha256": "42b98a90ae366231fb8289ef9dc76fbe6f3943c301900fb87a4b4a771de54b3f"}
+    ],
+    "total_live_time_s": 260013.89,
+    "calibration_A0_keV": -0.38892709072078885,
+    "calibration_A1_keV_per_channel": 0.6995359644108052,
+    "shared_metadata": {
+      "calibration_group_id": 90,
+      "calibration_group_name": "Cycle493_RD_low_gain",
+      "coordinate_id": 319,
+      "coordinate_Rx": 33.5,
+      "coordinate_Rz": 200.0,
+      "coordinate_Lx": 33.5,
+      "coordinate_Lz": 200.0,
+      "coordinate_track": 0,
+      "detector_orientation_angle_deg": 180.0,
+      "detector_configuration_id": 16,
+      "detector_id": 1,
+      "detector_type": "Germanium",
+      "shield_id": 2,
+      "shield_name": "RD",
+      "shield_description": "russian doll layers of shielding; outer layer lithiated poly; inner layer borated poly; lead",
+      "response_model_identity": "not applicable; measured detector counts",
+      "raw_channel_axis_identity": "same released affine calibration and channel count for all four spectra"
+    }
+  },
+  "operation_order": [
+    "select four Cycle493_RD_low_gain reactor-on spectra",
+    "sum raw integer channel counts and live times into one accumulated spectrum",
+    "fit every declared peak on that one accumulated spectrum",
+    "return PeakFit.get_area legacy value N_window/(7*sigma_keV), despite the area name",
+    "divide each legacy density-like value by the 558.5-keV legacy value",
+    "propagate the historical independent-error expression"
+  ],
+  "historical_estimand": "ratio of fitted N_window/(7*sigma_keV) values after count accumulation; not a ratio of integrated peak counts, not a run-by-run inverse-variance mean, and not incident flux",
+  "bug_provenance": {
+    "introduced_commit": "5cb9e0afd362e7d3703456531594b0e1424555e3",
+    "introduced_date": "2022-07-14",
+    "location": "src/analysis/Spectrum.py PeakFit.get_area and MultiPeakFit.get_areas",
+    "change": "The original fitted-window count return was replaced by N_window/(7*sigma_keV). Ratios consequently contain an unintended sigma_reference/sigma_line factor."
+  },
+  "peak_fit_order_keV": [7916.3, 7367.9, 5824.6, 5433.1, 2767.5, 2660.1, 2614.533, 2550.1, 2455.8, 2398.6, 2223.0, 2204.2, 1764.5, 1660.368, 1489.56, 1399.6, 1377.7, 1364.3, 1293.6, 1281.0, 1238.1, 1209.7, 1120.3, 805.9, 768.4, 725.0, 707.4, 651.3, 609.3, 558.5, 478.0, 351.9, 295.2, 242.0, 238.6],
+  "exact_legacy_ratios": [
+    {"energy_keV": 238.6, "ratio": 0.34622441382, "historical_uncertainty": 0.0494745445964},
+    {"energy_keV": 242.0, "ratio": 0.272300519785, "historical_uncertainty": 0.0397147225299},
+    {"energy_keV": 295.2, "ratio": 0.454891060995, "historical_uncertainty": 0.793255563826},
+    {"energy_keV": 351.9, "ratio": 0.758459116587, "historical_uncertainty": 0.546872581396},
+    {"energy_keV": 478.0, "ratio": 0.0633346851025, "historical_uncertainty": 0.875602869478, "paper_display": "--"},
+    {"energy_keV": 558.5, "ratio": 1.0, "historical_uncertainty": 0.193078032791},
+    {"energy_keV": 609.3, "ratio": 0.605112897391, "historical_uncertainty": 0.142664277803},
+    {"energy_keV": 651.3, "ratio": 0.173412167732, "historical_uncertainty": 0.141385069593},
+    {"energy_keV": 707.4, "ratio": 0.0177098578277, "historical_uncertainty": 0.110279258969},
+    {"energy_keV": 725.0, "ratio": 0.0602803020971, "historical_uncertainty": 0.0866102367731},
+    {"energy_keV": 768.4, "ratio": 0.0471437071903, "historical_uncertainty": 0.10066799746},
+    {"energy_keV": 805.9, "ratio": 0.105814545007, "historical_uncertainty": 0.0800450770868},
+    {"energy_keV": 1120.3, "ratio": 0.116044689035, "historical_uncertainty": 0.0577450257258},
+    {"energy_keV": 1209.7, "ratio": 0.0495264550931, "historical_uncertainty": 0.0437882043356},
+    {"energy_keV": 1238.1, "ratio": 0.0345157217291, "historical_uncertainty": 0.0558936148211},
+    {"energy_keV": 1281.0, "ratio": 0.0243020128313, "historical_uncertainty": 0.0528232561902},
+    {"energy_keV": 1293.6, "ratio": 0.564969306802, "historical_uncertainty": 0.0865917153886},
+    {"energy_keV": 1364.3, "ratio": 0.0598212482038, "historical_uncertainty": 0.0381772520517},
+    {"energy_keV": 1377.7, "ratio": 0.0368940366637, "historical_uncertainty": 0.042322200197},
+    {"energy_keV": 1399.6, "ratio": 0.0346123871762, "historical_uncertainty": 0.0395873775062},
+    {"energy_keV": 1489.56, "ratio": 0.0138151868973, "historical_uncertainty": 0.0484172710464},
+    {"energy_keV": 1660.368, "ratio": 0.0316645188167, "historical_uncertainty": 0.0288625514423},
+    {"energy_keV": 1764.5, "ratio": 0.0909404075607, "historical_uncertainty": 0.0259861181694},
+    {"energy_keV": 2204.2, "ratio": 0.021449995578, "historical_uncertainty": 0.0232909482201},
+    {"energy_keV": 2223.0, "ratio": 0.0331311440353, "historical_uncertainty": 0.0202695041759},
+    {"energy_keV": 2398.6, "ratio": 0.00779073760993, "historical_uncertainty": 0.0206760197674},
+    {"energy_keV": 2455.8, "ratio": 0.0171151214723, "historical_uncertainty": 0.0233363591789},
+    {"energy_keV": 2550.1, "ratio": 0.00321744030699, "historical_uncertainty": 0.0230674539577},
+    {"energy_keV": 2614.533, "ratio": 0.0243336575232, "historical_uncertainty": 0.0157451954544},
+    {"energy_keV": 2660.1, "ratio": 0.0247654322208, "historical_uncertainty": 0.0123623752734},
+    {"energy_keV": 2767.5, "ratio": 0.0111038256289, "historical_uncertainty": 0.0154052109869},
+    {"energy_keV": 5433.1, "ratio": 0.00223811946112, "historical_uncertainty": 0.000992008700699},
+    {"energy_keV": 5824.6, "ratio": 0.00497201867892, "historical_uncertainty": 0.00101998720605},
+    {"energy_keV": 7367.9, "ratio": 0.00291061678495, "historical_uncertainty": 0.000430411330314},
+    {"energy_keV": 7916.3, "ratio": 0.00125349882122, "historical_uncertainty": 0.000406266601949}
+  ],
+  "verification_command": "python3 scripts/audit_peak_area_impact.py --bundle /path/to/HFIRBG_public_data_v1.1.0 --output-dir /empty/output",
+  "verification_output": "rd_peak_area_impact.csv exact_legacy_density reproduces every displayed Table 3 numerical ratio at manuscript precision"
+}

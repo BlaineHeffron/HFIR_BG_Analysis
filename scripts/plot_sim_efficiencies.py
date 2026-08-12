@@ -9,7 +9,11 @@ import numpy as np
 from src.utilities.ROOT_style import ROOT_style
 import os
 from src.utilities.util import get_spec_from_root, write_x_y_csv, read_rows_csv
-from src.analysis.Spectrum import SpectrumFitter
+from src.analysis.Spectrum import (
+    PEAK_AREA_LEGACY_DENSITY,
+    PEAK_AREA_NET_COUNTS,
+    SpectrumFitter,
+)
 from src.utilities.PlotUtils import  MultiLinePlot
 import matplotlib.pyplot as plt
 from src.utilities.PlotUtils import MultiLinePlot
@@ -70,7 +74,17 @@ def main():
     arg.add_argument("dir",help="path to directory containing simulated histograms", type=str)
     arg.add_argument("--collimated", "-c", action="store_true", help="if collimated")
     arg.add_argument("--direction", "-d", type=str, help="direction if not none")
+    arg.add_argument(
+        "--paper-legacy",
+        action="store_true",
+        help="write the historical mean-window-density rate instead of counts/s",
+    )
     args = arg.parse_args()
+    area_mode = (
+        PEAK_AREA_LEGACY_DENSITY
+        if args.paper_legacy
+        else PEAK_AREA_NET_COUNTS
+    )
     name = "coll_{0}_{1}_{2}.root"
     direction = "none"
     if args.direction:
@@ -87,7 +101,7 @@ def main():
         fitter.expected_peaks = [e]
         fitter.fit_peaks(hist_en)
         if e in fitter.fit_values.keys():
-            a, da = fitter.fit_values[e].area()
+            a, da = fitter.fit_values[e].area(mode=area_mode)
             areas.append(a/hist_en.live)
             dareas.append(da/hist_en.live)
         else:
@@ -95,8 +109,17 @@ def main():
             dareas.append(0)
         fitter.fit_values = {}
 
-    write_x_y_csv(join(outdir, "sim_efficiencies_{0}_{1}.csv".format(coll, direction)), "energy [keV]", "peak area", "peak area uncertainty", ens, areas, dareas)
-    fig = MultiLinePlot(ens, [areas], [""], "energy [keV]", "peak area [hz]")
+    rate_unit = "Hz/keV" if args.paper_legacy else "Hz"
+    write_x_y_csv(
+        join(outdir, "sim_efficiencies_{0}_{1}.csv".format(coll, direction)),
+        "energy [keV]",
+        f"peak rate [{rate_unit}]",
+        f"peak rate uncertainty [{rate_unit}]",
+        ens,
+        areas,
+        dareas,
+    )
+    fig = MultiLinePlot(ens, [areas], [""], "energy [keV]", f"peak rate [{rate_unit}]")
     plt.savefig(join(outdir, "sim_efficiencies_{0}_{1}.png".format(coll, direction)))
 
 

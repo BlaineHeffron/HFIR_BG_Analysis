@@ -122,6 +122,34 @@ The method and exact selection are documented in
 [generated review package](reports/floor_scan_statistics/README.md) is included
 for immediate inspection.
 
+For the exploratory measured-data correction of paper Tables 3 and 8, use an
+empty output directory:
+
+```bash
+peak_output_dir=$(mktemp -d /tmp/hfir-peak-statistics.XXXXXX)
+python3 scripts/reanalyze_paper_peak_statistics.py \
+  --bundle data/HFIRBG_public_data_v1.1.0 \
+  --output-dir "$peak_output_dir"
+```
+
+This ROOT-free command fits raw integer channels with a declared simultaneous
+Poisson model and writes full covariance, profiles where required, bootstrap
+diagnostics, shape/background likelihood comparisons, hashes, and calibrated
+global/window/bin applicability tests restricted to the declared high-count
+diagnostic subset. Results remain exploratory; the present Table 3 and Table 8
+models both fail the declared fit-quality criteria. Those diagnostics have not
+yet been applied to the historical paper procedure, so this failure does not
+show that the legacy model is adequate. Table 3 phase 2 fits one
+yield per run/component, then writes exposure-summed detector counts/rates,
+per-run and aggregate ratios, full propagated covariance, heterogeneity tests,
+temporal-model identifiability, and an exact historical reconstruction record.
+Table 8 uses a Fe/Cu canonical component set, treats the overlapping Al-27 and
+Ge-70 hypotheses as equal-status noncanonical sensitivities, and writes both
+all-declared and fit-quality-acceptable model-sensitivity covariance. No output
+is unfolded flux or a cadmium-abundance inference.
+See [Paper peak-statistics correction, phase
+2](docs/PEAK_STATISTICS_CORRECTION.md).
+
 The text spectra are measured detector counts, not unfolded incident flux.
 The public bundle includes ROOT-free NumPy copies of the two Geant4 response
 matrices used for the published unfolds, but reproducing a new unfold also

@@ -28,6 +28,7 @@ sys.path.insert(1, dirname(dirname(realpath(__file__))))
 
 from src.database.HFIRBG_DB import HFIRBG_DB
 from src.utilities.util import get_data_dir, populate_data, fit_spectra
+from src.analysis.Spectrum import PEAK_AREA_NET_COUNTS
 
 # ------------------------------------------------------------------
 # Configuration
@@ -85,7 +86,7 @@ def main():
         fit = fit_results[fit_key]  # PeakFit object
 
         # Get area and error
-        area, area_err = fit.area()
+        area, area_err = fit.area(mode=PEAK_AREA_NET_COUNTS)
         areas.append(area)
         area_errs.append(area_err)
 
@@ -150,7 +151,7 @@ def main():
     plt.plot(t_fit, y_fit, 'r-', label=f'Fit: A0 exp(-λt) + bg\nBest-fit T_{{1/2}} = {half_life:.2f} ± {half_life_err:.2f} h')
     
     plt.xlabel('Time since first measurement (hours)')
-    plt.ylabel('Peak Area Rate (counts/keV/live s)')
+    plt.ylabel('Net peak-window counts')
     plt.title('Decay of 2755 keV Peak (Hypothesized 24Na)')
     plt.legend()
     plt.grid(True)

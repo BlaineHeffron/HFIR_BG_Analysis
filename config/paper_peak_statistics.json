@@ -1,0 +1,380 @@
+{
+  "schema_version": 8,
+  "result_semantics": "phase-2 new exploratory measured-data calculation; not approved manuscript replacement",
+  "likelihood": {
+    "observations": "raw unrebinned integer detector counts per channel",
+    "line_shape": "unit-normalized Gaussian plus unit-normalized left-exGaussian charge-loss mixture, integrated over calibrated bin edges",
+    "resolution": "declared per-table form; Table 3 canonical sigma_keV = sqrt(intercept_keV^2 + variance_slope_keV * nominal_line_energy_keV)",
+    "background": "declared interval-nonnegative Bernstein affine or quadratic counts/s/keV density evaluated at calibrated bin centers, with a free common background-scale nuisance for each run after the first; quadratic endpoint coefficients are nonnegative while the middle coefficient may be negative subject to the exact cone middle + sqrt(low*high) >= 0",
+    "multi_run_signal": "Table 3 canonical phase-2 fit has one nonnegative detected full-peak rate for every run and component; the former shared origin-class scaling model is retained only as a restrictive comparison",
+    "calibration": "common offset and fractional-gain-stretch nuisances with declared Gaussian constraints; Table 3 additionally declares zero-centered per-run offset/stretch deviations and relative resolution-scale nuisances for runs after the reference run",
+    "optimization": "stable per-bin Poisson NLL relative to saturation; scaled L-BFGS-B warm solve with deterministic box-constrained SLSQP polish when required; quadratic backgrounds use a relaxed middle coefficient followed by an exact interval-nonnegative cone postcheck and transformed constrained fallback on violation; success requires the declared scaled projected-gradient stationarity gate",
+    "canonical_intervals": "Full Fisher covariance for regular interior fits; 95% profile likelihood where implemented for weak/boundary ratios, using tight stable-difference SLSQP, exact quadratic-cone coordinates, explicit inner-solver/KKT gates, and a frozen fitted-NLL versus tight-profile-base consistency check; deterministic parametric bootstrap remains a coverage diagnostic; model-variant RMS covariance is kept separate",
+    "fisher_covariance": "Expected Fisher rank, condition, and inversion are evaluated in declared scaled-parameter coordinates; the inverse is transformed back to physical coordinates before extracting yield covariance",
+    "information_criteria": "Any AIC/BIC-shaped arithmetic is labeled nonstandard penalized-objective descriptive arithmetic because the objective includes Gaussian constraint penalties; it is not used for model promotion",
+    "coverage_diagnostic": "deterministic joint parametric bootstrap of raw-bin Poisson counts and every Gaussian constraint pseudo-observation; each Gaussian pseudo-observation is independently drawn from N(fitted generating nuisances, declared covariance) and used as the constraint center for that replica; diagnostic only"
+  },
+  "table3": {
+    "paper_table": 3,
+    "selection": {
+      "release": "HFIRBG_public_data_v1.1.0",
+      "run_name": "Cycle493_RD_low_gain",
+      "file_ids_in_time_order": [1716, 1765, 334, 1676],
+      "reason": "Only public reactor-on low-gain RD family matching the no-added-water/no-added-floor-lead shield description; public catalog contains no Cycle 498 run."
+    },
+    "temporal_model_policy": {
+      "calendar_source": "reference_data/hfir_cycle_calendar.csv",
+      "calendar_authority": "ORNL/TM-2023/3207",
+      "calendar_doi": "10.2172/2439884",
+      "available_state": "Cycle493 operating at day precision",
+      "unavailable_covariates": ["interval-resolved reactor power", "irradiation/source history", "reactor-off transition within selected spectra"],
+      "known_half_life_case": {"component": "rd_1293_6", "nuclide": "Ar-41", "half_life_s": 6576.6, "source": "NNDC NuDat/ENSDF", "url": "https://www.nndc.bnl.gov/nudat3/"},
+      "consequence": "power-correlated and activation/decay models are reported non-identifiable rather than supplied invented covariates"
+    },
+    "simultaneous_fit_reason": "All four files share the exact database calibration, detector, orientation, shield, and run family. Counts are not combined. The canonical phase-2 likelihood estimates every run/component yield independently while retaining shared calibration, resolution, line-shape, background-shape, and nuisance covariance.",
+    "heterogeneity_boundary_policy": "Rate GLS excludes a run when that component yield is on a fitted bound; ratio GLS excludes a run when either numerator or denominator yield is on a fitted bound. Excluded runs remain in per-run and exposure-summed descriptive products. A diagnostic is unavailable, not negative, when fewer than two interior runs remain.",
+    "origin_class_policy": {
+      "classes": ["neutron_capture", "radioactive_decay"],
+      "assignment": "explicit per component; no identity-string pattern matching",
+      "special_assignments": {"rd_2223_0": "neutron_capture", "rd_1293_6": "radioactive_decay"},
+      "phase2_status": "identity labels only; origin class imposes no equality or scale constraint in the canonical independent-run yield fit",
+      "phase1_comparison": "The shared origin-class scale factorization is retained only as a restrictive likelihood comparison and does not define the corrected estimand"
+    },
+    "calibration_constraint": {
+      "offset_mean_keV": 0.0,
+      "stretch_mean": 0.0,
+      "covariance": [[1.0, 0.0], [0.0, 2.5e-7]],
+      "offset_bounds_keV": [-5.0, 5.0],
+      "stretch_bounds": [-0.002, 0.002],
+      "per_run_deviation_covariance": [[0.0625, 0.0], [0.0, 1.0e-8]],
+      "per_run_offset_bounds_keV": [-1.5, 1.5],
+      "per_run_stretch_bounds": [-0.0005, 0.0005],
+      "warning": "The release gives A0/A1 but no calibration covariance or run-to-run drift covariance. The common constraint and zero-centered per-run deviation constraints (sigma 0.25 keV offset and 1e-4 fractional stretch) are declared applicability assumptions, not released metrology. Spectrum index 0 is the reference; later-run deviations are relative to it."
+    },
+    "resolution_initial": {
+      "intercept_keV": 0.6,
+      "slope": 0.00015,
+      "tail_fraction": 0.0,
+      "tail_scale_in_sigma": 2.0,
+      "form": "sqrt",
+      "tail_model": "none",
+      "per_run_scale_sigma": 0.12,
+      "per_run_scale_bounds": [0.6, 1.4],
+      "per_run_scale_warning": "The release supplies no run-specific resolution uncertainty. Relative scales for spectra after index 0 have independent Gaussian constraints centered at 1 with sigma 0.12; this is a declared sensitivity assumption."
+    },
+    "background_model": "quadratic",
+    "canonical_model_variant": "sqrt_no_tail_quadratic_background",
+    "model_variants": [
+      {
+        "name": "sqrt_no_tail_quadratic_background",
+        "background_model": "quadratic",
+        "resolution_overrides": {"form": "sqrt", "tail_model": "none"}
+      },
+      {
+        "name": "sqrt_no_tail_affine_background",
+        "background_model": "affine",
+        "resolution_overrides": {"form": "sqrt", "tail_model": "none"}
+      },
+      {
+        "name": "sqrt_constant_tail_quadratic_background",
+        "background_model": "quadratic",
+        "resolution_overrides": {"form": "sqrt", "tail_model": "constant", "tail_fraction": 0.1, "tail_scale_in_sigma": 2.0}
+      },
+      {
+        "name": "linear_no_tail_quadratic_background",
+        "background_model": "quadratic",
+        "resolution_overrides": {"form": "linear", "tail_model": "none", "intercept_keV": 0.6, "slope": 0.00015}
+      }
+    ],
+    "reference_component": "rd_558_5_reference",
+    "reference_core_diagnostic": {
+      "window": "rd_558",
+      "low_keV": 556.8,
+      "high_keV": 559.6,
+      "energy_convention": "released nominal calibrated bin centers; half-open interval"
+    },
+    "reference_core_systematic": {
+      "status": "phase1_shared_scale_comparison_only; excluded from canonical phase2 covariance",
+      "method": "maximum absolute run-level fractional observed-minus-expected balance in the declared reference core after the per-run origin-scale and drift-nuisance refit, restricted to long runs",
+      "minimum_run_live_time_s": 10000.0,
+      "covariance": "rank-one fully correlated denominator-scale covariance across every non-self ratio; the self-ratio sensitivity is exactly zero",
+      "reason": "Separate capture/decay run scales cure the coherent long-run reference-core imbalance, but the rd_558 window still rejects the model; the remaining long-run core residual envelope is retained as an explicit exploratory denominator sensitivity. The 813.89 s run is reported but excluded from envelope estimation because its core has only about 70 expected counts."
+    },
+    "origin_composition_systematic": {
+      "status": "phase1_shared_scale_comparison_only; excluded from canonical phase2 covariance",
+      "method": "maximum absolute fitted radioactive-decay-to-neutron-capture composition change among non-reference long runs, computed as the inverse capture-to-decay double ratio minus one to match the reported ratio orientation",
+      "minimum_run_live_time_s": 10000.0,
+      "applies_to": "radioactive_decay numerator divided by neutron_capture reference only",
+      "covariance": "rank-one fully correlated across cross-origin ratios; zero for neutron-capture self-class ratios",
+      "reason": "Capture and radioactive-decay intensities vary independently between runs, so cross-origin ratios are reference-run-relative rather than run-invariant observables."
+    },
+    "residual_provenance_notes": [
+      {
+        "window": "rd_609",
+        "observation": "Reviewer residual audit found a repeated isolated fixed-energy residual near the modeled 609.3 keV line.",
+        "treatment": "No extra line is asserted without released identity/provenance; the residual remains visible in per-bin and window diagnostics and contributes to non-applicability."
+      }
+    ],
+    "reference_window_component_audit": {
+      "authoritative_sources": [
+        {"name": "IAEA PGAA energy-ordered database", "url": "https://www-nds.iaea.org/pgaa/data/eodoc.pdf"},
+        {"name": "NNDC CapGam/ENSDF", "url": "https://www.nndc.bnl.gov/capgam/"},
+        {"name": "NNDC NuDat/ENSDF decay data", "url": "https://www.nndc.bnl.gov/nudat3/"}
+      ],
+      "canonical_component": {"name": "rd_558_5_reference", "paper_energy_keV": 558.5, "authoritative_energy_keV": 558.32, "nuclide_reaction": "Cd-113(n,g)Cd-114", "pgaa_partial_cross_section_b": 1860.0, "pgaa_partial_cross_section_uncertainty_b": 30.0, "classification": "known_reference_with_energy_sensitivity"},
+      "candidates": [
+        {"name": "co59_555_972", "energy_keV": 555.972, "nuclide_reaction": "Co-59(n,g)Co-60", "classification": "authoritative_energy_but_unsupported_source", "source_plausibility": "no released cobalt source attribution", "fit_treatment": "not promoted or fitted"},
+        {"name": "in115_556_845", "energy_keV": 556.845, "nuclide_reaction": "In-115(n,g)In-116", "classification": "authoritative_energy_but_unsupported_source", "source_plausibility": "no released indium source attribution", "fit_treatment": "not promoted or fitted"},
+        {"name": "w186_557_16", "energy_keV": 557.16, "nuclide_reaction": "W-186(n,g)W-187", "classification": "authoritative_energy_but_unsupported_source", "source_plausibility": "no released tungsten source attribution", "fit_treatment": "not promoted or fitted"},
+        {"name": "ge74_595_85_inelastic", "energy_keV": 595.85, "nuclide_reaction": "Ge-74(n,n')Ge-74 asymmetric inelastic feature", "classification": "known_nearby_detector_process_outside_fitted_roi", "source_plausibility": "intrinsic Ge detector material", "fit_treatment": "not fitted; centroid is 17.85 keV above the 578-keV ROI edge and its asymmetric low-energy structure is a background-model consideration, not a narrow in-ROI line"},
+        {"name": "annihilation_511_local_continuum", "energy_keV": 511.0, "nuclide_reaction": "electron-positron annihilation and associated continuum", "classification": "known_external_feature_background_sensitivity", "source_plausibility": "pair production/positron emitters can produce 511-keV photons", "fit_treatment": "not fitted as an in-ROI peak; 29 keV below the 540-keV ROI edge, with any smooth contribution absorbed only by declared local-background variants"},
+        {"name": "unidentified_escape_into_540_578_roi", "energy_keV": 558.5, "nuclide_reaction": "single- or double-escape peak from an unidentified 1069.5- or 1580.5-keV parent", "classification": "unsupported_no_parent_identity", "source_plausibility": "escape kinematics alone do not identify a parent", "fit_treatment": "not promoted or fitted; no evidenced parent line and indistinguishable from the declared reference without additional constraints"},
+        {"name": "unidentified_true_coincidence_sum_in_roi", "energy_keV": 558.5, "nuclide_reaction": "unidentified true-coincidence summation feature", "classification": "unsupported_no_parent_pair_or_geometry", "source_plausibility": "requires a declared cascade, source geometry, and coincidence efficiency", "fit_treatment": "not promoted or fitted; no evidenced parent pair or summing model"},
+        {"name": "tl208_583_187", "energy_keV": 583.187, "nuclide_reaction": "Tl-208 beta decay full-energy peak", "classification": "known_decay_line_window_extension_sensitivity", "source_plausibility": "Tl-208 2614.533-keV line is present in the same spectrum", "fit_treatment": "explicit extended-window sensitivity only; outside the paper's 540-578-keV audit interval"}
+      ],
+      "model_variants": [
+        {"name": "paper_energy_558_5", "reference_energy_keV": 558.5, "extend_for_tl208": false},
+        {"name": "iaea_energy_558_32", "reference_energy_keV": 558.32, "extend_for_tl208": false},
+        {"name": "paper_energy_plus_tl208_583", "reference_energy_keV": 558.5, "extend_for_tl208": true}
+      ],
+      "canonical_variant": "paper_energy_558_5",
+      "promotion_policy": "Nuclear-data energy match is necessary but not sufficient. A component also requires released material/source plausibility and likelihood/residual support. The paper energy remains canonical here so the correction isolates estimand/model effects; the IAEA energy and Tl-208 extension contribute declared sensitivity covariance."
+    },
+    "excluded_components": [
+      {
+        "energy_keV": 478.0,
+        "name": "B-10(n,alpha)Li-7 Doppler feature",
+        "origin_class": "neutron_capture",
+        "reason": "Broad Doppler feature is not a detector photopeak and has no declared normalized physical line shape in phase 2; no Gaussian yield is reported."
+      },
+      {
+        "energy_keV": 5433.1,
+        "name": "rd_5433_1",
+        "identity": "Cd-113 neutron capture",
+        "origin_class": "neutron_capture",
+        "interval_kind": "unavailable_unmodeled_window_structure",
+        "reason": "Reviewer residual audit found undeclared structure in rd_5433; the line is excluded from the canonical fit and unavailable for candidate reporting until explicit neighboring/escape components are justified."
+      },
+      {
+        "energy_keV": 5824.6,
+        "name": "rd_5824_6",
+        "identity": "Cd-113 neutron capture",
+        "origin_class": "neutron_capture",
+        "interval_kind": "unavailable_unmodeled_window_structure",
+        "reason": "Reviewer residual audit found undeclared structure in rd_5825; the line is excluded from the canonical fit and unavailable for candidate reporting until explicit neighboring/escape components are justified."
+      },
+      {
+        "energy_keV": 7367.9,
+        "name": "rd_7367_9",
+        "identity": "Pb-207 neutron capture",
+        "origin_class": "neutron_capture",
+        "interval_kind": "unavailable_unmodeled_window_structure",
+        "reason": "Reviewer residual audit found undeclared structure in rd_7368; the line is excluded from the canonical fit and unavailable for candidate reporting until explicit neighboring/escape components are justified."
+      },
+      {
+        "energy_keV": 7916.3,
+        "name": "rd_7916_3",
+        "identity": "Cu-63 neutron capture",
+        "origin_class": "neutron_capture",
+        "interval_kind": "unavailable_unmodeled_window_structure",
+        "reason": "Reviewer residual audit found undeclared structure in rd_7916; the line is excluded from the canonical fit and unavailable for candidate reporting until explicit neighboring/escape components are justified."
+      }
+    ],
+    "windows": [
+      {"name": "rd_238_242", "low_keV": 225.0, "high_keV": 255.0},
+      {"name": "rd_295", "low_keV": 280.0, "high_keV": 310.0},
+      {"name": "rd_352", "low_keV": 335.0, "high_keV": 370.0},
+      {"name": "rd_558", "low_keV": 540.0, "high_keV": 578.0},
+      {"name": "rd_609", "low_keV": 590.0, "high_keV": 630.0},
+      {"name": "rd_651", "low_keV": 635.0, "high_keV": 670.0},
+      {"name": "rd_707_725", "low_keV": 688.0, "high_keV": 742.0},
+      {"name": "rd_768", "low_keV": 750.0, "high_keV": 787.0},
+      {"name": "rd_806", "low_keV": 790.0, "high_keV": 825.0},
+      {"name": "rd_1120", "low_keV": 1100.0, "high_keV": 1140.0},
+      {"name": "rd_1209_1238", "low_keV": 1190.0, "high_keV": 1255.0},
+      {"name": "rd_1281_1294", "low_keV": 1265.0, "high_keV": 1310.0},
+      {"name": "rd_1364_1400", "low_keV": 1345.0, "high_keV": 1420.0},
+      {"name": "rd_1490", "low_keV": 1470.0, "high_keV": 1510.0},
+      {"name": "rd_1660", "low_keV": 1640.0, "high_keV": 1680.0},
+      {"name": "rd_1764", "low_keV": 1745.0, "high_keV": 1785.0},
+      {"name": "rd_2204_2223", "low_keV": 2185.0, "high_keV": 2242.0},
+      {"name": "rd_2399", "low_keV": 2380.0, "high_keV": 2418.0},
+      {"name": "rd_2456", "low_keV": 2437.0, "high_keV": 2475.0},
+      {"name": "rd_2550", "low_keV": 2530.0, "high_keV": 2570.0},
+      {"name": "rd_2615_2660", "low_keV": 2590.0, "high_keV": 2682.0},
+      {"name": "rd_2768", "low_keV": 2748.0, "high_keV": 2788.0}
+    ],
+    "components": [
+      {"name": "rd_238_6", "energy_keV": 238.6, "window": "rd_238_242", "role": "line", "identity": "Pb-212 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_242_0", "energy_keV": 242.0, "window": "rd_238_242", "role": "line", "identity": "Pb-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_295_2", "energy_keV": 295.2, "window": "rd_295", "role": "line", "identity": "Pb-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_351_9", "energy_keV": 351.9, "window": "rd_352", "role": "line", "identity": "Pb-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_558_5_reference", "energy_keV": 558.5, "window": "rd_558", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_609_3", "energy_keV": 609.3, "window": "rd_609", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_651_3", "energy_keV": 651.3, "window": "rd_651", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_707_4", "energy_keV": 707.4, "window": "rd_707_725", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_725_0", "energy_keV": 725.0, "window": "rd_707_725", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_768_4", "energy_keV": 768.4, "window": "rd_768", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_805_9", "energy_keV": 805.9, "window": "rd_806", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_1120_3", "energy_keV": 1120.3, "window": "rd_1120", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_1209_7", "energy_keV": 1209.7, "window": "rd_1209_1238", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_1238_1", "energy_keV": 1238.1, "window": "rd_1209_1238", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_1281_0", "energy_keV": 1281.0, "window": "rd_1281_1294", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_1293_6", "energy_keV": 1293.6, "window": "rd_1281_1294", "role": "line", "identity": "Ar-41 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_1364_3", "energy_keV": 1364.3, "window": "rd_1364_1400", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_1377_7", "energy_keV": 1377.7, "window": "rd_1364_1400", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_1399_6", "energy_keV": 1399.6, "window": "rd_1364_1400", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_1489_56", "energy_keV": 1489.56, "window": "rd_1490", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_1660_368", "energy_keV": 1660.368, "window": "rd_1660", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_1764_5", "energy_keV": 1764.5, "window": "rd_1764", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_2204_2", "energy_keV": 2204.2, "window": "rd_2204_2223", "role": "line", "identity": "Bi-214 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_2223_0", "energy_keV": 2223.0, "window": "rd_2204_2223", "role": "line", "identity": "H-1 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_2398_6", "energy_keV": 2398.6, "window": "rd_2399", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_2455_8", "energy_keV": 2455.8, "window": "rd_2456", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_2550_1", "energy_keV": 2550.1, "window": "rd_2550", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_2614_533", "energy_keV": 2614.533, "window": "rd_2615_2660", "role": "line", "identity": "Tl-208 beta decay", "origin_class": "radioactive_decay"},
+      {"name": "rd_2660_1", "energy_keV": 2660.1, "window": "rd_2615_2660", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"},
+      {"name": "rd_2767_5", "energy_keV": 2767.5, "window": "rd_2768", "role": "line", "identity": "Cd-113 neutron capture", "origin_class": "neutron_capture"}
+    ]
+  },
+  "table8": {
+    "paper_table": 8,
+    "selection": {
+      "release": "HFIRBG_public_data_v1.1.0",
+      "file_id": 1042,
+      "file_name": "MIF_BOX_REACTOR_OPTIMIZED_OVERNIGHT_LOWEST_GAIN",
+      "reason": "Public measured spectrum named by the historical Table 8 workflow."
+    },
+    "calibration_constraint": {
+      "offset_mean_keV": 0.0,
+      "stretch_mean": 0.0,
+      "covariance": [[4.0, 0.0], [0.0, 4.0e-6]],
+      "offset_bounds_keV": [-10.0, 10.0],
+      "stretch_bounds": [-0.005, 0.005],
+      "warning": "The release gives A0/A1 but no calibration covariance. Broad declared constraints let the observed high-energy lines calibrate the common correction."
+    },
+    "resolution_initial": {
+      "intercept_keV": 0.98,
+      "slope": 0.00018,
+      "tail_fraction": 0.15,
+      "tail_scale_in_sigma": 2.0,
+      "form": "linear",
+      "tail_model": "constant"
+    },
+    "simulation_policy": "Measured-data candidates only. Missing monoenergetic simulations are neither fabricated nor summed; each future simulation must be fit separately with a declared case identity.",
+    "contaminant_policy": "Phase 2 tests only catalogued lines from materials documented or physically plausible in the detector assembly. Canonical Fe-54 and Cu-63 additions have source plausibility and residual support. The close Al-27/Ge-70 6.71-MeV alternatives directly reallocate a target DEP and are retained at equal noncanonical sensitivity status despite their likelihood difference. Residual-only automatic peak discovery is prohibited.",
+    "target_parents_keV": ["6809.610", "7631.180", "7645.580", "7693.398", "7724.034", "8998.630", "9718.790", "11386.500"],
+    "canonical_component_variant": "target_plus_fe54_and_cu63",
+    "canonical_model_variant": "target_plus_fe54_and_cu63_quadratic_background",
+    "phase2_window_change": {
+      "window": "t8_6809_sep",
+      "phase1_low_keV": 6272.61,
+      "phase2_low_keV": 6255.0,
+      "high_keV": 6324.61,
+      "reason": "admit the authoritative Fe-54 6268.9-keV candidate with local sideband; applied identically to every phase-2 Table 8 variant, including target_only",
+      "comparison_warning": "phase-1 and phase-2 absolute deviances use different raw-bin sets and are not direct likelihood comparisons"
+    },
+    "component_audit": {
+      "authoritative_nuclear_source": {
+        "name": "NNDC CapGam",
+        "url": "https://www.nndc.bnl.gov/capgam/",
+        "provenance": "ENSDF-derived thermal-neutron capture gamma energies and relative intensities"
+      },
+      "material_basis": "Public detector/shield metadata and legacy source catalog identify Ge detector material, Al, Cu, and stainless-steel Fe/Cr/Ni as plausible local materials. Nuclear-line presence alone is insufficient.",
+      "material_sources": ["immutable public database detector/shield/configuration metadata", "scripts/PrintSources.py historical source catalog"],
+      "candidates": [
+        {"name": "fe54_6268_9_fep", "parent": "6268.900", "energy_keV": 6268.9, "window": "t8_6809_sep", "role": "contaminant", "nuclide_reaction": "Fe-54(n,g)Fe-55", "capgam_relative_intensity": 4.8485, "classification": "known_and_canonical", "source_plausibility": "steel structural/shield material", "residual_evidence": "positive feature maps to about 6269 keV after fitted calibration correction"},
+        {"name": "ge70_6276_25_fep", "parent": "6276.250", "energy_keV": 6276.25, "window": "t8_6809_sep", "role": "contaminant", "nuclide_reaction": "Ge-70(n,g)Ge-71", "capgam_relative_intensity": 10.48, "classification": "plausible_alternative_not_canonical", "source_plausibility": "HPGe detector self-capture", "residual_evidence": "energy less compatible than Fe-54 after fitted calibration correction"},
+        {"name": "cu63_6616_0_dep", "parent": "7638.000", "energy_keV": 6616.0, "window": "t8_cluster_dep", "role": "contaminant", "nuclide_reaction": "Cu-63(n,g)Cu-64 double escape", "capgam_relative_intensity": 48.9426, "classification": "known_and_canonical", "source_plausibility": "documented copper near detector", "residual_evidence": "family constrained by separated SEP/FEP regions"},
+        {"name": "cu63_7127_0_sep", "parent": "7638.000", "energy_keV": 7127.0, "window": "t8_cluster_sep", "role": "contaminant", "nuclide_reaction": "Cu-63(n,g)Cu-64 single escape", "capgam_relative_intensity": 48.9426, "classification": "known_and_canonical", "source_plausibility": "documented copper near detector", "residual_evidence": "positive feature at calibration-corrected 7127 keV"},
+        {"name": "cu63_7638_0_fep", "parent": "7638.000", "energy_keV": 7638.0, "window": "t8_cluster_fep", "role": "contaminant", "nuclide_reaction": "Cu-63(n,g)Cu-64 full energy", "capgam_relative_intensity": 48.9426, "classification": "known_and_canonical", "source_plausibility": "documented copper near detector", "residual_evidence": "catalogued full family overlaps target multiplet"},
+        {"name": "al27_6710_7_fep", "parent": "6710.700", "energy_keV": 6710.7, "window": "t8_cluster_dep", "role": "contaminant", "nuclide_reaction": "Al-27(n,g)Al-28", "capgam_relative_intensity": 3.2258, "classification": "plausible_ambiguous_sensitivity_not_canonical", "source_plausibility": "Al-27 is independently established by the 7693.398- and 7724.034-keV Table 8 target parents", "residual_evidence": "overlaps the nearby Ge-70 hypothesis and lies 8.666 keV from the 6702.034-keV target DEP"},
+        {"name": "ge70_6707_45_fep", "parent": "6707.450", "energy_keV": 6707.45, "window": "t8_cluster_dep", "role": "contaminant", "nuclide_reaction": "Ge-70(n,g)Ge-71", "capgam_relative_intensity": 19.2, "classification": "plausible_ambiguous_sensitivity_not_canonical", "source_plausibility": "HPGe material makes self-capture physically plausible, but this spectrum does not independently establish the source", "residual_evidence": "same-parameter fit is preferred to Al-27, but the component lies only 5.416 keV from the 6702.034-keV target DEP and directly reallocates its counts"},
+        {"name": "cr53_6645_64_fep", "parent": "6645.640", "energy_keV": 6645.64, "window": "t8_cluster_dep", "role": "contaminant", "nuclide_reaction": "Cr-53(n,g)Cr-54", "capgam_relative_intensity": 12.2911, "classification": "catalogued_sensitivity_only", "source_plausibility": "stainless steel", "residual_evidence": "no uniquely resolved feature"},
+        {"name": "cr53_7100_11_fep", "parent": "7100.110", "energy_keV": 7100.11, "window": "t8_cluster_sep", "role": "contaminant", "nuclide_reaction": "Cr-53(n,g)Cr-54", "capgam_relative_intensity": 9.6329, "classification": "catalogued_sensitivity_only", "source_plausibility": "stainless steel", "residual_evidence": "no uniquely resolved feature"},
+        {"name": "ni58_7098_75_dep", "parent": "8120.750", "energy_keV": 7098.75, "window": "t8_cluster_sep", "role": "contaminant", "nuclide_reaction": "Ni-58(n,g)Ni-59 double escape", "classification": "catalogued_sensitivity_only", "source_plausibility": "stainless steel", "residual_evidence": "partial family intersects selected windows"},
+        {"name": "ni58_7609_75_sep", "parent": "8120.750", "energy_keV": 7609.75, "window": "t8_cluster_fep", "role": "contaminant", "nuclide_reaction": "Ni-58(n,g)Ni-59 single escape", "classification": "catalogued_sensitivity_only", "source_plausibility": "stainless steel", "residual_evidence": "partial family intersects selected windows"}
+      ],
+      "variants": [
+        {"name": "target_only", "candidate_components": []},
+        {"name": "target_plus_fe54_and_cu63", "candidate_components": ["fe54_6268_9_fep", "cu63_6616_0_dep", "cu63_7127_0_sep", "cu63_7638_0_fep"]},
+        {"name": "ge70_6276_alternative", "candidate_components": ["ge70_6276_25_fep", "cu63_6616_0_dep", "cu63_7127_0_sep", "cu63_7638_0_fep"]},
+        {"name": "al27_6711_alternative", "candidate_components": ["fe54_6268_9_fep", "cu63_6616_0_dep", "cu63_7127_0_sep", "cu63_7638_0_fep", "al27_6710_7_fep"]},
+        {"name": "target_plus_fe_cu_ge70", "candidate_components": ["fe54_6268_9_fep", "cu63_6616_0_dep", "cu63_7127_0_sep", "cu63_7638_0_fep", "ge70_6707_45_fep"]},
+        {"name": "steel_catalog_sensitivity", "candidate_components": ["fe54_6268_9_fep", "cu63_6616_0_dep", "cu63_7127_0_sep", "cu63_7638_0_fep", "cr53_6645_64_fep", "cr53_7100_11_fep", "ni58_7098_75_dep", "ni58_7609_75_sep"], "guarded_basin_restart": {"allowed": true, "initial_source": "Table 8 steel_catalog_sensitivity default-config warm chain SLSQP candidate"}}
+      ]
+    },
+    "windows": [
+      {"name": "t8_6809_dep", "low_keV": 5761.61, "high_keV": 5813.61},
+      {"name": "t8_6809_sep", "low_keV": 6255.0, "high_keV": 6324.61},
+      {"name": "t8_cluster_dep", "low_keV": 6588.0, "high_keV": 6723.0},
+      {"name": "t8_6809_fep", "low_keV": 6783.61, "high_keV": 6835.61},
+      {"name": "t8_cluster_sep", "low_keV": 7098.0, "high_keV": 7235.0},
+      {"name": "t8_cluster_fep", "low_keV": 7608.0, "high_keV": 7742.0},
+      {"name": "t8_8999_dep", "low_keV": 7950.63, "high_keV": 8002.63},
+      {"name": "t8_8999_sep", "low_keV": 8461.63, "high_keV": 8513.63},
+      {"name": "t8_8999_fep", "low_keV": 8972.63, "high_keV": 9024.63},
+      {"name": "t8_9719_dep", "low_keV": 8670.79, "high_keV": 8722.79},
+      {"name": "t8_9719_sep", "low_keV": 9181.79, "high_keV": 9233.79},
+      {"name": "t8_9719_fep", "low_keV": 9692.79, "high_keV": 9744.79},
+      {"name": "t8_11387_dep", "low_keV": 10338.5, "high_keV": 10390.5},
+      {"name": "t8_11387_sep", "low_keV": 10849.5, "high_keV": 10901.5},
+      {"name": "t8_11387_fep", "low_keV": 11360.5, "high_keV": 11412.5}
+    ],
+    "components": [
+      {"name": "t8_6809_610_dep", "parent": "6809.610", "energy_keV": 5787.61, "window": "t8_6809_dep", "role": "dep"},
+      {"name": "t8_6809_610_sep", "parent": "6809.610", "energy_keV": 6298.61, "window": "t8_6809_sep", "role": "sep"},
+      {"name": "t8_6809_610_fep", "parent": "6809.610", "energy_keV": 6809.61, "window": "t8_6809_fep", "role": "fep"},
+      {"name": "t8_7631_180_dep", "parent": "7631.180", "energy_keV": 6609.18, "window": "t8_cluster_dep", "role": "dep"},
+      {"name": "t8_7645_580_dep", "parent": "7645.580", "energy_keV": 6623.58, "window": "t8_cluster_dep", "role": "dep"},
+      {"name": "t8_7693_398_dep", "parent": "7693.398", "energy_keV": 6671.398, "window": "t8_cluster_dep", "role": "dep"},
+      {"name": "t8_7724_034_dep", "parent": "7724.034", "energy_keV": 6702.034, "window": "t8_cluster_dep", "role": "dep"},
+      {"name": "t8_7631_180_sep", "parent": "7631.180", "energy_keV": 7120.18, "window": "t8_cluster_sep", "role": "sep"},
+      {"name": "t8_7645_580_sep", "parent": "7645.580", "energy_keV": 7134.58, "window": "t8_cluster_sep", "role": "sep"},
+      {"name": "t8_7693_398_sep", "parent": "7693.398", "energy_keV": 7182.398, "window": "t8_cluster_sep", "role": "sep"},
+      {"name": "t8_7724_034_sep", "parent": "7724.034", "energy_keV": 7213.034, "window": "t8_cluster_sep", "role": "sep"},
+      {"name": "t8_7631_180_fep", "parent": "7631.180", "energy_keV": 7631.18, "window": "t8_cluster_fep", "role": "fep"},
+      {"name": "t8_7645_580_fep", "parent": "7645.580", "energy_keV": 7645.58, "window": "t8_cluster_fep", "role": "fep"},
+      {"name": "t8_7693_398_fep", "parent": "7693.398", "energy_keV": 7693.398, "window": "t8_cluster_fep", "role": "fep"},
+      {"name": "t8_7724_034_fep", "parent": "7724.034", "energy_keV": 7724.034, "window": "t8_cluster_fep", "role": "fep"},
+      {"name": "t8_8998_630_dep", "parent": "8998.630", "energy_keV": 7976.63, "window": "t8_8999_dep", "role": "dep"},
+      {"name": "t8_8998_630_sep", "parent": "8998.630", "energy_keV": 8487.63, "window": "t8_8999_sep", "role": "sep"},
+      {"name": "t8_8998_630_fep", "parent": "8998.630", "energy_keV": 8998.63, "window": "t8_8999_fep", "role": "fep"},
+      {"name": "t8_9718_790_dep", "parent": "9718.790", "energy_keV": 8696.79, "window": "t8_9719_dep", "role": "dep"},
+      {"name": "t8_9718_790_sep", "parent": "9718.790", "energy_keV": 9207.79, "window": "t8_9719_sep", "role": "sep"},
+      {"name": "t8_9718_790_fep", "parent": "9718.790", "energy_keV": 9718.79, "window": "t8_9719_fep", "role": "fep"},
+      {"name": "t8_11386_500_dep", "parent": "11386.500", "energy_keV": 10364.5, "window": "t8_11387_dep", "role": "dep"},
+      {"name": "t8_11386_500_sep", "parent": "11386.500", "energy_keV": 10875.5, "window": "t8_11387_sep", "role": "sep"},
+      {"name": "t8_11386_500_fep", "parent": "11386.500", "energy_keV": 11386.5, "window": "t8_11387_fep", "role": "fep"}
+    ],
+    "contaminants": []
+  },
+  "reporting": {
+    "weak_line_fisher_z_threshold": 3.0,
+    "profile_confidence_level": 0.95,
+    "profile_base_nll_consistency_tolerance": 0.005,
+    "profile_scaled_kkt_tolerance": 0.001,
+    "profile_linear_constraint_relative_tolerance": 1e-8,
+    "profile_slsqp_max_chains": 3,
+    "profile_slsqp_max_iterations_per_chain": 3000,
+    "profile_slsqp_ftol": 1e-12,
+    "profile_scoring_max_iterations_per_chain": 8,
+    "profile_stable_nll_difference_identity_tolerance": 1e-9,
+    "default_bootstrap_replicates": 12,
+    "bootstrap_gaussian_pseudo_observation_seed_domain": "gaussian-pseudo-observations-v1",
+    "minimum_bootstrap_replicates_for_coverage_assessment": 200,
+    "global_deviance_p_value_minimum": 0.001,
+    "familywise_diagnostic_alpha": 0.01,
+    "chi_square_minimum_expected_counts_per_bin": 5.0,
+    "per_bin_outlier_sigma_thresholds": [4.0, 5.0],
+    "optimizer_scaled_projected_gradient_tolerance": 0.001,
+    "optimizer_scoring_max_iterations": 8,
+    "optimizer_scoring_numerically_flat_nll_tolerance": 1e-9,
+    "optimizer_scoring_numerically_flat_gradient_reduction_factor": 0.5,
+    "optimizer_polish_max_scaled_displacement_inf": 10.0,
+    "optimizer_polish_max_stable_nll_decrease": 1.0,
+    "quadratic_background_cone_feasibility_relative_tolerance": 1e-10,
+    "quadratic_background_cone_activity_relative_tolerance": 1e-6,
+    "candidate_status": "exploratory pending reviewer inspection of every window diagnostic and bootstrap coverage"
+  }
+}

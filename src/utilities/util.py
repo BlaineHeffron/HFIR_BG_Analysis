@@ -15,14 +15,17 @@ import ctypes
 import numpy as np
 from scipy import stats
 
-from src.analysis.Spectrum import SpectrumData, SpectrumFitter, SubtractSpectrum
+from src.analysis.Spectrum import (
+    PEAK_AREA_NET_COUNTS,
+    SpectrumData,
+    SpectrumFitter,
+    SubtractSpectrum,
+)
 from src.utilities.PlotUtils import MultiLinePlot, MultiScatterPlot, ScatterLinePlot, ScatterDifferencePlot, \
     MultiXScatterPlot
 from src.utilities.FitUtils import linfit, sqrtfit
 from src.utilities.FitUtils import chisqr as chi_squared 
 from copy import copy
-from ROOT import TFile, TVectorF
-
 FILEEXPR = re.compile('[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].txt')
 
 c_float_p = ctypes.POINTER(ctypes.c_float)
@@ -816,6 +819,8 @@ def is_number(s):
 
 
 def write_root_with_db(spec, name, db, title=''):
+    from ROOT import TFile, TVectorF
+
     if title == '':
         title = name
     hist = spec.generate_root_hist(name, title)
@@ -833,6 +838,8 @@ def write_root_with_db(spec, name, db, title=''):
 
 
 def write_root(spec, name, fpath, title=''):
+    from ROOT import TFile, TVectorF
+
     if title == '':
         title = name
     hist = spec.generate_root_hist(name, title)
@@ -851,6 +858,8 @@ def scale_to_bin_width(hist):
 
 
 def get_spec_from_root(fname, spec_path, live_path, isParam=False, xScale=1, rebin=1, projectionX=False, has_live=True):
+    from ROOT import TFile
+
     myFile = TFile.Open(fname, "READ")
     myHist = myFile.Get(spec_path)
     if projectionX:
@@ -961,12 +970,23 @@ def fit_spectra(data, expected_peaks, plot_dir=None, user_verify=False, plot_fit
         fit_data.update(spec_fitter.fit_values)
     return fit_data
 
-def retrieve_peak_areas(spec, peaks):
+def retrieve_peak_areas(spec, peaks, area_mode=PEAK_AREA_NET_COUNTS):
+    """Return peak-window rates.
+
+    ``net_counts`` produces counts/s. ``legacy_window_density`` produces the
+    historical counts/(s keV) values.
+    """
     spec_fitter = SpectrumFitter(peaks)
     spec_fitter.fit_peaks(spec)
     areas = {}
     dareas = {}
-    get_areas(spec_fitter.fit_values, areas, dareas, lt=spec.live)
+    get_areas(
+        spec_fitter.fit_values,
+        areas,
+        dareas,
+        lt=spec.live,
+        area_mode=area_mode,
+    )
     return areas, dareas
 
 
@@ -1052,18 +1072,26 @@ def get_skews(peak_data, skews, dskews, Rs, dRs):
             dRs["{:.2f}".format(p)] = data.R_err
 
 
-def get_areas(peak_data, areas, dareas, lt=1):
-    """lt is live time for time normalization"""
+def get_areas(
+        peak_data, areas, dareas, lt=1, area_mode=PEAK_AREA_NET_COUNTS):
+    """Collect peak values with explicit area and live-time semantics.
+
+    With ``net_counts``, results are counts or counts/s when ``lt`` is a live
+    time. With ``legacy_window_density``, results are counts/keV or
+    counts/(s keV), respectively.
+    """
     for peak, data in peak_data.items():
         if isinstance(peak, str):
             peak = peak.split(',')
-            a = data.area()
+            a = data.area(mode=area_mode)
             for i, p in enumerate(peak):
                 p = float(p)
                 areas["{:.2f}".format(p)], dareas["{:.2f}".format(p)] = tuple([b/lt for b in a[i]])
         else:
             peak = float(peak)
-            areas["{:.2f}".format(peak)], dareas["{:.2f}".format(peak)] = tuple([b/lt for b in data.area()])
+            areas["{:.2f}".format(peak)], dareas["{:.2f}".format(peak)] = tuple(
+                [b / lt for b in data.area(mode=area_mode)]
+            )
 
 
 def get_peak_fit_data(peak_data, d):
@@ -1231,7 +1259,9 @@ def fit_peak_sigmas(data, expected_peaks, plot_dir=None, user_verify=False,
     chi2_ndf = chisqr / ndf_overall if ndf_overall > 0 else 0.0
     print(f"The overall Chi2 of the sigma vs. energy fit is {chisqr:.4f} with {ndf_overall} degrees of freedom, giving Chi2/NDF = {chi2_ndf:.4f}.")
 
-def compare_peaks(data, simdata, expected_peaks, plot_dir=None, user_verify=False, plot_fit=False):
+def compare_peaks(
+        data, simdata, expected_peaks, plot_dir=None, user_verify=False,
+        plot_fit=False, area_mode=PEAK_AREA_NET_COUNTS):
     print("fitting peaks for data")
     peak_data = fit_spectra(data, expected_peaks, plot_dir, user_verify, plot_fit)
     print("fitting peaks for simulation")
@@ -1263,9 +1293,19 @@ def compare_peaks(data, simdata, expected_peaks, plot_dir=None, user_verify=Fals
     peak_data_vals = {}
     peak_data_sim_true_vals = {}
     peak_data_sim_false_vals = {}
-    get_areas(peak_data, areas, dareas)
-    get_areas(peak_data_sim_true, areas_sim_true, dareas_sim_true)
-    get_areas(peak_data_sim_false, areas_sim_false, dareas_sim_false)
+    get_areas(peak_data, areas, dareas, area_mode=area_mode)
+    get_areas(
+        peak_data_sim_true,
+        areas_sim_true,
+        dareas_sim_true,
+        area_mode=area_mode,
+    )
+    get_areas(
+        peak_data_sim_false,
+        areas_sim_false,
+        dareas_sim_false,
+        area_mode=area_mode,
+    )
     get_peak_fit_data(peak_data, peak_data_vals)
     get_peak_fit_data(peak_data_sim_true, peak_data_sim_true_vals)
     get_peak_fit_data(peak_data_sim_false, peak_data_sim_false_vals)

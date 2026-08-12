@@ -1,8 +1,8 @@
 """ROOT-free, read-only access to public HFIR spectrum files.
 
 This module is intentionally independent of :mod:`src.analysis.Spectrum` and
-the legacy database wrapper because importing either pulls in PyROOT.  It is
-the shared data layer for lightweight browsers, notebooks, and CSV exports.
+the legacy database wrapper.  It is the shared data layer for lightweight
+browsers, notebooks, and CSV exports.
 """
 
 from __future__ import annotations

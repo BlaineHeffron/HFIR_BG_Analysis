@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "audit_scope": ["PeakFit.area", "MultiPeakFit.area", "unc_ratio"],
+  "rule": "No corrected paper workflow may call a historical window-area method or the independent-error unc_ratio helper.",
+  "callers": [
+    {
+      "path": "src/analysis/Spectrum.py",
+      "symbols": ["PeakFit.area", "MultiPeakFit.area"],
+      "classification": "historical estimator implementation",
+      "paper_status": "retained only for named legacy and diagnostic callers",
+      "control": "Unit-correct net-count and exact legacy-density modes are explicit; historical ad hoc uncertainties are intentionally not relabeled as corrected covariance."
+    },
+    {
+      "path": "src/utilities/util.py",
+      "symbols": ["get_areas", "retrieve_peak_areas", "compare_peaks", "unc_ratio"],
+      "classification": "legacy shared implementation",
+      "paper_status": "not a corrected workflow",
+      "control": "Callers must select a named legacy mode; historical uncertainty formulas remain unchanged for reproduction."
+    },
+    {
+      "path": "scripts/rd_peak_fitter.py",
+      "symbols": ["get_areas", "unc_ratio"],
+      "classification": "Table 3 legacy reproduction / legacy count-unit diagnostic",
+      "paper_status": "affected historical workflow",
+      "control": "CLI requires --paper-legacy or --legacy-window-counts. Corrected candidates use scripts/reanalyze_paper_peak_statistics.py."
+    },
+    {
+      "path": "scripts/peak_ratio_compare.py",
+      "symbols": ["compare_peaks"],
+      "classification": "Table 8 unavailable legacy workflow",
+      "paper_status": "affected; missing simulations",
+      "control": "CLI requires --paper-legacy or --legacy-window-counts."
+    },
+    {
+      "path": "scripts/RD_neutron_gamma_fit.py",
+      "symbols": ["retrieve_peak_areas"],
+      "classification": "unavailable legacy cadmium-tuning workflow",
+      "paper_status": "out of correction scope",
+      "control": "CLI requires --paper-legacy or --legacy-window-counts; no cadmium inference is made by the corrected workflow."
+    },
+    {
+      "path": "scripts/audit_peak_area_impact.py",
+      "symbols": ["get_areas", "unc_ratio"],
+      "classification": "deliberate immutable legacy replay plus separate sensitivity fit",
+      "paper_status": "audit only",
+      "control": "Legacy calls generate explicitly named historical columns; no candidate number is sourced from them."
+    },
+    {
+      "path": "scripts/plot_sim_efficiencies.py",
+      "symbols": ["PeakFit.area"],
+      "classification": "dormant simulation extraction",
+      "paper_status": "not a current paper product",
+      "control": "Outputs retain explicit unit labels; required simulations are unavailable."
+    },
+    {
+      "path": "scripts/neut_sim_peaks.py",
+      "symbols": ["PeakFit.area", "MultiPeakFit.area"],
+      "classification": "simulation diagnostic",
+      "paper_status": "no paper artifact found",
+      "control": "Calls explicitly request net-count mode."
+    },
+    {
+      "path": "scripts/test_24Na_decay.py",
+      "symbols": ["PeakFit.area"],
+      "classification": "decay diagnostic",
+      "paper_status": "no paper artifact found",
+      "control": "Call explicitly requests net-count mode."
+    }
+  ],
+  "corrected_workflows": [
+    {
+      "path": "scripts/reanalyze_paper_peak_statistics.py",
+      "tables": [3, 8],
+      "required_absences": ["PeakFit(", "MultiPeakFit(", "get_areas", "unc_ratio", ".area("],
+      "statistical_engine": "src/public_data/peak_likelihood.py"
+    }
+  ]
+}
