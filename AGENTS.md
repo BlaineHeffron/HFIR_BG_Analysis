@@ -18,10 +18,11 @@ Public analysis and read-only browser for released HPGe spectra and selected pap
 ## Change economy
 
 - This is a public scientific repository. Track code, compact configuration, durable documentation, and tests needed for public reproduction. Do not track agent transcripts, review receipts, exploratory dumps, generated fit products, or internal process artifacts.
-- Before adding more than three files or roughly 500 non-generated lines, explain why existing modules and workflows cannot carry the change and obtain maintainer approval for the larger design.
+- File count, line count, test count, and coverage are review signals, never acceptance gates. Do not add policy or CI checks that enforce numeric growth thresholds, and do not split work to satisfy a metric.
+- Before introducing a new long-lived concept--package, command, configuration family, dependency, or test framework--identify the missing existing seam and the maintained public consumer. Keep this explanation brief; do not create approval theater for ordinary maintenance.
 - Do not enlarge an already oversized module. Consolidate repeated setup and extract only genuinely reusable mechanisms; do not create one-use abstraction layers or compatibility wrappers.
 - Every test must protect a distinct numerical, semantic, or regression failure. Prefer table-driven cases and shared fixtures. Do not enumerate cross-products of statuses, consumers, seeds, or metadata when one invariant covers them.
-- Every quality gate must identify the scientific claim it protects, the failure it can detect, and the consequence of failure. No post-hoc thresholds, duplicate optimizer gates, or checks that merely certify other checks.
+- Every quality gate must identify the scientific claim it protects, the concrete failure it can detect, and the reporting or analysis action caused by failure. If failure changes no action, emit a diagnostic instead. No post-hoc thresholds, duplicate optimizer gates, meta-gates, or checks that merely certify other checks.
 - Negative and exploratory results are allowed when clearly labeled and reproducible. They do not justify publication-scale infrastructure unless that infrastructure has an identified maintained consumer.
 
 ## Verification
