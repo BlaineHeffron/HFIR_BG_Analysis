@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "record_kind": "bounded deposition-shape feasibility pilot",
+  "claim_boundary": "Open-sky source-run deposition shapes only; no fitted cosmic mixture and no absolute HFIR hall rate.",
+  "public_release": {
+    "name": "HFIRBG_public_data_v1.1.0",
+    "archive_url": "https://github.com/BlaineHeffron/HFIR_BG_Analysis/releases/download/data-v1.1.0/HFIRBG_public_data_v1.1.0.tar.gz",
+    "archive_sha256": "8cc39143349c6ea2c823ea2506ce7d3a69ebd40bd40264220d1fa9982b991bb8",
+    "database_sha256": "c78bc8fa6ef7dbe1a8ea5d0189e69eb555c8a488fd582ff04b965a08aa1985e9"
+  },
+  "measured_selection": {
+    "run_name": "PreCycle494_RD_low_gain",
+    "file_names_chronological": [
+      "00004011",
+      "00004012",
+      "00004013",
+      "00004014",
+      "00004015",
+      "00004016",
+      "00004017"
+    ],
+    "detector_configuration_id": 16,
+    "acquisition_settings_id": 5,
+    "acquisition_settings": {
+      "coarse_gain": 2.0,
+      "PUR_guard": 1.1,
+      "offset": 0.0,
+      "fine_gain": 1.02,
+      "LLD": 0.1,
+      "LTC_mode": 1,
+      "memory_group": 1
+    },
+    "shield_id": 2,
+    "shield_name": "RD",
+    "orientation_angle_deg": 180.0,
+    "coordinates": {
+      "Rx": 33.5,
+      "Rz": 200.0,
+      "Lx": 33.5,
+      "Lz": 200.0
+    },
+    "calibration_A0_keV": -0.36500881272612884,
+    "calibration_A1_keV_per_channel": 0.6996653463398396
+  },
+  "comparison": {
+    "normalization": "unit area per measured spectrum or source-run component",
+    "main_window_keV": [3000.0, 11200.0],
+    "main_bin_width_keV": 100.0,
+    "main_line_masks_keV": [
+      {"center": 5433.1, "half_width": 20.0},
+      {"center": 5824.6, "half_width": 20.0},
+      {"center": 7367.9, "half_width": 20.0},
+      {"center": 7916.3, "half_width": 20.0}
+    ],
+    "named_feature_signal_half_width_keV": 30.0,
+    "named_feature_sidebands_keV": [40.0, 100.0],
+    "low_window_keV": [500.0, 3000.0],
+    "low_bin_width_keV": 25.0,
+    "low_broad_mask_keV": {"center": 478.0, "half_width": 40.0},
+    "low_table3_mask_half_width_keV": 10.0,
+    "table3_config": "config/table3_historical_reconstruction.json"
+  },
+  "source_runs": {
+    "cry_muon_1m": {"source_component": "CRY muon run", "expected_primary_pids": [-13, 13], "measured_comparison": "requires_area_convergence"},
+    "cry_muon_3m": {"source_component": "CRY muon run", "expected_primary_pids": [-13, 13], "measured_comparison": "area_diagnostic_only"},
+    "cry_gamma_1m": {"source_component": "CRY gamma run", "expected_primary_pids": [22], "measured_comparison": "requires_area_convergence"},
+    "cry_gamma_3m": {"source_component": "CRY gamma run", "expected_primary_pids": [22], "measured_comparison": "area_diagnostic_only"},
+    "cry_electron_1m": {"source_component": "CRY electron run", "expected_primary_pids": [-11, 11], "measured_comparison": "excluded_area_unconverged"},
+    "cry_proton_1m": {"source_component": "CRY proton run", "expected_primary_pids": [-2212, 2212], "measured_comparison": "excluded_area_unconverged"},
+    "cry_pion_1m": {"source_component": "CRY pion run", "expected_primary_pids": [-211, 111, 211], "measured_comparison": "excluded_area_unconverged"},
+    "sato_nonthermal": {"source_component": "Sato--Niita nonthermal neutron run", "expected_primary_pids": [2112], "measured_comparison": "exploratory_shape", "minimum_main_events_for_comparison": 100},
+    "sato_thermal": {"source_component": "Sato--Niita thermal neutron run", "expected_primary_pids": [2112], "measured_comparison": "exploratory_shape", "minimum_main_events_for_comparison": 100},
+    "sato_nonthermal_total_sensitivity": {"source_component": "Sato--Niita nonthermal total-crystal sensitivity run", "expected_primary_pids": [2112], "measured_comparison": "excluded_geometry_sensitivity"},
+    "sato_thermal_total_sensitivity": {"source_component": "Sato--Niita thermal total-crystal sensitivity run", "expected_primary_pids": [2112], "measured_comparison": "excluded_geometry_sensitivity"}
+  },
+  "area_convergence": {
+    "two_sided_ks_p_threshold": 0.05,
+    "bootstrap_replicates": 1000,
+    "bootstrap_seed": 42000,
+    "minimum_in_window_depositions_per_area": 300,
+    "pairs": [
+      ["cry_muon_1m", "cry_muon_3m"],
+      ["cry_gamma_1m", "cry_gamma_3m"]
+    ]
+  },
+  "response_boundary": {
+    "simulated_quantity": "event-summed raw active-Ge ionizing deposition",
+    "minimum_entries_per_interpreted_bin": 25,
+    "not_modeled": [
+      "dead-layer charge collection beyond geometry",
+      "energy resolution",
+      "trigger and threshold efficiency",
+      "ADC saturation and overflow response",
+      "pileup",
+      "veto or DAQ dead time"
+    ]
+  }
+}
