@@ -403,15 +403,31 @@ consumer.
 3. **Source identity.** Record source surface/volume, position distribution,
    angular law, collimator/aperture relation, polarization if relevant, and
    the profile revision. Isotropic, front-face, or legacy throwers are model
-   variants, not interchangeable labels.
+   variants, not interchangeable labels. For the new comparison, freeze the
+   reconstructed historical pair as `throughOpening=false, direction=front`
+   (front illumination) and `throughOpening=false, direction=none` (all
+   illumination). Both throw into the full lead-collimator geometry. The
+   paper's `sim through` text is a misleading legacy label and must not be
+   interpreted as `throughOpening=true`. This pair is supported by surviving
+   local XML configuration and macro-generation code, but the exact
+   paper-generating ROOT products remain absent; the new calculation is not an
+   exact historical replay.
 4. **Transport identity.** Explicitly set physics list, EM and hadronic
    switches, region production cuts, step limits, transport profile, record
    level, random engine, seed-to-event mapping, and primary replay identity.
-   Include all generated primaries, including zero-deposition events.
+   Record the actual generated-primary count plus compact shard event-domain
+   coverage. Do not write one row per zero-deposition event. Deposition rows
+   retain event IDs; zero-Ge counts follow from the compact domain and the
+   unique depositing-event count.
 5. **Deposition boundary.** Preserve total, ionizing, active-Ge, dead-layer,
    and quarantined energy ledgers. State exactly where Geant4 geometry ends
    and charge response begins. Never apply a dead layer both geometrically and
-   as a second response loss.
+   as a second response loss. Retain the spatial Ge deposition rows needed to
+   rerun changed detector-response models. Lead deposition is passive loss,
+   not detector signal: production output should keep compact lead energy-loss
+   and escape/crossing diagnostics, not every lead step. Raw lead steps are a
+   bounded pilot/debug product only. Retain aggregate generated-primary and
+   zero-Ge-deposition counts, not a per-primary ledger.
 6. **Response identity.** Record detector configuration, field, weighting
    field, carrier velocity, pair creation/Fano treatment, charge-collection
    efficiency, trapping/transition policy, electronics, calibration,
@@ -459,6 +475,9 @@ No simulation campaign is authorized or scientifically ready. Hard blockers:
 
 - raw deposition, strict transport, and replay are not integrated on one
   clean, approved corrected-geometry producer revision;
+- the current matched W9 executable contains the detector/cryostat geometry,
+  not the full lead collimator, and writes only germanium scoring steps; it
+  cannot be reused unchanged for the front/all comparison;
 - front stack, passive internals, source profile, and other as-built geometry
   choices remain unresolved;
 - no clean committed detector-specific charge/field/electronics profile binds
