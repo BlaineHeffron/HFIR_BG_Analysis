@@ -28,6 +28,16 @@ Table 8 adds an authoritative Fe/Cu component audit, equal-status Al-27/Ge-70
 sensitivities, and separate all-declared versus fit-quality-acceptable model
 sensitivity.
 
+The separate [Table 8 local-ratio workflow](TABLE8_LOCAL_RATIOS.md) is a new
+measured-detector-count calculation on the same frozen native bins. Four
+isolated triplets and the four-parent cluster are fitted as five independent
+physical domains with complete within-domain covariance and row-local status.
+It currently supports 12 quantitative rows, marks nine as model-sensitive,
+and makes three 7724.034-keV rows quantitatively unreliable. Historical ROOT
+simulations remain absent; the documented NiM comparison contract is blocked
+on clean, committed geometry/response/estimator capabilities. No simulation
+agreement or high-energy validation is claimed.
+
 List the complete inventory after running the public setup:
 
 ```bash

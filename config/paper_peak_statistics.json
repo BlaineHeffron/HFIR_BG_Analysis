@@ -1,5 +1,5 @@
 {
-  "schema_version": 10,
+  "schema_version": 11,
   "result_semantics": "phase-2 new exploratory measured-data calculation; not approved manuscript replacement",
   "likelihood": {
     "observations": "raw unrebinned integer detector counts per channel",
@@ -348,6 +348,76 @@
       "tail_model": "constant"
     },
     "simulation_policy": "Measured-data candidates only. Missing monoenergetic simulations are neither fabricated nor summed; each future simulation must be fit separately with a declared case identity.",
+    "local_workflow": {
+      "predeclaration": "Frozen before examining local-fit ratio values on 2026-08-12; grouping, model family, thresholds, and status rules require new physical evidence before alteration.",
+      "result_semantics": "new local native-channel measured-detector-count calculation; not paper-exact reproduction and not response-model validation",
+      "historical_record": "config/table8_historical_reconstruction.json",
+      "grouping": [
+        {"name": "parent_6809_610", "parents_keV": ["6809.610"], "windows": ["t8_6809_dep", "t8_6809_sep", "t8_6809_fep"], "canonical_neighbors": ["fe54_6268_9_fep"]},
+        {"name": "cluster_7631_7724", "parents_keV": ["7631.180", "7645.580", "7693.398", "7724.034"], "windows": ["t8_cluster_dep", "t8_cluster_sep", "t8_cluster_fep"], "canonical_neighbors": ["cu63_6616_0_dep", "cu63_7127_0_sep", "cu63_7638_0_fep"]},
+        {"name": "parent_8998_630", "parents_keV": ["8998.630"], "windows": ["t8_8999_dep", "t8_8999_sep", "t8_8999_fep"], "canonical_neighbors": []},
+        {"name": "parent_9718_790", "parents_keV": ["9718.790"], "windows": ["t8_9719_dep", "t8_9719_sep", "t8_9719_fep"], "canonical_neighbors": []},
+        {"name": "parent_11386_500", "parents_keV": ["11386.500"], "windows": ["t8_11387_dep", "t8_11387_sep", "t8_11387_fep"], "canonical_neighbors": []}
+      ],
+      "native_windows": [
+        {"name": "t8_6809_dep", "first_channel_1_based": 6453, "last_channel_1_based": 6510},
+        {"name": "t8_6809_sep", "first_channel_1_based": 7006, "last_channel_1_based": 7083},
+        {"name": "t8_cluster_dep", "first_channel_1_based": 7378, "last_channel_1_based": 7529},
+        {"name": "t8_6809_fep", "first_channel_1_based": 7597, "last_channel_1_based": 7655},
+        {"name": "t8_cluster_sep", "first_channel_1_based": 7949, "last_channel_1_based": 8102},
+        {"name": "t8_cluster_fep", "first_channel_1_based": 8520, "last_channel_1_based": 8670},
+        {"name": "t8_8999_dep", "first_channel_1_based": 8904, "last_channel_1_based": 8961},
+        {"name": "t8_8999_sep", "first_channel_1_based": 9476, "last_channel_1_based": 9533},
+        {"name": "t8_8999_fep", "first_channel_1_based": 10048, "last_channel_1_based": 10106},
+        {"name": "t8_9719_dep", "first_channel_1_based": 9710, "last_channel_1_based": 9768},
+        {"name": "t8_9719_sep", "first_channel_1_based": 10283, "last_channel_1_based": 10340},
+        {"name": "t8_9719_fep", "first_channel_1_based": 10855, "last_channel_1_based": 10912},
+        {"name": "t8_11387_dep", "first_channel_1_based": 11578, "last_channel_1_based": 11635},
+        {"name": "t8_11387_sep", "first_channel_1_based": 12150, "last_channel_1_based": 12207},
+        {"name": "t8_11387_fep", "first_channel_1_based": 12722, "last_channel_1_based": 12779}
+      ],
+      "calibration_nuisance": "Each of the five group fits has its own common offset and fractional stretch with the phase-2 covariance and bounds. Quadratic curvature is omitted: across the widest group window its reviewed -0.905382-keV coefficient changes by about 0.028 keV, is almost affine locally, and leaves about 0.003 keV residual curvature, far below one 0.893146-keV native channel.",
+      "canonical_initial_from_frozen_phase2": {"calibration.offset_keV": 0.5863036290709057, "calibration.fractional_gain_stretch": -0.0012005358693575625, "resolution.intercept_keV": 0.9511201902485664, "resolution.linear_sigma_slope_keV_per_keV": 0.00020335418384669025, "shape.low_energy_tail_fraction": 0.21761310678796192, "shape.low_energy_tail_scale_in_sigma": 1.3383259741059537, "role": "deterministic optimizer initialization copied from the reproduced pre-local phase-2 fit; not a prior or fixed parameter"},
+      "canonical_basin_stability_check": {
+        "group": "parent_11386_500",
+        "initial_source": "canonical_initial_from_frozen_phase2",
+        "provenance": "Reviewer-required stage-iii optimizer validation added after the stage-ii basin diagnosis; it changes no model, estimand, threshold, or status rule and is not part of row selection.",
+        "perturbations": [
+          {"name": "all_copied_nuisances_minus_10_percent", "multiplicative_factor": 0.9},
+          {"name": "all_copied_nuisances_plus_10_percent", "multiplicative_factor": 1.1}
+        ],
+        "acceptance": {"maximum_absolute_penalized_nll_difference": 1e-8, "maximum_absolute_poisson_deviance_difference": 1e-4, "maximum_absolute_parameter_difference": 1e-4, "maximum_absolute_ratio_difference": 1e-5, "require_identical_active_bounds": true, "require_success_full_rank_covariance": true},
+        "role": "deterministic optimizer-basin diagnostic only; every copied nuisance is perturbed together with the enumerated factor, no runtime RNG is used, and these refits never enter the model-sensitivity envelope"
+      },
+      "model_variants": [
+        {"name": "common_left_tail_quadratic", "background_model": "quadratic", "tail_model": "constant", "role": "canonical for every group; prior phase-2 tail-removal deviance 3592.274 versus 2708.880 and interior tail fraction justify the choice"},
+        {"name": "no_tail_quadratic", "background_model": "quadratic", "tail_model": "none", "role": "uniform required line-shape sensitivity"},
+        {"name": "common_left_tail_affine", "background_model": "affine", "tail_model": "constant", "role": "uniform required background-degree sensitivity"}
+      ],
+      "neighbor_variants": [
+        {"name": "target_only", "groups": ["parent_6809_610", "cluster_7631_7724"], "replace_canonical_neighbors": true, "neighbors": []},
+        {"name": "ge70_6276_alternative", "groups": ["parent_6809_610"], "replace_canonical_neighbors": true, "neighbors": ["ge70_6276_25_fep"]},
+        {"name": "al27_6711_alternative", "groups": ["cluster_7631_7724"], "replace_canonical_neighbors": false, "neighbors": ["al27_6710_7_fep"]},
+        {"name": "ge70_6707_alternative", "groups": ["cluster_7631_7724"], "replace_canonical_neighbors": false, "neighbors": ["ge70_6707_45_fep"]},
+        {"name": "steel_catalog_sensitivity", "groups": ["cluster_7631_7724"], "replace_canonical_neighbors": false, "neighbors": ["cr53_6645_64_fep", "cr53_7100_11_fep", "ni58_7098_75_dep", "ni58_7609_75_sep"]}
+      ],
+      "role_local_sensitivity": "Refit each declared role window independently on identical native bins with a free constant effective width, no tail, and quadratic nonnegative background. Retain within-window multiplet covariance; set covariance between disjoint role windows exactly to zero. Diagnostic only, never a selected answer.",
+      "ratio_stability": {"material_threshold": "max(1.0 canonical conditional Fisher SD, 0.05*abs(canonical ratio))", "statistical_floor_annotation": "If movement exceeds 1.0 Fisher SD but passes only through the 5% floor, retain per-row driver, SD units, and relative units.", "declared_variants": "every successful full-rank shape, background, neighbor, and role-local sensitivity on identical native bins"},
+      "identifiability": {"minimum_conditional_yield_z": 3.0, "profile_confidence_level": 0.95, "target_pair_unresolved_correlation": 0.95, "target_nuisance_unresolved_correlation": 0.95, "target_core_poisson_residual_absolute": 4.0, "target_core_half_width_sigma": 2.0},
+      "status_codes": {
+        "Q": "supported quantitative: target yields interior and identifiable; full-rank covariance; no unresolved blend or target-core residual; all material movements within threshold",
+        "V": "quantitative but explicitly model-sensitive: identifiable ratio with a physically plausible movement above threshold, tail-choice status change, or mandatory Al-27/Ge-70 DEP sensitivity",
+        "R": "visible component but quantitative ratio unreliable because target-core morphology, covariance/shape identifiability, or role-specific response mismatch defeats area use",
+        "X": "unresolved blend: target-target or target-nuisance absolute correlation at least 0.95, or equal-status Al-27/Ge-70 reallocation above threshold",
+        "B": "boundary or one-sided upper limit from a valid 95% likelihood profile",
+        "U": "unsupported/unavailable: failed fit/profile, absent component, nonpositive denominator, or no defensible estimator"
+      },
+      "profile_rule": "Profile every ratio having a target numerator or denominator below 3 conditional Fisher sigma or on an active yield bound. A boundary numerator gets an upper limit; a nonpositive or boundary denominator, or failed profile, is unavailable. Regular interior ratios use full J Sigma J-transpose covariance.",
+      "bootstrap_rule": "No local bootstrap coverage claim: fewer than 200 replicas cannot change a reporting action. Existing 12-replica phase-2 reproduction remains a deterministic plumbing diagnostic.",
+      "role_separation_rule": "No free per-role or per-line centroid shifts and no higher-order calibration. Re-measure role-dependent residual centroids by group; persistent FEP/SEP/DEP separation is response/background evidence, not calibration freedom.",
+      "cluster_identifiability_rule": "Report Fisher rank, scaled condition, and target-pair line-rate correlations for 7631.180/7645.580 in DEP, SEP, and FEP. Absolute target-target correlation at least 0.95 forces X for ratios involving that target/role.",
+      "model_selection_rule": "One family for all groups; no row-wise model selection, cross-domain deviance ranking, physical-constraint relaxation, residual peak discovery, or post-hoc isotope assignment. Local deviance and residuals diagnose status but are not blanket vetoes."
+    },
     "contaminant_policy": "Phase 2 tests only catalogued lines from materials documented or physically plausible in the detector assembly. Canonical Fe-54 and Cu-63 additions have source plausibility and residual support. The close Al-27/Ge-70 6.71-MeV alternatives directly reallocate a target DEP and are retained at equal noncanonical sensitivity status despite their likelihood difference. Residual-only automatic peak discovery is prohibited.",
     "target_parents_keV": ["6809.610", "7631.180", "7645.580", "7693.398", "7724.034", "8998.630", "9718.790", "11386.500"],
     "canonical_component_variant": "target_plus_fe54_and_cu63",
