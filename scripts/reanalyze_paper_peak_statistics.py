@@ -43,12 +43,18 @@ from src.public_data.peak_likelihood import (
     ratio_values_and_covariance,
     ratios_from_fit,
 )
+from src.public_data.peak_residuals import (
+    poisson_deviance_contributions,
+    residual_bin_diagnostics,
+    window_residual_diagnostics,
+)
 from src.public_data.run_estimands import (
     aggregate_independent_run_rates,
     gls_constant_heterogeneity_interior,
     per_run_ratios,
     temporal_model_identifiability,
 )
+from src.public_data.table3_sum_first import analyze_table3_sum_first
 
 
 PUBLIC_V1_1_DB_SHA256 = (
@@ -87,37 +93,24 @@ def _write_fit_bins(
     path: Path,
     spectra: Sequence[PublicSpectrum],
     result: JointPeakFitResult,
+    spec: JointPeakSpec,
+    calibration: CalibrationConstraint,
+    resolution: LinearResolution,
 ) -> None:
+    rows = residual_bin_diagnostics(
+        spectra, result, spec, calibration, resolution
+    )
     with gzip.open(path, "wt", encoding="utf-8", newline="") as handle:
-        fields = [
-            "spectrum_index",
-            "file_id",
-            "window",
-            "channel_index_zero_based",
-            "observed_counts_per_bin",
-            "expected_counts_per_bin",
-            "poisson_residual",
-        ]
+        fields = list(rows[0])
         writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
-        for row_index, (observed, expected) in enumerate(
-            zip(result.observed_counts, result.expected_counts)
-        ):
-            spectrum_index = int(result.observation_spectrum_indices[row_index])
+        for row in rows:
             writer.writerow(
                 {
-                    "spectrum_index": spectrum_index,
-                    "file_id": spectra[spectrum_index].file_id,
-                    "window": result.observation_window_names[row_index],
-                    "channel_index_zero_based": int(
-                        result.observation_channel_indices[row_index]
-                    ),
-                    "observed_counts_per_bin": format(float(observed), ".12g"),
-                    "expected_counts_per_bin": format(float(expected), ".12g"),
-                    "poisson_residual": format(
-                        float((observed - expected) / np.sqrt(max(expected, 1e-12))),
-                        ".12g",
-                    ),
+                    key: format(value, ".12g")
+                    if isinstance(value, (float, np.floating))
+                    else value
+                    for key, value in row.items()
                 }
             )
 
@@ -146,6 +139,22 @@ def _constraint(config: dict[str, Any]) -> CalibrationConstraint:
             float(value)
             for value in config.get("per_run_stretch_bounds", (-2e-4, 2e-4))
         ),
+        curvature_mean_keV=(
+            None
+            if "curvature_mean_keV" not in config
+            else float(config["curvature_mean_keV"])
+        ),
+        curvature_sigma_keV=(
+            None
+            if "curvature_sigma_keV" not in config
+            else float(config["curvature_sigma_keV"])
+        ),
+        curvature_bounds_keV=tuple(
+            float(value)
+            for value in config.get("curvature_bounds_keV", (-2.0, 2.0))
+        ),
+        curvature_pivot_keV=float(config.get("curvature_pivot_keV", 0.0)),
+        curvature_scale_keV=float(config.get("curvature_scale_keV", 1.0)),
     )
 
 
@@ -257,6 +266,7 @@ def _covariance_rows(
 def _parameter_unit(name: str) -> str:
     if (
         name == "calibration.offset_keV"
+        or name == "calibration.quadratic_curvature_keV_at_domain_edges"
         or name == "resolution.intercept_keV"
         or name.endswith("calibration_offset_deviation_keV")
     ):
@@ -291,97 +301,7 @@ def _parameter_covariance_rows(
 def _count_deviance(observed: np.ndarray, expected: np.ndarray) -> float:
     """Poisson deviance for a selected diagnostic subset."""
 
-    positive = observed > 0
-    terms = expected - observed
-    terms = terms.astype(np.float64, copy=True)
-    terms[positive] += observed[positive] * np.log(
-        observed[positive] / expected[positive]
-    )
-    return float(2.0 * terms.sum())
-
-
-def _window_diagnostics(
-    result: JointPeakFitResult,
-    spectra: Sequence[PublicSpectrum],
-    spec: JointPeakSpec,
-    minimum_expected_counts: float,
-) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
-    component_counts = {
-        window.name: sum(component.window == window.name for component in spec.components)
-        for window in spec.windows
-    }
-    for spectrum_index, spectrum in enumerate(spectra):
-        for window in spec.windows:
-            mask = (
-                (result.observation_spectrum_indices == spectrum_index)
-                & (np.asarray(result.observation_window_names) == window.name)
-            )
-            observed = result.observed_counts[mask]
-            expected = result.expected_counts[mask]
-            residual = (observed - expected) / np.sqrt(np.maximum(expected, 1e-12))
-            eligible = expected >= minimum_expected_counts
-            full_window_deviance = _count_deviance(observed, expected)
-            reference_deviance = _count_deviance(
-                observed[eligible], expected[eligible]
-            )
-            reference_dof = int(np.count_nonzero(eligible))
-            eligible_absolute_residual = np.abs(residual[eligible])
-            rows.append(
-                {
-                    "spectrum_index": spectrum_index,
-                    "file_id": spectrum.file_id,
-                    "window": window.name,
-                    "low_keV": format(window.low_keV, ".12g"),
-                    "high_keV": format(window.high_keV, ".12g"),
-                    "raw_bin_count": int(mask.sum()),
-                    "chi_square_reference_bin_count": reference_dof,
-                    "excluded_low_expected_bin_count": int(
-                        mask.sum() - reference_dof
-                    ),
-                    "chi_square_minimum_expected_counts_per_bin": format(
-                        minimum_expected_counts, ".12g"
-                    ),
-                    "declared_component_count": component_counts[window.name],
-                    "observed_counts": format(float(observed.sum()), ".12g"),
-                    "expected_counts": format(float(expected.sum()), ".12g"),
-                    "full_poisson_deviance": format(
-                        full_window_deviance, ".12g"
-                    ),
-                    "chi_square_reference_poisson_deviance": format(
-                        reference_deviance, ".12g"
-                    ),
-                    "chi_square_reference_degrees_of_freedom": reference_dof,
-                    "chi_square_reference_p_value": format(
-                        (
-                            float(chi2.sf(reference_deviance, reference_dof))
-                            if reference_dof > 0
-                            else float("nan")
-                        ),
-                        ".12g",
-                    ),
-                    "largest_absolute_poisson_residual": format(
-                        (
-                            float(np.max(eligible_absolute_residual))
-                            if reference_dof > 0
-                            else float("nan")
-                        ),
-                        ".12g",
-                    ),
-                    "bins_with_absolute_residual_gt_4": int(
-                        np.count_nonzero(eligible_absolute_residual > 4.0)
-                    ),
-                    "bins_with_absolute_residual_gt_5": int(
-                        np.count_nonzero(eligible_absolute_residual > 5.0)
-                    ),
-                    "p_value_semantics": (
-                        "diagnostic chi-square reference restricted to bins meeting "
-                        "the declared minimum fitted expectation; shared fitted-parameter "
-                        "allocation is not unique"
-                    ),
-                }
-            )
-    return rows
+    return float(poisson_deviance_contributions(observed, expected).sum())
 
 
 def _fit_diagnostics(
@@ -938,6 +858,7 @@ def _table3_independent_products(
     config: dict[str, Any],
     spec: JointPeakSpec,
     result: JointPeakFitResult,
+    unrepaired_result: JointPeakFitResult,
     single_scale_result: JointPeakFitResult,
     shared_result: JointPeakFitResult,
     calibration: CalibrationConstraint,
@@ -948,6 +869,13 @@ def _table3_independent_products(
     """Build phase-2 estimands from one fitted yield per run and component."""
 
     component_names = tuple(component.name for component in spec.components)
+    reported_components = tuple(
+        component for component in spec.components
+        if component.role != "contaminant"
+    )
+    reported_component_names = tuple(
+        component.name for component in reported_components
+    )
     run_count = len(spectra)
     component_count = len(component_names)
     expected_names = tuple(
@@ -964,10 +892,21 @@ def _table3_independent_products(
         rates,
         result.line_rate_covariance,
     )
+    live_times = np.asarray([spectrum.live_time for spectrum in spectra])
+    total_live_time = float(live_times.sum())
+    unrepaired_aggregate_rates = {
+        name: sum(
+            spectrum.live_time
+            * unrepaired_result.line_rate(f"spectrum.{run_index}.{name}")
+            for run_index, spectrum in enumerate(spectra)
+        )
+        / total_live_time
+        for name in reported_component_names
+    }
     reference = str(config["reference_component"])
     definitions = tuple(
         RatioDefinition(f"{name}/{reference}", name, reference)
-        for name in component_names
+        for name in reported_component_names
     )
     aggregate_ratios = ratio_values_and_covariance(
         component_names,
@@ -1131,9 +1070,9 @@ def _table3_independent_products(
         np.maximum(np.diag(aggregate_ratio_total_covariance), 0.0)
     )
     aggregate_profiles: dict[str, ProfileInterval] = {}
-    live_times = np.asarray([spectrum.live_time for spectrum in spectra])
     reference_component_index = component_names.index(reference)
-    for component_index, component in enumerate(spec.components):
+    for component in reported_components:
+        component_index = component_names.index(component.name)
         if component.name == reference:
             continue
         component_parameter_names = {
@@ -1163,6 +1102,7 @@ def _table3_independent_products(
             denominator_weights[
                 run_index * component_count + reference_component_index
             ] = live_time
+        definition_index = reported_component_names.index(component.name)
         aggregate_profiles[component.name] = profile_linear_ratio_interval(
             spectra,
             spec,
@@ -1171,7 +1111,7 @@ def _table3_independent_products(
             result,
             numerator_weights,
             denominator_weights,
-            ratio_name=definitions[component_index].name,
+            ratio_name=definitions[definition_index].name,
             yield_model="independent_runs",
             confidence_level=float(reporting["profile_confidence_level"]),
             max_evaluations=24,
@@ -1179,36 +1119,46 @@ def _table3_independent_products(
                 reporting["profile_base_nll_consistency_tolerance"]
             ),
         )
-    aggregate_rows = [
-        {
+    aggregate_rows: list[dict[str, Any]] = []
+    for ratio_index, component in enumerate(reported_components):
+        component_index = component_names.index(component.name)
+        aggregate_rows.append({
             "paper_table": 3,
             "component": component.name,
             "energy_keV": format(component.energy_keV, ".12g"),
+            "paper_row_energy_keV": format(
+                float(
+                    component_config[component.name].get(
+                        "paper_energy_keV", component.energy_keV
+                    )
+                ),
+                ".12g",
+            ),
             "identity": component_config[component.name]["identity"],
             "origin_class": component.origin_class,
             "summed_fitted_detector_counts": format(
-                float(aggregate.summed_counts[index]), ".12g"
+                float(aggregate.summed_counts[component_index]), ".12g"
             ),
             "summed_counts_fisher_uncertainty": format(
-                float(aggregate_count_sd[index]), ".12g"
+                float(aggregate_count_sd[component_index]), ".12g"
             ),
             "aggregate_detected_rate_counts_per_s": format(
-                float(aggregate.aggregate_rates_counts_per_s[index]), ".12g"
+                float(aggregate.aggregate_rates_counts_per_s[component_index]), ".12g"
             ),
             "aggregate_rate_fisher_uncertainty_counts_per_s": format(
-                float(aggregate_rate_sd[index]), ".12g"
+                float(aggregate_rate_sd[component_index]), ".12g"
             ),
             "aggregate_ratio_to_558_5_keV": format(
-                float(aggregate_ratios.values[index]), ".12g"
+                float(aggregate_ratios.values[ratio_index]), ".12g"
             ),
             "aggregate_ratio_fisher_uncertainty": format(
-                float(aggregate_ratio_sd[index]), ".12g"
+                float(aggregate_ratio_sd[ratio_index]), ".12g"
             ),
             "aggregate_ratio_reference_model_rms_systematic": format(
-                float(aggregate_ratio_model_sd[index]), ".12g"
+                float(aggregate_ratio_model_sd[ratio_index]), ".12g"
             ),
             "aggregate_ratio_total_exploratory_uncertainty": format(
-                float(aggregate_ratio_total_sd[index]), ".12g"
+                float(aggregate_ratio_total_sd[ratio_index]), ".12g"
             ),
             "interval_kind": (
                 f"profile_{aggregate_profiles[component.name].kind}_statistical_only_model_covariance_separate"
@@ -1229,8 +1179,9 @@ def _table3_independent_products(
                         if component.name == reference
                         else max(
                             0.0,
-                            aggregate_ratios.values[index]
-                            - 1.959963984540054 * aggregate_ratio_total_sd[index],
+                            aggregate_ratios.values[ratio_index]
+                            - 1.959963984540054
+                            * aggregate_ratio_total_sd[ratio_index],
                         )
                     )
                 ),
@@ -1243,8 +1194,9 @@ def _table3_independent_products(
                     else (
                         1.0
                         if component.name == reference
-                        else aggregate_ratios.values[index]
-                        + 1.959963984540054 * aggregate_ratio_total_sd[index]
+                        else aggregate_ratios.values[ratio_index]
+                        + 1.959963984540054
+                        * aggregate_ratio_total_sd[ratio_index]
                     )
                 ),
                 ".12g",
@@ -1255,15 +1207,16 @@ def _table3_independent_products(
                 "see table3_run_heterogeneity.csv"
             ),
             "result_semantics": "new phase-2 measured-data calculation; not approved for manuscript",
-        }
-        for index, component in enumerate(spec.components)
-    ]
+        })
     for excluded in config["excluded_components"]:
         aggregate_rows.append(
             {
                 "paper_table": 3,
                 "component": excluded["name"],
                 "energy_keV": format(float(excluded["energy_keV"]), ".12g"),
+                "paper_row_energy_keV": format(
+                    float(excluded["energy_keV"]), ".12g"
+                ),
                 "identity": excluded.get("identity", excluded["name"]),
                 "origin_class": excluded.get("origin_class", ""),
                 "summed_fitted_detector_counts": "",
@@ -1342,7 +1295,8 @@ def _table3_independent_products(
         return f"GLS tests {estimand_description} across all interior runs"
 
     heterogeneity_rows: list[dict[str, Any]] = []
-    for component_index, component in enumerate(spec.components):
+    for component in reported_components:
+        component_index = component_names.index(component.name)
         positions = np.asarray(
             [run * component_count + component_index for run in range(run_count)]
         )
@@ -1497,20 +1451,97 @@ def _table3_independent_products(
             "semantics": "canonical descriptive model; chi-square LRT is diagnostic because nonnegative yield boundaries may invalidate regular calibration",
         },
     ]
+    same_repair_bins = bool(
+        np.array_equal(
+            unrepaired_result.observation_spectrum_indices,
+            result.observation_spectrum_indices,
+        )
+        and unrepaired_result.observation_window_names
+        == result.observation_window_names
+        and np.array_equal(
+            unrepaired_result.observation_channel_indices,
+            result.observation_channel_indices,
+        )
+    )
+    residual_model_rows = []
+    for model, fitted, canonical in (
+        ("without_ac228_338_320_nuisance", unrepaired_result, False),
+        ("with_ac228_338_320_nuisance", result, True),
+    ):
+        residual_model_rows.append(
+            {
+                "model": model,
+                "canonical": canonical,
+                "same_native_bins": same_repair_bins,
+                "raw_bin_count": fitted.observed_counts.size,
+                "free_parameter_count": len(fitted.parameter_names),
+                "poisson_deviance": format(fitted.poisson_deviance, ".12g"),
+                "degrees_of_freedom": fitted.degrees_of_freedom,
+                "fisher_rank": fitted.fisher_rank,
+                "fisher_condition": format(fitted.fisher_condition, ".12g"),
+                "active_bounds_json": json.dumps(
+                    fitted.active_bounds, separators=(",", ":")
+                ),
+                "interpretation": (
+                    "matched-native-bin named residual-morphology comparison; "
+                    "component accepted only with provenance, identifiable yields, "
+                    "and stable reported-line impact"
+                ),
+            }
+        )
+    unrepaired_reference_rate = unrepaired_aggregate_rates[reference]
+    residual_model_impact_rows = []
+    for component in reported_components:
+        index = component_names.index(component.name)
+        repaired_rate = float(aggregate.aggregate_rates_counts_per_s[index])
+        unrepaired_rate = float(unrepaired_aggregate_rates[component.name])
+        repaired_ratio = repaired_rate / float(
+            aggregate.aggregate_rates_counts_per_s[reference_component_index]
+        )
+        unrepaired_ratio = unrepaired_rate / unrepaired_reference_rate
+        residual_model_impact_rows.append(
+            {
+                "component": component.name,
+                "unrepaired_aggregate_rate_counts_per_s": format(
+                    unrepaired_rate, ".12g"
+                ),
+                "repaired_aggregate_rate_counts_per_s": format(
+                    repaired_rate, ".12g"
+                ),
+                "repaired_minus_unrepaired_rate_fraction": format(
+                    repaired_rate / unrepaired_rate - 1.0, ".12g"
+                ),
+                "unrepaired_ratio_to_reference": format(
+                    unrepaired_ratio, ".12g"
+                ),
+                "repaired_ratio_to_reference": format(repaired_ratio, ".12g"),
+                "repaired_minus_unrepaired_ratio": format(
+                    repaired_ratio - unrepaired_ratio, ".12g"
+                ),
+            }
+        )
     reference_audit = config["reference_window_component_audit"]
     canonical_reference = reference_audit["canonical_component"]
     reference_index = component_names.index(reference)
     reference_audit_rows: list[dict[str, Any]] = [
         {
             "candidate": reference,
-            "energy_keV": format(float(canonical_reference["paper_energy_keV"]), ".12g"),
+            "energy_keV": format(
+                float(canonical_reference["authoritative_energy_keV"]), ".12g"
+            ),
+            "paper_energy_keV": format(
+                float(canonical_reference["paper_energy_keV"]), ".12g"
+            ),
             "authoritative_energy_keV": format(
                 float(canonical_reference["authoritative_energy_keV"]), ".12g"
             ),
             "nuclide_reaction": canonical_reference["nuclide_reaction"],
             "classification": canonical_reference["classification"],
-            "source_plausibility": "paper-declared Cd-113 reference",
-            "fit_treatment": "canonical paper energy plus explicit IAEA-energy sensitivity",
+            "source_plausibility": "paper-declared Cd-113 reference with current CapGam energy",
+            "fit_treatment": (
+                "canonical CapGam energy plus explicit rounded-paper, "
+                "IAEA-PGAA, and Tl-208 window sensitivities"
+            ),
             "aggregate_fitted_rate_counts_per_s": format(
                 float(aggregate.aggregate_rates_counts_per_s[reference_index]), ".12g"
             ),
@@ -1524,7 +1555,12 @@ def _table3_independent_products(
             ),
         }
     ]
-    tl_result = reference_model_results.get("paper_energy_plus_tl208_583")
+    tl_variant_name = next(
+        item["name"]
+        for item in reference_audit["model_variants"]
+        if item["extend_for_tl208"]
+    )
+    tl_result = reference_model_results.get(tl_variant_name)
     for candidate in reference_audit["candidates"]:
         fitted_rate = fitted_sd = float("nan")
         if (
@@ -1561,6 +1597,7 @@ def _table3_independent_products(
             {
                 "candidate": candidate["name"],
                 "energy_keV": format(float(candidate["energy_keV"]), ".12g"),
+                "paper_energy_keV": "",
                 "authoritative_energy_keV": format(
                     float(candidate["energy_keV"]), ".12g"
                 ),
@@ -1610,7 +1647,7 @@ def _table3_independent_products(
         "table3_aggregate_ratio_reference_model_covariance.csv": _covariance_rows(
             aggregate_ratios.labels,
             aggregate_ratio_model_covariance,
-            "dimensionless^2 (IAEA reference-energy and Tl-208 window-extension RMS)",
+            "dimensionless^2 (declared reference-energy and Tl-208 window-extension RMS)",
         ),
         "table3_aggregate_ratio_total_covariance.csv": _covariance_rows(
             aggregate_ratios.labels,
@@ -1624,6 +1661,8 @@ def _table3_independent_products(
         "table3_run_heterogeneity.csv": heterogeneity_rows,
         "table3_temporal_model_identifiability.csv": temporal_rows,
         "table3_yield_model_comparison.csv": yield_model_rows,
+        "table3_residual_model_comparison.csv": residual_model_rows,
+        "table3_residual_model_yield_impact.csv": residual_model_impact_rows,
         "table3_reference_window_component_audit.csv": reference_audit_rows,
         "table3_reference_window_model_comparison.csv": reference_model_rows,
         "table3_aggregate_ratio_profile_intervals.csv": [
@@ -1646,10 +1685,12 @@ def _table3_independent_products(
             bootstrap,
             int(reporting["minimum_bootstrap_replicates_for_coverage_assessment"]),
         ),
-        "table3_window_diagnostics.csv": _window_diagnostics(
+        "table3_window_diagnostics.csv": window_residual_diagnostics(
             result,
             spectra,
             spec,
+            calibration,
+            resolution,
             float(reporting["chi_square_minimum_expected_counts_per_bin"]),
         ),
     }
@@ -1661,6 +1702,7 @@ def _table3_independent_products(
         ),
         "efficiency_or_unfolding_applied": False,
         "yield_model_comparison": yield_model_rows,
+        "residual_model_comparison": residual_model_rows,
         "reference_window_model_comparison": reference_model_rows,
         "reference_window_promotion_policy": reference_audit["promotion_policy"],
         "aggregate_profile_intervals": [
@@ -1736,11 +1778,41 @@ def _table3_products(
         raise RuntimeError(
             f"Table 3 independent-run fit failed: {independent_result.message}"
         )
+    accepted_nuisance_names = {
+        item["name"] for item in config["residual_model_repair"][
+            "accepted_components"
+        ]
+    }
+    unrepaired_spec = replace(
+        spec,
+        name=f"{spec.name}:without-accepted-residual-nuisance",
+        components=tuple(
+            component for component in spec.components
+            if component.name not in accepted_nuisance_names
+        ),
+    )
+    if len(unrepaired_spec.components) == len(spec.components):
+        raise RuntimeError("Table 3 accepted residual nuisance is absent from spec")
+    unrepaired_result = fit_joint_peak_model(
+        spectra,
+        unrepaired_spec,
+        calibration,
+        resolution,
+        yield_model="independent_runs",
+        warm_start=independent_result,
+        warm_start_source="Table 3 repaired residual model",
+    )
+    if not unrepaired_result.success:
+        raise RuntimeError(
+            "Table 3 matched unrepaired comparison failed: "
+            + unrepaired_result.message
+        )
     products, phase2_diagnostics = _table3_independent_products(
         spectra,
         config,
         spec,
         independent_result,
+        unrepaired_result,
         single_scale_result,
         shared_result,
         calibration,
@@ -1749,12 +1821,59 @@ def _table3_products(
         bootstrap_replicates,
     )
     diagnostics = _fit_diagnostics(independent_result, reporting)
+    window_alpha = float(reporting["familywise_diagnostic_alpha"]) / max(
+        len(diagnostics["window_deviance_diagnostics"]), 1
+    )
+    failed_windows = {
+        item["window"]
+        for item in diagnostics["window_deviance_diagnostics"]
+        if np.isfinite(item["chi_square_reference_p_value"])
+        and item["chi_square_reference_p_value"] < window_alpha
+    }
+    component_windows = {
+        component.name: component.window for component in spec.components
+    }
+    active_bounds = set(independent_result.active_bounds)
+    for row in products["table3_candidate.csv"]:
+        component_name = str(row["component"])
+        if not row["aggregate_ratio_to_558_5_keV"]:
+            row["uncertainty_status"] = "unavailable"
+            row["window_diagnostic_status"] = "not_fitted"
+        else:
+            component_bound = any(
+                f".line.{component_name}.rate_counts_per_s" in name
+                for name in active_bounds
+            )
+            row["uncertainty_status"] = (
+                "bounded_variant_required"
+                if component_bound
+                else "conditional_fisher_plus_declared_model_sensitivity"
+            )
+            row["window_diagnostic_status"] = (
+                "failed_bonferroni_reference"
+                if component_windows[component_name] in failed_windows
+                else "passed_bonferroni_reference"
+            )
+        row["model_discrepancy_treatment"] = (
+            "unquantified; no scalar uncertainty inflation"
+        )
+        row["manuscript_replacement_status"] = (
+            "unavailable; component not fitted"
+            if not row["aggregate_ratio_to_558_5_keV"]
+            else (
+                "candidate; requires author review"
+                if diagnostics["manuscript_replacement_applicable"]
+                else "unavailable; absolute count model rejected"
+            )
+        )
     diagnostics["phase2"] = phase2_diagnostics
     diagnostics["historical_reconstruction_record"] = (
         "config/table3_historical_reconstruction.json"
     )
     diagnostics["fit_result"] = independent_result
     diagnostics["spec"] = spec
+    diagnostics["calibration"] = calibration
+    diagnostics["resolution"] = resolution
     return products, diagnostics
 
 
@@ -1869,6 +1988,7 @@ def _table8_component_variants(
     audit = config["component_audit"]
     candidates = {item["name"]: item for item in audit["candidates"]}
     specs: dict[str, JointPeakSpec] = {}
+    variant_calibrations: dict[str, CalibrationConstraint] = {}
     variant_resolutions: dict[str, LinearResolution] = {}
     variant_metadata: dict[str, dict[str, Any]] = {}
     guarded_restart_rules: dict[str, dict[str, Any]] = {}
@@ -1884,16 +2004,20 @@ def _table8_component_variants(
             )
             for name in variant["candidate_components"]
         )
-        variant_spec = replace(
-            base_spec,
-            name=f"{base_spec.name}:{variant['name']}",
-            components=base_spec.components + additions,
+        variant_spec = _spec_with_background_model(
+            replace(
+                base_spec,
+                name=f"{base_spec.name}:{variant['name']}",
+                components=base_spec.components + additions,
+            ),
+            "quadratic",
         )
         specs[variant["name"]] = variant_spec
+        variant_calibrations[variant["name"]] = calibration
         variant_resolutions[variant["name"]] = resolution
         variant_metadata[variant["name"]] = {
             "candidate_components": list(variant["candidate_components"]),
-            "background_model": "affine",
+            "background_model": "quadratic",
             "tail_model": resolution.tail_model,
             "comparison_kind": "declared component set",
         }
@@ -1906,26 +2030,44 @@ def _table8_component_variants(
     no_tail_name = f"{canonical_component_name}_no_tail"
     no_tail_resolution = replace(resolution, tail_model="none")
     specs[no_tail_name] = canonical_spec
+    variant_calibrations[no_tail_name] = calibration
     variant_resolutions[no_tail_name] = no_tail_resolution
     variant_metadata[no_tail_name] = {
         "candidate_components": variant_metadata[canonical_component_name][
             "candidate_components"
         ],
-        "background_model": "affine",
+        "background_model": "quadratic",
         "tail_model": "none",
         "comparison_kind": "line-shape sensitivity",
     }
-    quadratic_name = f"{canonical_component_name}_quadratic_background"
-    quadratic_spec = _spec_with_background_model(canonical_spec, "quadratic")
-    specs[quadratic_name] = quadratic_spec
-    variant_resolutions[quadratic_name] = resolution
-    variant_metadata[quadratic_name] = {
+    affine_name = f"{canonical_component_name}_affine_background"
+    affine_spec = _spec_with_background_model(canonical_spec, "affine")
+    specs[affine_name] = affine_spec
+    variant_calibrations[affine_name] = calibration
+    variant_resolutions[affine_name] = resolution
+    variant_metadata[affine_name] = {
+        "candidate_components": variant_metadata[canonical_component_name][
+            "candidate_components"
+        ],
+        "background_model": "affine",
+        "tail_model": resolution.tail_model,
+        "comparison_kind": "background-shape sensitivity",
+    }
+    affine_calibration_name = f"{canonical_component_name}_affine_calibration"
+    specs[affine_calibration_name] = canonical_spec
+    variant_calibrations[affine_calibration_name] = replace(
+        calibration,
+        curvature_mean_keV=None,
+        curvature_sigma_keV=None,
+    )
+    variant_resolutions[affine_calibration_name] = resolution
+    variant_metadata[affine_calibration_name] = {
         "candidate_components": variant_metadata[canonical_component_name][
             "candidate_components"
         ],
         "background_model": "quadratic",
         "tail_model": resolution.tail_model,
-        "comparison_kind": "background-shape sensitivity",
+        "comparison_kind": "calibration-curvature diagnosis",
     }
 
     canonical_model_name = config["canonical_model_variant"]
@@ -1939,7 +2081,7 @@ def _table8_component_variants(
     canonical = fit_joint_peak_model(
         spectra,
         specs[canonical_model_name],
-        calibration,
+        variant_calibrations[canonical_model_name],
         variant_resolutions[canonical_model_name],
         allow_guarded_basin_restart=canonical_restart_allowed,
         guarded_basin_restart_source=canonical_restart_source,
@@ -1955,7 +2097,7 @@ def _table8_component_variants(
         results[name] = fit_joint_peak_model(
             spectra,
             variant_spec,
-            calibration,
+            variant_calibrations[name],
             variant_resolutions[name],
             warm_start=(
                 canonical
@@ -1974,6 +2116,40 @@ def _table8_component_variants(
     for name, result in results.items():
         parameter_count = len(result.parameter_names)
         observation_count = result.observed_counts.size
+        curvature_name = (
+            "calibration.quadratic_curvature_keV_at_domain_edges"
+        )
+        stretch_index = result.parameter_names.index(
+            "calibration.fractional_gain_stretch"
+        )
+        curvature_index = (
+            result.parameter_names.index(curvature_name)
+            if curvature_name in result.parameter_names
+            else None
+        )
+        curvature_stretch_correlation = (
+            None
+            if curvature_index is None
+            else (
+                result.covariance[curvature_index, stretch_index]
+                / np.sqrt(
+                    result.covariance[curvature_index, curvature_index]
+                    * result.covariance[stretch_index, stretch_index]
+                )
+            )
+        )
+        matched_bins = bool(
+            np.array_equal(
+                result.observation_spectrum_indices,
+                canonical.observation_spectrum_indices,
+            )
+            and result.observation_window_names
+            == canonical.observation_window_names
+            and np.array_equal(
+                result.observation_channel_indices,
+                canonical.observation_channel_indices,
+            )
+        )
         rows.append(
             {
                 "variant": name,
@@ -1984,10 +2160,16 @@ def _table8_component_variants(
                 ),
                 "background_model": variant_metadata[name]["background_model"],
                 "tail_model": variant_metadata[name]["tail_model"],
+                "calibration_model": (
+                    "affine"
+                    if curvature_index is None
+                    else "affine_plus_one_quadratic_curvature"
+                ),
                 "comparison_kind": variant_metadata[name]["comparison_kind"],
                 "success": result.success,
                 "free_parameter_count": parameter_count,
                 "raw_bin_count": observation_count,
+                "same_native_bins_as_canonical": matched_bins,
                 "penalized_nll": format(result.penalized_nll, ".12g"),
                 "poisson_deviance": format(result.poisson_deviance, ".12g"),
                 "calibration_offset_keV": format(
@@ -1996,6 +2178,23 @@ def _table8_component_variants(
                 "calibration_fractional_gain_stretch": format(
                     result.parameter("calibration.fractional_gain_stretch"),
                     ".12g",
+                ),
+                "calibration_quadratic_curvature_keV_at_domain_edges": (
+                    ""
+                    if curvature_index is None
+                    else format(result.parameter(curvature_name), ".12g")
+                ),
+                "calibration_curvature_stretch_correlation": (
+                    ""
+                    if curvature_stretch_correlation is None
+                    else format(float(curvature_stretch_correlation), ".12g")
+                ),
+                "fisher_rank": result.fisher_rank,
+                "fisher_dimension": parameter_count,
+                "fisher_condition": format(result.fisher_condition, ".12g"),
+                "fisher_covariance_valid": result.fisher_covariance_valid,
+                "active_bounds_json": json.dumps(
+                    result.active_bounds, separators=(",", ":")
                 ),
                 **_nonstandard_penalized_information_criteria(
                     result.penalized_nll,
@@ -2007,7 +2206,7 @@ def _table8_component_variants(
                     ".12g",
                 ),
                 "interpretation": (
-                    "sensitivity comparison; component boundaries and non-nested variants preclude automatic chi-square promotion"
+                    "matched-native-bin sensitivity comparison; component boundaries and non-nested variants preclude automatic chi-square promotion"
                 ),
             }
         )
@@ -2353,10 +2552,12 @@ def _table8_products(
         "table8_component_audit.csv": audit_rows,
         "table8_al27_ge70_discrimination.csv": al_ge_discrimination_rows,
         "table8_model_variant_comparison.csv": model_rows,
-        "table8_window_diagnostics.csv": _window_diagnostics(
+        "table8_window_diagnostics.csv": window_residual_diagnostics(
             result,
             spectra,
             spec,
+            calibration,
+            resolution,
             float(reporting["chi_square_minimum_expected_counts_per_bin"]),
         ),
         "table8_bootstrap_diagnostics.csv": _bootstrap_rows(
@@ -2365,6 +2566,20 @@ def _table8_products(
         ),
     }
     diagnostics = _fit_diagnostics(result, reporting)
+    for row in products["table8_candidate.csv"]:
+        row["uncertainty_status"] = (
+            "conditional_fisher_plus_declared_model_sensitivity"
+            if diagnostics["manuscript_replacement_applicable"]
+            else "unavailable"
+        )
+        row["model_discrepancy_treatment"] = (
+            "unquantified; no scalar uncertainty inflation"
+        )
+        row["manuscript_replacement_status"] = (
+            "candidate; requires author review"
+            if diagnostics["manuscript_replacement_applicable"]
+            else "unavailable; absolute count model rejected and background bound active"
+        )
     diagnostics["profile_intervals"] = profiles
     diagnostics["bootstrap_seed"] = bootstrap.seed
     diagnostics["bootstrap_pseudo_observation_provenance"] = (
@@ -2425,6 +2640,8 @@ def _table8_products(
     }
     diagnostics["fit_result"] = result
     diagnostics["spec"] = spec
+    diagnostics["calibration"] = calibration
+    diagnostics["resolution"] = resolution
     return products, diagnostics
 
 
@@ -2432,7 +2649,7 @@ def _serializable_diagnostics(diagnostics: dict[str, Any]) -> dict[str, Any]:
     return {
         key: value
         for key, value in diagnostics.items()
-        if key not in {"fit_result", "spec"}
+        if key not in {"fit_result", "spec", "calibration", "resolution"}
     }
 
 
@@ -2464,7 +2681,10 @@ def _write_manifest(
     """Write the self-contained provenance manifest used by the CLI."""
 
     manifest = {
-        "workflow": "paper peak-statistics measured-data correction phase 2",
+        "workflow": (
+            "paper peak-statistics measured-data correction; phase-2 and/or "
+            "Table 3 exact-sum/local-window lanes"
+        ),
         "result_semantics": config["result_semantics"],
         "input_release": "HFIRBG_public_data_v1.1.0",
         "database_sha256": database_sha256,
@@ -2524,12 +2744,33 @@ def main() -> None:
     )
     parser.add_argument("--table", choices=("3", "8", "all"), default="all")
     parser.add_argument(
+        "--table3-workflow",
+        choices=("phase2", "sum-first", "both"),
+        default="phase2",
+        help="Table 3 analysis lane; 'both' emits the complete comparison map",
+    )
+    parser.add_argument(
+        "--table3-phase2-comparison-csv",
+        type=Path,
+        help=(
+            "prior table3_candidate.csv to populate the sum-first comparison "
+            "without repeating the expensive unchanged phase-2 fit"
+        ),
+    )
+    parser.add_argument(
         "--bootstrap-replicates",
         type=int,
         default=None,
         help="deterministic diagnostic refits per table (default from config)",
     )
     args = parser.parse_args()
+    if (
+        args.table3_phase2_comparison_csv is not None
+        and args.table3_workflow != "sum-first"
+    ):
+        raise ValueError(
+            "--table3-phase2-comparison-csv is only valid with sum-first"
+        )
 
     bundle = args.bundle.expanduser().resolve()
     db_path = bundle / "HFIRBG.db"
@@ -2564,7 +2805,14 @@ def main() -> None:
     diagnostics_by_table: dict[str, dict[str, Any]] = {}
     input_records: dict[str, list[dict[str, Any]]] = {}
     fit_bin_jobs: list[
-        tuple[str, tuple[PublicSpectrum, ...], JointPeakFitResult]
+        tuple[
+            str,
+            tuple[PublicSpectrum, ...],
+            JointPeakFitResult,
+            JointPeakSpec,
+            CalibrationConstraint,
+            LinearResolution,
+        ]
     ] = []
 
     if args.table in {"3", "all"}:
@@ -2575,16 +2823,85 @@ def main() -> None:
         expected_run = config["table3"]["selection"]["run_name"]
         if any(spectrum.run_name != expected_run for spectrum in spectra):
             raise RuntimeError("a configured Table 3 file no longer belongs to the declared run")
-        table_products, diagnostics = _table3_products(
-            spectra, config["table3"], reporting, bootstrap_replicates
-        )
-        products.update(table_products)
+        diagnostics: dict[str, Any] = {}
+        if args.table3_workflow in {"phase2", "both"}:
+            table_products, diagnostics = _table3_products(
+                spectra, config["table3"], reporting, bootstrap_replicates
+            )
+            products.update(table_products)
+            fit_bin_jobs.append(
+                (
+                    "table3_fit_bins.csv.gz",
+                    spectra,
+                    diagnostics["fit_result"],
+                    diagnostics["spec"],
+                    diagnostics["calibration"],
+                    diagnostics["resolution"],
+                )
+            )
+        if args.table3_workflow in {"sum-first", "both"}:
+            historical_path = (
+                repo_root / "config" / "table3_historical_reconstruction.json"
+            )
+            historical = json.loads(historical_path.read_text(encoding="utf-8"))
+            phase2_comparison_rows: Sequence[dict[str, Any]] = products.get(
+                "table3_candidate.csv", ()
+            )
+            phase2_comparison_record: dict[str, Any] | None = None
+            if args.table3_phase2_comparison_csv is not None:
+                comparison_path = (
+                    args.table3_phase2_comparison_csv.expanduser().resolve()
+                )
+                with comparison_path.open("r", encoding="utf-8", newline="") as handle:
+                    phase2_comparison_rows = list(csv.DictReader(handle))
+                if len(phase2_comparison_rows) != 35:
+                    raise RuntimeError(
+                        "prior phase-2 Table 3 comparison must contain 35 rows"
+                    )
+                phase2_comparison_record = {
+                    "path": str(comparison_path),
+                    "sha256": _sha256(comparison_path),
+                    "row_count": len(phase2_comparison_rows),
+                    "semantics": "prior simultaneous phase-2 conditional diagnostic",
+                }
+            sum_first = analyze_table3_sum_first(
+                spectra,
+                config["table3"],
+                historical,
+                _constraint(config["table3"]["calibration_constraint"]),
+                _resolution(config["table3"]["resolution_initial"]),
+                phase2_rows=phase2_comparison_rows,
+                minimum_expected_counts=float(
+                    reporting["chi_square_minimum_expected_counts_per_bin"]
+                ),
+            )
+            products.update(sum_first.products)
+            diagnostics["sum_first"] = sum_first.diagnostics
+            diagnostics["sum_first_phase2_comparison_input"] = (
+                phase2_comparison_record
+                if phase2_comparison_record is not None
+                else {
+                    "source": "same invocation phase-2 lane"
+                    if phase2_comparison_rows
+                    else "not supplied",
+                    "row_count": len(phase2_comparison_rows),
+                }
+            )
+            fit_bin_jobs.append(
+                (
+                    "table3_sum_first_fit_bins.csv.gz",
+                    (sum_first.accumulated,),
+                    sum_first.canonical_result,
+                    sum_first.canonical_spec,
+                    sum_first.calibration,
+                    sum_first.resolution,
+                )
+            )
         diagnostics_by_table["3"] = _serializable_diagnostics(diagnostics)
         input_records["3"] = [
             _input_record(spectrum, data_root, run_records[spectrum.run_id])
             for spectrum in spectra
         ]
-        fit_bin_jobs.append(("table3_fit_bins.csv.gz", spectra, diagnostics["fit_result"]))
 
     if args.table in {"8", "all"}:
         file_id = int(config["table8"]["selection"]["file_id"])
@@ -2598,13 +2915,27 @@ def main() -> None:
             _input_record(spectrum, data_root, run_records[spectrum.run_id])
         ]
         fit_bin_jobs.append(
-            ("table8_fit_bins.csv.gz", (spectrum,), diagnostics["fit_result"])
+            (
+                "table8_fit_bins.csv.gz",
+                (spectrum,),
+                diagnostics["fit_result"],
+                diagnostics["spec"],
+                diagnostics["calibration"],
+                diagnostics["resolution"],
+            )
         )
 
     for filename, rows in products.items():
         _write_csv(output_dir / filename, rows)
-    for filename, spectra, result in fit_bin_jobs:
-        _write_fit_bins(output_dir / filename, spectra, result)
+    for filename, spectra, result, spec, calibration, resolution in fit_bin_jobs:
+        _write_fit_bins(
+            output_dir / filename,
+            spectra,
+            result,
+            spec,
+            calibration,
+            resolution,
+        )
     for table, diagnostics in diagnostics_by_table.items():
         (output_dir / f"table{table}_fit_diagnostics.json").write_text(
             json.dumps(diagnostics, indent=2, sort_keys=True) + "\n",

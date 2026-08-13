@@ -12,7 +12,7 @@ import sqlite3
 from dataclasses import dataclass, replace
 from math import isfinite
 from pathlib import Path
-from typing import Any, Literal, Mapping
+from typing import Any, Literal, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
@@ -319,6 +319,91 @@ def load_spectrum(
         counts=counts,
         energy_keV=energy,
         bin_width_keV=widths,
+        metadata=metadata,
+    )
+
+
+def accumulate_spectra_exact(
+    spectra: Sequence[PublicSpectrum],
+    *,
+    name: str = "exact_raw_channel_accumulation",
+) -> PublicSpectrum:
+    """Add identical raw-channel spectra exactly in signed 64-bit integers.
+
+    This is deliberately narrower than rebinning or spectrum arithmetic: every
+    input must have integer counts, the same canonical calibration assignment,
+    raw channel grid, and run identity.  The source file identities and live
+    times remain in metadata for derived-product provenance.
+    """
+
+    items = tuple(spectra)
+    if not items:
+        raise ValueError("exact accumulation requires at least one spectrum")
+    reference = items[0]
+    calibration_group = reference.metadata.get("calibration_group_id")
+    if calibration_group is None:
+        raise ValueError("exact accumulation requires a calibration group id")
+
+    total = np.zeros(reference.counts.shape, dtype=np.int64)
+    maximum = np.iinfo(np.int64).max
+    for index, spectrum in enumerate(items):
+        if spectrum.file_id in {prior.file_id for prior in items[:index]}:
+            raise ValueError("exact accumulation requires unique file ids")
+        if (
+            spectrum.run_id != reference.run_id
+            or spectrum.run_name != reference.run_name
+        ):
+            raise ValueError("exact accumulation requires one run identity")
+        if spectrum.metadata.get("calibration_group_id") != calibration_group:
+            raise ValueError(
+                "exact accumulation requires one calibration group assignment"
+            )
+        if (
+            spectrum.counts.shape != reference.counts.shape
+            or spectrum.calibration_A0 != reference.calibration_A0
+            or spectrum.calibration_A1 != reference.calibration_A1
+            or not np.array_equal(spectrum.energy_keV, reference.energy_keV)
+            or not np.array_equal(
+                spectrum.bin_width_keV, reference.bin_width_keV
+            )
+        ):
+            raise ValueError(
+                "exact accumulation requires identical calibration/channel grids"
+            )
+        counts = np.asarray(spectrum.counts)
+        if not np.equal(counts, np.floor(counts)).all():
+            raise ValueError("exact accumulation requires integer detector counts")
+        if np.issubdtype(counts.dtype, np.floating) and np.any(
+            counts > np.float64(2**53 - 1)
+        ):
+            raise OverflowError(
+                "floating detector counts exceed the exactly representable integer range"
+            )
+        if np.any(counts > maximum):
+            raise OverflowError("a detector count exceeds signed int64")
+        integer_counts = counts.astype(np.int64)
+        if np.any(total > maximum - integer_counts):
+            raise OverflowError("summed detector counts exceed signed int64")
+        total += integer_counts
+
+    metadata = dict(reference.metadata)
+    metadata.update(
+        {
+            "accumulation": "exact raw-channel integer addition; no rebinning",
+            "input_file_ids": tuple(spectrum.file_id for spectrum in items),
+            "input_file_names": tuple(spectrum.file_name for spectrum in items),
+            "input_live_times_s": tuple(spectrum.live_time for spectrum in items),
+            "calibration_group_id": calibration_group,
+        }
+    )
+    return replace(
+        reference,
+        file_id=0,
+        file_name=name,
+        live_time=float(sum(spectrum.live_time for spectrum in items)),
+        counts=total,
+        energy_keV=reference.energy_keV.copy(),
+        bin_width_keV=reference.bin_width_keV.copy(),
         metadata=metadata,
     )
 

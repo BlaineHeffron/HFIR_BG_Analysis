@@ -103,7 +103,7 @@ def test_manifest_preserves_exploratory_scope_and_reporting(tmp_path):
     )
     manifest = json.loads(manifest_path.read_text())
     assert manifest["reporting_configuration"] == CONFIG["reporting"]
-    assert manifest["configuration"]["schema_version"] == 8
+    assert manifest["configuration"]["schema_version"] == 10
     assert manifest["result_semantics"] == CONFIG["result_semantics"]
     assert CONFIG["result_semantics"].startswith("phase-2 new exploratory")
     assert CONFIG["reporting"]["candidate_status"].startswith("exploratory")
@@ -130,6 +130,17 @@ def test_historical_table3_record_freezes_inputs_bug_and_caption_conflict():
     assert [item["file_id"] for item in files] == [1716, 1765, 334, 1676]
     assert all(len(item["spectrum_sha256"]) == 64 for item in files)
     assert HISTORICAL["selection_and_order"]["total_live_time_s"] == 260013.89
+    assert HISTORICAL["selection_and_order"]["summed_detector_counts"] == 5845047
+    assert HISTORICAL["selection_and_order"]["maximum_summed_channel_count"] == 156917
+    assert HISTORICAL["selection_and_order"][
+        "summed_counts_sha256_int64_little_endian"
+    ] == "ca030c709a3ece435df510a6e1e62b4ffe866e43fc9c181f948b50e6ae2a6d24"
+    windows = HISTORICAL["historical_local_windows"]
+    assert len(windows) == 34
+    assert sum(
+        item["last_channel_1_based"] - item["first_channel_1_based"] + 1
+        for item in windows
+    ) == 515
     by_energy = {
         item["energy_keV"]: item for item in HISTORICAL["exact_legacy_ratios"]
     }
@@ -137,6 +148,44 @@ def test_historical_table3_record_freezes_inputs_bug_and_caption_conflict():
     assert round(by_energy[238.6]["ratio"], 3) == 0.346
     assert round(by_energy[7367.9]["ratio"], 3) == 0.003
     assert by_energy[478.0]["paper_display"] == "--"
+    assert by_energy[558.5]["repaired_full_line_ratio"] == 1.0
+    assert by_energy[558.5]["repaired_full_line_conditional_uncertainty"] == 0.0
+
+
+def test_table3_sum_first_model_and_drift_decisions_are_frozen():
+    workflow = CONFIG["table3"]["sum_first_local_workflow"]
+    assert [item["name"] for item in workflow["model_variants"]] == [
+        "no_tail_affine",
+        "no_tail_quadratic",
+        "common_left_tail_quadratic",
+    ]
+    assert workflow["drift_diagnostic"]["anchors_keV"] == [
+        351.932,
+        558.456,
+        1293.640,
+        1764.491,
+        2614.511,
+    ]
+    assert workflow["drift_diagnostic"][
+        "mixture_broadening_threshold_fraction"
+    ] == 0.05
+    assert "25 keV" in workflow["weak_branch_rule"]
+    assert workflow["row_thresholds"] == {
+        "supported_conditional_z_minimum": 3.0,
+        "zero_compatible_conditional_z_maximum": 1.96,
+        "material_absolute_poisson_residual": 4.0,
+        "material_ratio_shift_conditional_sigma": 1.0,
+    }
+    isolated = {
+        item["name"]: item["energy_keV"]
+        for item in workflow["isolated_candidate_components"]
+    }
+    assert isolated == {
+        "rd_609_3": 609.321,
+        "rd_707_4": 707.419,
+        "rd_1364_3": 1364.339,
+        "rd_1377_7": 1377.669,
+    }
 
 
 def test_table8_candidates_are_declared_inside_windows_and_not_auto_promoted():
@@ -161,9 +210,28 @@ def test_table8_candidates_are_declared_inside_windows_and_not_auto_promoted():
         for item in table["component_audit"]["variants"]
     }
     canonical = variants[table["canonical_component_variant"]]
-    assert table["canonical_model_variant"] == (
-        f"{table['canonical_component_variant']}_quadratic_background"
-    )
+    assert table["canonical_model_variant"] == table["canonical_component_variant"]
+    calibration = table["calibration_constraint"]
+    low = min(window["low_keV"] for window in table["windows"])
+    high = max(window["high_keV"] for window in table["windows"])
+    assert calibration["curvature_mean_keV"] == 0.0
+    assert calibration["curvature_sigma_keV"] == 0.893146
+    assert calibration["curvature_bounds_keV"] == [-2.679438, 2.679438]
+    assert calibration["curvature_pivot_keV"] == (low + high) / 2.0
+    assert calibration["curvature_scale_keV"] == (high - low) / 2.0
+    target_components = [
+        item for item in table["components"] if item["role"] != "contaminant"
+    ]
+    for parent_text in table["target_parents_keV"]:
+        parent = float(parent_text)
+        by_role = {
+            item["role"]: item["energy_keV"]
+            for item in target_components
+            if float(item["parent"]) == parent
+        }
+        assert by_role == pytest.approx(
+            {"fep": parent, "sep": parent - 511.0, "dep": parent - 1022.0}
+        )
     assert canonical == {
         "fe54_6268_9_fep",
         "cu63_6616_0_dep",
@@ -197,11 +265,10 @@ def test_table8_phase2_window_change_is_common_and_not_directly_comparable():
 
 
 def test_table3_reference_audit_keeps_unsupported_candidates_unfitted():
+    audit = CONFIG["table3"]["reference_window_component_audit"]
     candidates = {
         item["name"]: item
-        for item in CONFIG["table3"]["reference_window_component_audit"][
-            "candidates"
-        ]
+        for item in audit["candidates"]
     }
     expected = {
         "co59_555_972",
@@ -219,3 +286,62 @@ def test_table3_reference_audit_keeps_unsupported_candidates_unfitted():
         )
         for name in expected
     )
+    assert audit["canonical_variant"] == "capgam_energy_558_456"
+    assert audit["canonical_component"]["authoritative_energy_keV"] == 558.456
+
+
+def test_table3_residual_repair_excludes_nonidentifiable_windows():
+    table = CONFIG["table3"]
+    components = {item["name"]: item for item in table["components"]}
+    windows = {item["name"] for item in table["windows"]}
+    excluded = {item["name"]: item for item in table["excluded_components"]}
+    accepted = table["residual_model_repair"]["accepted_components"]
+    assert [item["name"] for item in accepted] == [
+        "ac228_338_320_nuisance"
+    ]
+    assert components["ac228_338_320_nuisance"]["role"] == "contaminant"
+    assert components["ac228_338_320_nuisance"]["window"] == "rd_352"
+    assert {"rd_609", "rd_707_725", "rd_1364_1400"}.isdisjoint(windows)
+    unavailable = {
+        "rd_609_3",
+        "rd_707_4",
+        "rd_725_0",
+        "rd_1364_3",
+        "rd_1377_7",
+        "rd_1399_6",
+    }
+    assert unavailable.issubset(excluded)
+    assert all(
+        excluded[name]["interval_kind"].startswith("unavailable_")
+        for name in unavailable
+    )
+
+
+def test_table3_model_uses_authoritative_energies_with_paper_labels():
+    components = {
+        item["name"]: item for item in CONFIG["table3"]["components"]
+    }
+    expected = {
+        "rd_238_6": (238.632, 238.6),
+        "rd_242_0": (241.995, 242.0),
+        "rd_295_2": (295.224, 295.2),
+        "rd_351_9": (351.932, 351.9),
+        "rd_558_5_reference": (558.456, 558.5),
+        "rd_651_3": (651.256, 651.3),
+        "rd_768_4": (768.36, 768.4),
+        "rd_805_9": (805.887, 805.9),
+        "rd_1120_3": (1120.294, 1120.3),
+        "rd_1209_7": (1209.713, 1209.7),
+        "rd_1238_1": (1238.122, 1238.1),
+        "rd_1281_0": (1280.976, 1281.0),
+        "rd_1293_6": (1293.64, 1293.6),
+        "rd_1764_5": (1764.491, 1764.5),
+        "rd_2204_2": (2204.1, 2204.2),
+        "rd_2223_0": (2223.245, 2223.0),
+        "rd_2455_8": (2456.0, 2455.8),
+        "rd_2614_533": (2614.511, 2614.533),
+    }
+    assert {
+        name: (components[name]["energy_keV"], components[name]["paper_energy_keV"])
+        for name in expected
+    } == expected
