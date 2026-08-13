@@ -103,7 +103,7 @@ def test_manifest_preserves_exploratory_scope_and_reporting(tmp_path):
     )
     manifest = json.loads(manifest_path.read_text())
     assert manifest["reporting_configuration"] == CONFIG["reporting"]
-    assert manifest["configuration"]["schema_version"] == 10
+    assert manifest["configuration"]["schema_version"] == 11
     assert manifest["result_semantics"] == CONFIG["result_semantics"]
     assert CONFIG["result_semantics"].startswith("phase-2 new exploratory")
     assert CONFIG["reporting"]["candidate_status"].startswith("exploratory")

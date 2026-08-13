@@ -55,6 +55,7 @@ from src.public_data.run_estimands import (
     temporal_model_identifiability,
 )
 from src.public_data.table3_sum_first import analyze_table3_sum_first
+from src.public_data.table8_local import analyze_table8_local
 
 
 PUBLIC_V1_1_DB_SHA256 = (
@@ -2683,7 +2684,8 @@ def _write_manifest(
     manifest = {
         "workflow": (
             "paper peak-statistics measured-data correction; phase-2 and/or "
-            "Table 3 exact-sum/local-window lanes"
+            "Table 3 exact-sum/local-window and Table 8 local-native-channel "
+            "lanes"
         ),
         "result_semantics": config["result_semantics"],
         "input_release": "HFIRBG_public_data_v1.1.0",
@@ -2756,6 +2758,12 @@ def main() -> None:
             "prior table3_candidate.csv to populate the sum-first comparison "
             "without repeating the expensive unchanged phase-2 fit"
         ),
+    )
+    parser.add_argument(
+        "--table8-workflow",
+        choices=("phase2", "local", "both"),
+        default="phase2",
+        help="Table 8 analysis lane; 'both' emits the complete comparison map",
     )
     parser.add_argument(
         "--bootstrap-replicates",
@@ -2906,24 +2914,57 @@ def main() -> None:
     if args.table in {"8", "all"}:
         file_id = int(config["table8"]["selection"]["file_id"])
         spectrum = load_spectrum(file_id, db_path, data_root)
-        table_products, diagnostics = _table8_products(
-            spectrum, config["table8"], reporting, bootstrap_replicates
-        )
-        products.update(table_products)
+        diagnostics: dict[str, Any] = {}
+        if args.table8_workflow in {"phase2", "both"}:
+            table_products, diagnostics = _table8_products(
+                spectrum, config["table8"], reporting, bootstrap_replicates
+            )
+            products.update(table_products)
+            fit_bin_jobs.append(
+                (
+                    "table8_fit_bins.csv.gz",
+                    (spectrum,),
+                    diagnostics["fit_result"],
+                    diagnostics["spec"],
+                    diagnostics["calibration"],
+                    diagnostics["resolution"],
+                )
+            )
+        if args.table8_workflow in {"local", "both"}:
+            historical_path = (
+                repo_root / "config" / "table8_historical_reconstruction.json"
+            )
+            historical = json.loads(historical_path.read_text(encoding="utf-8"))
+            local = analyze_table8_local(
+                spectrum,
+                config["table8"],
+                historical,
+                _constraint(config["table8"]["calibration_constraint"]),
+                _resolution(config["table8"]["resolution_initial"]),
+                minimum_expected_counts=float(
+                    reporting["chi_square_minimum_expected_counts_per_bin"]
+                ),
+                profile_base_nll_consistency_tolerance=float(
+                    reporting["profile_base_nll_consistency_tolerance"]
+                ),
+            )
+            products.update(local.products)
+            diagnostics["local"] = local.diagnostics
+            for job in local.fit_bin_jobs:
+                fit_bin_jobs.append(
+                    (
+                        job.filename,
+                        (spectrum,),
+                        job.result,
+                        job.spec,
+                        job.calibration,
+                        job.resolution,
+                    )
+                )
         diagnostics_by_table["8"] = _serializable_diagnostics(diagnostics)
         input_records["8"] = [
             _input_record(spectrum, data_root, run_records[spectrum.run_id])
         ]
-        fit_bin_jobs.append(
-            (
-                "table8_fit_bins.csv.gz",
-                (spectrum,),
-                diagnostics["fit_result"],
-                diagnostics["spec"],
-                diagnostics["calibration"],
-                diagnostics["resolution"],
-            )
-        )
 
     for filename, rows in products.items():
         _write_csv(output_dir / filename, rows)
@@ -2983,6 +3024,32 @@ def main() -> None:
             "record_source_sha256": _sha256(historical_path),
         }
         (output_dir / "table3_historical_reconstruction.json").write_text(
+            json.dumps(historical, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+    if "8" in diagnostics_by_table and args.table8_workflow in {"local", "both"}:
+        historical_path = repo_root / "config" / "table8_historical_reconstruction.json"
+        historical = json.loads(historical_path.read_text(encoding="utf-8"))
+        observed = input_records["8"][0]
+        expected = historical["input"]
+        if (
+            observed["file_id"] != expected["file_id"]
+            or observed["file_name"] != expected["file_name"]
+            or observed["run_id"] != expected["run_id"]
+            or observed["live_time_s"] != expected["live_time_s"]
+            or observed["calibration_A0_keV"] != expected["calibration_A0_keV"]
+            or observed["calibration_A1_keV_per_channel"]
+            != expected["calibration_A1_keV_per_channel"]
+            or observed["spectrum_sha256"] != expected["spectrum_sha256"]
+        ):
+            raise RuntimeError("historical Table 8 reconstruction input changed")
+        historical["runtime_verification"] = {
+            "database_sha256_matches": True,
+            "spectrum_identity_hash_live_time_and_calibration_match": True,
+            "record_source_path": str(historical_path),
+            "record_source_sha256": _sha256(historical_path),
+        }
+        (output_dir / "table8_historical_reconstruction.json").write_text(
             json.dumps(historical, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )

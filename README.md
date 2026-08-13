@@ -151,6 +151,25 @@ is unfolded flux or a cadmium-abundance inference.
 See [Paper peak-statistics correction, phase
 2](docs/PEAK_STATISTICS_CORRECTION.md).
 
+Table 8 also has a distinct local native-channel measured-count lane:
+
+```bash
+table8_output_dir=$(mktemp -d /tmp/hfir-table8-local.XXXXXX)
+python3 scripts/reanalyze_paper_peak_statistics.py \
+  --bundle data/HFIRBG_public_data_v1.1.0 \
+  --output-dir "$table8_output_dir" \
+  --table 8 \
+  --table8-workflow local \
+  --bootstrap-replicates 1
+```
+
+It fits four isolated triplets and one four-parent multiplet, preserves full
+within-domain covariance, and reports row-local `Q`/`V`/`R` status instead of
+applying the rejected global fit as a blanket veto. The current result is 12
+supported quantitative, nine model-sensitive, and three ratio-unreliable rows.
+It is a new measured-data calculation, not a response validation. See [Table 8
+local ratios and response-model bridge](docs/TABLE8_LOCAL_RATIOS.md).
+
 The text spectra are measured detector counts, not unfolded incident flux.
 The public bundle includes ROOT-free NumPy copies of the two Geant4 response
 matrices used for the published unfolds, but reproducing a new unfold also
