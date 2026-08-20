@@ -28,3 +28,8 @@ Public analysis and read-only browser for released HPGe spectra and selected pap
 ## Verification
 
 - Run the narrow public-data or analysis checks documented for the changed workflow; do not trigger multi-gigabyte setup downloads unless required.
+
+## Shared scientific work policy
+
+- Read and obey [`../AGENTS.md`](../AGENTS.md), especially **Scientific work —
+  mandatory**. Local rules above specialize that policy and do not weaken it.
