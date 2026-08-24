@@ -23,6 +23,11 @@ CALENDAR_TIMEZONE = "America/New_York"
 DEFAULT_CYCLE_CALENDAR_PATH = (
     Path(__file__).resolve().parents[2] / "reference_data" / "hfir_cycle_calendar.csv"
 )
+DEFAULT_REACTOR_STATE_ANNOTATIONS_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "reference_data"
+    / "hfir_reactor_state_annotations.csv"
+)
 
 _CALENDAR_REQUIRED_COLUMNS = {
     "cycle",
@@ -43,6 +48,20 @@ _CALENDAR_PROVENANCE_COLUMNS = (
     "source_doi",
     "retrieved_date",
 )
+_ANNOTATION_REQUIRED_COLUMNS = {
+    "file_id",
+    "file_name",
+    "start_time_utc",
+    "run_id",
+    "original_run_name",
+    "cycle",
+    "best_reactor_state",
+    "state_basis",
+    "evidence_status",
+    "equivalent_full_power_hours",
+    "equivalent_full_power_hours_uncertainty",
+    "notes",
+}
 
 _CYCLE_RE = re.compile(
     r"(?i)(?:^|[^a-z0-9])(?:pre|post)?cycle[\s_-]*(\d{3})([abc])?"
@@ -184,6 +203,47 @@ def load_cycle_calendar(
         if calendar[column].nunique(dropna=False) != 1:
             raise ValueError(f"HFIR cycle calendar has inconsistent {column} values")
     return calendar
+
+
+def load_reactor_state_annotations(
+    path: os.PathLike[str] | str | None = None,
+) -> pd.DataFrame:
+    """Load file-level reactor-state corrections without changing raw labels.
+
+    These annotations use measured prompt cadmium-line changes. They are not
+    an official interval reactor-power record.
+    """
+
+    annotations_path = (
+        DEFAULT_REACTOR_STATE_ANNOTATIONS_PATH
+        if path is None
+        else Path(path).expanduser().resolve()
+    )
+    if not annotations_path.is_file():
+        raise FileNotFoundError(
+            f"HFIR reactor-state annotations not found: {annotations_path}"
+        )
+
+    annotations = pd.read_csv(annotations_path, dtype=str, keep_default_na=False)
+    missing = _ANNOTATION_REQUIRED_COLUMNS.difference(annotations.columns)
+    if missing:
+        raise ValueError(
+            "HFIR reactor-state annotations are missing required columns: "
+            + ", ".join(sorted(missing))
+        )
+    if annotations.empty:
+        raise ValueError("HFIR reactor-state annotations are empty")
+    if annotations["file_id"].duplicated().any():
+        raise ValueError("HFIR reactor-state annotations contain duplicate file IDs")
+    if annotations["file_name"].duplicated().any():
+        raise ValueError("HFIR reactor-state annotations contain duplicate file names")
+    allowed_states = {"off", "on", "mixed_startup", "mixed_shutdown", UNKNOWN}
+    if not annotations["best_reactor_state"].isin(allowed_states).all():
+        raise ValueError("HFIR reactor-state annotations contain an invalid state")
+    timestamps = pd.to_datetime(annotations["start_time_utc"], utc=True, errors="coerce")
+    if timestamps.isna().any():
+        raise ValueError("HFIR reactor-state annotations contain an invalid UTC time")
+    return annotations
 
 
 def _period_for_date(value: date, calendar: pd.DataFrame) -> tuple[str, str, str] | None:

@@ -133,4 +133,5 @@ dmypy.json
 .pyre/
 
 *.csv
+!reference_data/hfir_reactor_state_annotations.csv
 *.png

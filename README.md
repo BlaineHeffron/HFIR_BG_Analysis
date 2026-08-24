@@ -9,6 +9,12 @@ The public bundle contains 1,802 calibrated text spectra in 354 run records.
 The browser and export tools do not require CERN ROOT and never write to the
 canonical SQLite database.
 
+The repository also provides file-level corrections for six misleading
+Cycle 494 and Cycle 495 transition labels. See
+[`reference_data/hfir_reactor_state_annotations.csv`](reference_data/hfir_reactor_state_annotations.csv).
+These corrections use measured Cd-113 line rates. They do not supply an
+official interval reactor power history and do not change the database.
+
 ## Start here
 
 ### Browse and export the released data

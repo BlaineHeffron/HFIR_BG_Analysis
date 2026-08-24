@@ -17,6 +17,7 @@ from src.public_data.catalog import (
     derive_reactor_cycle,
     derive_reactor_state,
     load_cycle_calendar,
+    load_reactor_state_annotations,
 )
 
 
@@ -119,6 +120,27 @@ class OfficialCycleCalendarTests(unittest.TestCase):
             invalid.to_csv(path, index=False)
             with self.assertRaisesRegex(ValueError, "overlapping"):
                 load_cycle_calendar(path)
+
+
+class ReactorStateAnnotationTests(unittest.TestCase):
+    def test_known_transition_corrections_are_file_level(self):
+        annotations = load_reactor_state_annotations()
+        states = annotations.set_index("file_name")["best_reactor_state"]
+        self.assertEqual(states["00004205"], "off")
+        self.assertEqual(states["00004206"], "mixed_startup")
+        self.assertEqual(states["00004426"], "mixed_startup")
+        self.assertEqual(states["00004427"], "on")
+        self.assertTrue(annotations["file_id"].is_unique)
+        self.assertTrue(annotations["file_name"].is_unique)
+
+    def test_annotations_reject_duplicate_file_identity(self):
+        annotations = load_reactor_state_annotations()
+        duplicate = annotations.iloc[[0, 0]].copy()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "duplicate.csv"
+            duplicate.to_csv(path, index=False)
+            with self.assertRaisesRegex(ValueError, "duplicate file IDs"):
+                load_reactor_state_annotations(path)
 
 
 @unittest.skipUnless(
