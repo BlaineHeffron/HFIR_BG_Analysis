@@ -2,6 +2,10 @@
 
 Public analysis and read-only browser for released HPGe spectra and selected paper products.
 
+## Minimize code
+
+Ship the feature with the fewest lines. Do not add parallel scopes, policy layers, wrappers, or helpers unless an existing path cannot do the job. Prefer deleting and reusing over extending. Extra code is extra bugs and extra maintenance.
+
 ## Scientific invariants
 
 - Never write to the canonical SQLite database.
