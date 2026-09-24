@@ -57,17 +57,66 @@ Shield Center (feeds the PROSPECT AD1 shape-only comparison):
 | front | 1–6 MeV | +0.02% | +0.20% | +0.22% |
 | front | 6–11.5 MeV | +0.08% | +0.20% | +0.28% |
 
-None of these approach 10% or 25%. The iso/front bracket at 0.2–1 MeV is
-already a factor of ~7, much larger than 1.6%.
+None of these approach 10% or 25%.
 
-HB4 and East 1: (a) is 0 (ROOT already used the DB axis). (b) is +1.40% and
-+0.34%, equal to the live-time rate scale.
+Current P2x (`ca486313`) plus the published matrices plus the published ROOT
+files reproduces the published iso unfolds to 1.5e-7 relative (identical-input
+rerun). HB4 and East 1 (a)=0 is the same check on DB-matching axes.
 
-MIF on and East 18: (a) is large in the 40 keV bin / 0.2–1 MeV front MIF
-because those published axes were not the DB calibration. The physically
-relevant mid/high bands stay at the percent level except MIF-on iso 0.2–1,
-which is an already unphysical 8e-8 Hz/mm² dip.
+## Shield Center 0.2–1 MeV is a 200 keV band edge, not a flux change
+
+The axis at file 186 moves by 0.054 keV near 200 keV (published low edge
+0.272229 keV, width 0.699400 keV → A0+A1/2 = 0.326290 keV, width 0.699415 keV).
+Channel contents are identical. A line sits on the 200 keV boundary: published
+channel centres 197.85, 199.25, 199.95, 200.65 keV have 3548, 5700, 4435, 2984
+counts on an ~1850 continuum (Ge-71m 198.4 keV is the plausible parent).
+The 4435-count channel is 199.951 keV in the published hist and 200.009 keV
+after the DB axis, so it crosses 200 keV. Input counts in 200–1000 keV rise
+0.30% (1.47344e6 → 1.47787e6); 210–1000 keV is unchanged. RL then concentrates
+the edge: unfolded iso 0.2–1 MeV (a)=+1.40%; at 0.21–1 MeV (a)=+1.11%. This is
+not a calibration-driven continuum flux change. AD1 shape remains ≪10%.
+
+## Uncertainty
+
+The iso/front pair is a response-model systematic, kept as its own column, not
+as a per-band statistical error.
+
+Poisson-replica toys (`analysis/unfold/toy_stats`, RL, n=4) exist only for HB4.
+Relative standard deviation of the band integral:
+
+| scenario | 40–200 keV | 0.2–1 MeV | 1–6 MeV | 6–11.5 MeV |
+| --- | ---: | ---: | ---: | ---: |
+| HB4 iso | 1.38% | 1.03% | 0.026% | 0.058% |
+| HB4 front | 1.49% | 0.11% | 0.040% | 0.063% |
+
+MIF-on toys in that directory record only the 50–2000 keV fraction, not these
+bands. No per-band replica set exists for Shield Center or East. Where a toy
+spread is missing, do not invent one from the iso/front bracket.
+
+## Full band table
+
+Machine table: `docs/unfold_rebuild_bands_v1.2.2.csv` (all 8 names × iso/front ×
+40–200, 0.2–1, 0.21–1, 1–6, 6–11.5, 7.6–7.7 keV × published / v1.2.1 / v1.2.2 /
+(a)/(b)/total / LT factor / (b)−LT).
+
+Max |(b) − LT ratio| on 0.2–1, 1–6 and 6–11.5 MeV, excluding the MIF-on iso
+0.2–1 numerical floor (8e-8 Hz/mm²): **HB4 iso 0.2–1, +0.30%**. Other AD1-style
+bands are ≤ 1e-4 except MIF-on iso 7.6–7.7 (+0.39%). The 0.30% is RL stopping
+under a 1.4% rate rescaling, not a second input change.
+
+Fe-line window 7.6–7.7 MeV, (a) only (axis files):
+
+| location | iso (a) | front (a) |
+| --- | ---: | ---: |
+| MIF on | −8.96% | −6.81% |
+| MIF off | −2.78% | −1.88% |
+| East 18 | +0.60% | +4.44% |
+| Shield Center | +1.15% | +2.10% |
+| HB4, East 1 | 0 | 0 |
+
+MIF-on iso 6–11.5 MeV (a) is +0.015%; the −9% is confined to the 100 keV Fe
+window, as expected for a ~6 keV axis shift at 7.6 MeV.
 
 Executable comparison: `scripts/compare_unfold_rebuild.py`.
 Unfolded ROOT: `analysis/unfold/browser_v1.2.{1,2}_{iso,front}/` (gitignored).
-Paper text is not edited. Figures not committed pending review.
+Paper text is not edited.
