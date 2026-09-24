@@ -787,6 +787,9 @@
                 "MIF_AM_SOURCE_MAXGAIN"
             ],
             "description": "Cycle 491 MIF position Americium source max gain",
+            "source_id": "AL-9959",
+            "source_placement": "taped across collimator opening",
+            "db_run_id": 279,
             "name": "Cycle491_max_gain_Am",
             "detector_configuration": 7,
             "detector_coordinates": [
@@ -802,6 +805,10 @@
                 "MIF_AM_SOURCE_521KEV"
             ],
             "description": "Cycle 491 MIF position Americium source high gain",
+            "source_id": "AL-9959",
+            "source_placement": "taped across collimator opening",
+            "background_run": "Cycle491_high_gain_no_source",
+            "db_run_id": 280,
             "name": "Cycle491_high_gain_Am",
             "detector_configuration": 8,
             "detector_coordinates": [
@@ -817,6 +824,7 @@
                 "MIF_NO_SOURCE_521KEV"
             ],
             "description": "Cycle 491 MIF position no source high gain",
+            "db_run_id": 281,
             "name": "Cycle491_high_gain_no_source",
             "detector_configuration": 8,
             "detector_coordinates": [
@@ -871,6 +879,9 @@
                 "MIF_STRONG_AM_SOURCE_520KEV"
             ],
             "description": "Cycle 491 MIF position strong am source test high gain",
+            "source_placement": "taped across collimator opening",
+            "source_id": "10 uCi Am-241 (nominal; serial and reference date unknown)",
+            "db_run_id": 285,
             "name": "Cycle491_high_gain_strong_am",
             "detector_configuration": 9,
             "detector_coordinates": [
@@ -886,6 +897,9 @@
                 "MIF_STRONG_AM_SOURCE_MAXGAIN"
             ],
             "description": "Cycle 491 MIF position strong am source test max gain",
+            "source_placement": "taped across collimator opening",
+            "source_id": "10 uCi Am-241 (nominal; serial and reference date unknown)",
+            "db_run_id": 286,
             "name": "Cycle491_max_gain_strong_am",
             "detector_configuration": 11,
             "detector_coordinates": [
@@ -901,6 +915,9 @@
                 "MIF_STRONG_AM_SOURCE_MAXGAIN_0LLD"
             ],
             "description": "Cycle 491 MIF position strong am source test max gain, 0 LLD",
+            "source_placement": "taped across collimator opening",
+            "source_id": "10 uCi Am-241 (nominal; serial and reference date unknown)",
+            "db_run_id": 287,
             "name": "Cycle491_max_gain_strong_am_0lld",
             "detector_configuration": 12,
             "detector_coordinates": [
@@ -916,6 +933,9 @@
                 "MIF_STRONG_AM_SOURCE_MAXGAIN_50LLD"
             ],
             "description": "Cycle 491 MIF position strong am source test max gain, 50 LLD",
+            "source_placement": "taped across collimator opening",
+            "source_id": "10 uCi Am-241 (nominal; serial and reference date unknown)",
+            "db_run_id": 288,
             "name": "Cycle491_max_gain_strong_am_50lld",
             "detector_configuration": 13,
             "detector_coordinates": [
@@ -931,6 +951,9 @@
                 "MIF_STRONG_AM_SOURCE_520KEV_LTC_ON"
             ],
             "description": "Cycle 491 MIF position strong am source test high gain, LTC on",
+            "source_placement": "taped across collimator opening",
+            "source_id": "10 uCi Am-241 (nominal; serial and reference date unknown)",
+            "db_run_id": 289,
             "name": "Cycle491_high_gain_strong_am_ltc_on",
             "detector_configuration": 14,
             "detector_coordinates": [
@@ -946,6 +969,9 @@
                 "MIF_STRONG_AM_SOURCE_MAXGAIN_LTC_ON"
             ],
             "description": "Cycle 491 MIF position strong am source test max gain, LTC on",
+            "source_placement": "taped across collimator opening",
+            "source_id": "10 uCi Am-241 (nominal; serial and reference date unknown)",
+            "db_run_id": 290,
             "name": "Cycle491_max_gain_strong_am_ltc_on",
             "detector_configuration": 15,
             "detector_coordinates": [
@@ -958,6 +984,9 @@
         },{
             "file_list": ["NOMINAL_STRONG_AM_SOURCE_MAXGAIN"],
             "description": "Cycle 491 nominal position max gain calibration run with am source",
+            "source_placement": "taped across collimator opening",
+            "source_id": "10 uCi Am-241 (nominal; serial and reference date unknown)",
+            "db_run_id": 291,
             "name": "Cycle491_nominal_max_gain_Am_cal",
             "detector_configuration": 15,
             "detector_coordinates": [
@@ -1031,6 +1060,9 @@
                 "MIF_AM_CAL"
             ],
             "description": "Cycle 491 MIF max gain Am calibration run",
+            "source_id": "10 uCi Am-241 (nominal; serial and reference date unknown)",
+            "source_placement": "taped across collimator opening",
+            "db_run_id": 296,
             "name": "Cycle491_MIF_Am_cal",
             "detector_configuration": 7,
             "detector_coordinates": [
