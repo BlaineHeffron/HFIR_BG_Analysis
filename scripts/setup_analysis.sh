@@ -94,9 +94,9 @@ if grep -qF '/data/HFIRBG_public_data_v1.0.1/' .env; then
     echo "Updated .env portable defaults to ${DATA_VERSION}."
 fi
 # Prefer the latest local correction; do not run this on a frozen study environment.
-for local_version in 1.2.1 1.2.0; do
+for local_version in 1.2.2 1.2.1 1.2.0; do
     if [[ -f "data/HFIRBG_public_data_v${local_version}/HFIRBG.db" ]]; then
-        sed -i -E "s|/data/HFIRBG_public_data_v1\.(1\.0|2\.0)/HFIRBG\.db|/data/HFIRBG_public_data_v${local_version}/HFIRBG.db|g" .env
+        sed -i -E "s|/data/HFIRBG_public_data_v1\.(1\.0|2\.[01])/HFIRBG\.db|/data/HFIRBG_public_data_v${local_version}/HFIRBG.db|g" .env
         echo "Selected local database default v${local_version}."
         break
     fi

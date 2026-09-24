@@ -22,14 +22,13 @@ from src.spectrum_names import spectrum_name_candidates
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 # Prefer local timing/name corrections; keep older bundles as fallbacks.
-STANDARD_PUBLIC_BUNDLE = (
-    REPOSITORY_ROOT / "data" / "HFIRBG_public_data_v1.2.1"
-)
+STANDARD_PUBLIC_BUNDLE = REPOSITORY_ROOT / "data" / "HFIRBG_public_data_v1.2.2"
 STANDARD_DB_CANDIDATES = (
-    REPOSITORY_ROOT / "db" / "HFIRBG.db",
     STANDARD_PUBLIC_BUNDLE / "HFIRBG.db",
+    REPOSITORY_ROOT / "data" / "HFIRBG_public_data_v1.2.1" / "HFIRBG.db",
     REPOSITORY_ROOT / "data" / "HFIRBG_public_data_v1.2.0" / "HFIRBG.db",
     REPOSITORY_ROOT / "data" / "HFIRBG_public_data_v1.1.0" / "HFIRBG.db",
+    REPOSITORY_ROOT / "db" / "HFIRBG.db",
 )
 
 Normalization = Literal["counts", "counts/s", "counts/s/keV"]

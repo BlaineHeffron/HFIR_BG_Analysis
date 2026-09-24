@@ -1,8 +1,76 @@
 # Local CNF timing correction
 
+## Acquisition dead time in local v1.2.2
+
+The preferred local database is now `data/HFIRBG_public_data_v1.2.2/HFIRBG.db`.
+It copies v1.2.1 and corrects the 1,758 matched spectra with nonzero counts whose
+selected CNF live and real counters are equal. All 44 spectra with a directly
+measured live-time deficit are unchanged. Counts, calibration, names, start
+times and real times are unchanged. This is a new calculation, not a paper-exact
+reproduction or a public release. Rebuild without reading CNF binaries:
+
+```sh
+python3 scripts/correct_cnf_dead_time.py
+```
+
+For acquisition setting 5 (40 measured files, gain product 2.04), with recorded rate
+`r = counts / real_time` in Hz, the fitted non-paralyzable dead fraction is
+`f = 0.000788293 + (22.0603 microseconds) r`; corrected live time is
+`real_time (1-f)`. Equivalently, observed `tau = (real-live)/counts =
+22.0603 microseconds + 0.000788293/r`. Leave-one-out errors in tau have
+median 3.8% and maximum 17.2%. The 1-sigma live-time uncertainty combines
+observed tau scatter, a 10% relative prediction allowance, and the difference
+from an equally valid direct dead-fraction fit. Rates above the measured maximum
+of 906 Hz are flagged as extrapolations.
+
+Three strong Am-241 runs at maximum gain have a measured dead fraction of
+5.42% with 0.04 percentage-point scatter. A same-position equal-counter run
+has about 1% inferred deficit, so that fraction is not transferred to other
+runs. Equal-counter maximum-gain files use the setting-5 law as a central
+estimate, with 1-sigma uncertainty spanning the measured 5.42% fraction, and
+are flagged `unmeasured-contested-gain`. Every other acquisition setting uses
+the setting-5 rate law as a provisional
+central estimate, with at least 100% relative uncertainty in the modeled dead
+fraction and a setting-specific flag. The acquisition-settings ID and LTC mode
+are recorded per file. No validated CNF rejected-event counter exists; the
+last recorded channel is not an overflow counter. The measured max-gain test
+settings have no directly comparable equal-counter partner at the same
+settings, so an above-range transfer cannot be validated. All unmeasured classes
+and corrections above 5% are flagged. This is an empirical acquisition model,
+not a detector-response unfolding. `corrections.csv` holds per-file old/new
+live time, tau, class, method, uncertainty and flags; `summary.json` holds the
+model coefficients and flagged file IDs.
+
+As an independent control, omit file `00002927` from the fit: the 12 adjacent
+900-second presets `00002915`–`00002926` then average 925.80 Hz after
+correction versus 924.45 Hz from `00002927` counts / measured live time,
+a 0.15% difference (about one combined statistical standard deviation).
+
+| Consumer | New rate effect from v1.2.1 | Action |
+|---|---:|---|
+| Paper down-facing scan | 309 corrected points: median +1.08%, range +0.15% to +2.15% | Replot if adopting v1.2.2 |
+| Paper east-face scan | 17 corrected points: median +0.38%, range +0.24% to +0.59% | Replot if adopting v1.2.2 |
+| Paper Russian Doll rate table and reactor-on/off inputs | Selected runs 3051–54, 4012–17: +0.09% to +0.13% | Recompute table and fit only by user decision |
+| Paper unfolding inputs | Six published spectra: +0.20%, +0.25%, +0.33%, +0.34%, +1.40%, +2.20%; two restored overnights unchanged | Rebuild inputs and rerun unfolding only by user decision |
+| Collimator transfer | File 186: +0.200% | Rerun comparison if adopting v1.2.2 |
+| PHONON Am-241 scan | Runs 285, 286, 289: +1.75%, +1.15%, +1.65% (all unmeasured settings); measured runs 287, 288, 290 unchanged | Recalculate scan |
+| Russian Doll fits | Input rate shifts about +0.09% to +0.13% for core on/off files | Refit only by user decision |
+
+A same-position Am-241 check constrains the contested maximum-gain transfer:
+file 1331 (run 286) has a 59.5-keV peak rate of 207.96 ± 0.31 Hz per
+recorded real second, matching the directly measured files' peak rates per
+live second. Those files give about 197–200 Hz per real second. This supports
+a roughly 1% correction, not transfer of the triplet's 5.42%.
+
+The paper figures and text, published ancillary unfolded-flux CSVs, prior local
+databases and the public release remain as they were. The existing figures are
+paper-exact historical artifacts; a v1.2.2 rendering would be a new replot.
+
+## Earlier timing and name corrections
+
 Local v1.2.1 adds the verified file-186 name correction
-`CYCLE461_DOWN_FACING_OVERNIGHT` → `CYCLE491_DOWN_FACING_OVERNIGHT` and is
-preferred for new analyses. Its start (6 May 2021) and run-295 description
+`CYCLE461_DOWN_FACING_OVERNIGHT` → `CYCLE491_DOWN_FACING_OVERNIGHT` and was
+preferred before v1.2.2. Its start (6 May 2021) and run-295 description
 agree with Cycle 491 in `reference_data/hfir_cycle_calendar.csv`. No other
 `CYCLE461_*` entry exists. Timing, calibration and counts are identical to
 v1.2.0. Both old versions remain untouched. `src/spectrum_names.py` is the
@@ -14,14 +82,13 @@ and the rename evidence alongside timing corrections.
 
 The local `data/HFIRBG_public_data_v1.2.0/HFIRBG.db` corrects 45 live times and
 108 start times identified by a survey of 1,809 Canberra CNFs (1,802 database
-matches). The browser and `setup_analysis.sh` prefer v1.2.1, then v1.2.0, with
-v1.1.0 as the published fallback. It is not a public release; v1.1.0 is unchanged.
+matches). The browser and `setup_analysis.sh` now prefer v1.2.2, then v1.2.1, v1.2.0, and the published v1.1.0 fallback. It is not a public release; v1.1.0 is unchanged.
 
 Select a database explicitly with the existing browser interface:
 
 ```python
 from src.public_data.browser import load_spectrum
-spectrum = load_spectrum(444, db_path="data/HFIRBG_public_data_v1.2.1/HFIRBG.db")
+spectrum = load_spectrum(444, db_path="data/HFIRBG_public_data_v1.2.2/HFIRBG.db")
 ```
 
 `HFIRBG_CALDB` also selects an explicit database; an existing `.env` that still
@@ -31,8 +98,7 @@ in a frozen study environment: setup upgrades the standard `.env` database
 path; an explicit `db_path` binding remains authoritative. The local copy links to
 the original spectra; counts, calibration assignments and run mappings are unchanged.
 The added `datafile.real_time` is the selected native CNF real counter in
-seconds. Equal real/live values do **not** demonstrate zero physical dead time;
-no dead-time fraction is imputed. The browser still normalizes by live time.
+seconds. Equal real/live values do **not** demonstrate zero physical dead time; v1.2.2 applies the empirical correction above. The browser normalizes by selected live time.
 
 Reproduce with the compiled reader from the private phonon-response workspace:
 
