@@ -33,7 +33,7 @@ DEFAULT_ANALYSIS_ROOT = Path(os.environ.get("HFIRBG_ANALYSIS", REPO_ROOT / "anal
 UNFOLDED_LOCATIONS = (
     ("01", "MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN", "MIF (Rx On)"),
     ("02", "MIF_BOX_AT_REACTOR_RXOFF", "MIF (Rx Off)"),
-    ("03", "CYCLE461_DOWN_FACING_OVERNIGHT", "Shield Center"),
+    ("03", "CYCLE461_DOWN_FACING_OVERNIGHT", "Shield Center"),  # Cycle 491; public filename unchanged
 )
 
 # These IDs and gain modes reproduce Figure 14. Historical database names for

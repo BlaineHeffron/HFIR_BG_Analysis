@@ -15,7 +15,7 @@ locations = {
         "off": "MIF_BOX_AT_REACTOR_RXOFF"
     },
     "Low Rate (Near Shield Wall)": {
-        "on": "CYCLE461_DOWN_FACING_OVERNIGHT",  # Shield center down
+        "on": "CYCLE461_DOWN_FACING_OVERNIGHT",  # Cycle 491 Shield Center; public filename
         "off": "NOMINAL_NORTH_RXOFF_2DAY"  # Using nominal rxoff as proxy for low rate off
     },
     "Russian Doll": {

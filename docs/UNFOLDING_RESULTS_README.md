@@ -60,7 +60,7 @@ ROOT-free detector-response matrices distributed with the public data bundle:
 |---|---|---|
 | 01 | `MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN` | MIF (Rx On) |
 | 02 | `MIF_BOX_AT_REACTOR_RXOFF` | MIF (Rx Off) |
-| 03 | `CYCLE461_DOWN_FACING_OVERNIGHT` | Shield Center |
+| 03 | `CYCLE461_DOWN_FACING_OVERNIGHT` | Shield Center (Cycle 491; historical filename CYCLE461) |
 | 04 | `HB4_DOWN_OVERNIGHT_1` | HB4 |
 | 05 | `EAST_FACE_18` | PROSPECT East 1 |
 | 06 | `EAST_FACE_1` | PROSPECT East 2 |

@@ -50,7 +50,12 @@ def convert_cart_coord_to_det_coord(Rx, Rz, Lx, Lz, angle, *,
     use the measured face-to-crystal-center distance for a crystal coordinate.
     The default describes the face, not the crystal center. Off-axis offsets
     are not modeled. Drawing 10000010279 sheet 2 labels 40.5 inches in plan;
-    that dimension is not a rotation-axis height.
+    that dimension is not a rotation-axis height. Survey working values are
+    27.5 +/- 0.3 in floor-to-axis, 5.2 in (132 mm) axis-to-Al-face with hub as
+    pivot (bounds 4.4--6.0 in), and 1.59 in
+    face-to-crystal center; this helper still uses the historical 8 in face
+    offset unless the caller supplies those numbers. No in-repo consumer
+    currently passes them.
     """
     if not isfinite(face_to_point_inches) or (
             axis_height_inches is not None and not isfinite(axis_height_inches)):

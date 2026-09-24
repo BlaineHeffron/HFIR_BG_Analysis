@@ -64,6 +64,9 @@ def spectrum_name_check(name, flist, db):
             checkname = name
         else:
             checkname = name + ".txt"
+        # Public file 186 is still named CYCLE461_*; Cycle 491 is the acquisition.
+        if checkname == "CYCLE491_DOWN_FACING_OVERNIGHT.txt":
+            checkname = "CYCLE461_DOWN_FACING_OVERNIGHT.txt"
         for f in flist:
             path, fname = ntpath.split(f)
             if fname == checkname:
