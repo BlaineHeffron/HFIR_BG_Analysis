@@ -60,10 +60,15 @@ ROOT-free detector-response matrices distributed with the public data bundle:
 |---|---|---|
 | 01 | `MIF_BOX_REACTOR_OPTIMIZED_DAYCOUNT_OPTIMAL_GAIN` | MIF (Rx On) |
 | 02 | `MIF_BOX_AT_REACTOR_RXOFF` | MIF (Rx Off) |
-| 03 | `CYCLE461_DOWN_FACING_OVERNIGHT` | Shield Center (Cycle 491; historical filename CYCLE461) |
+| 03 | `CYCLE491_DOWN_FACING_OVERNIGHT` | Shield Center (Cycle 491) |
 | 04 | `HB4_DOWN_OVERNIGHT_1` | HB4 |
 | 05 | `EAST_FACE_18` | PROSPECT East 1 |
 | 06 | `EAST_FACE_1` | PROSPECT East 2 |
+
+Local v1.2.1 uses the Cycle 491 name for file 186/run 295. The released
+ancillary CSV basenames retain `CYCLE461_DOWN_FACING_OVERNIGHT`; they have not
+been renamed or republished. Both names resolve in the maintained database
+readers, including explicitly bound v1.1.0.
 
 ## CSV columns
 

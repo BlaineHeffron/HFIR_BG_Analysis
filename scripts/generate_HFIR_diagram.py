@@ -198,7 +198,7 @@ def HFIR_diagram_with_detectors():
         #"PROSPECT_DOWN_OVERNIGHT.txt": {"label": "NW corner", "color": "orange"},
         "EAST_FACE_18": {"label": "East 1", "color": "blue"},
         "EAST_FACE_1": {"label": "East 2", "color": "red"},
-        "CYCLE461_DOWN_FACING_OVERNIGHT": {"label": "Shield Center", "color": "brown"},  # Cycle 491; DB name unchanged
+        "CYCLE491_DOWN_FACING_OVERNIGHT": {"label": "Shield Center (Cycle 491)", "color": "brown"},
     }
     
     arrow_length = 12  # Length of arrows in plot units

@@ -17,15 +17,18 @@ from typing import Any, Literal, Mapping, Sequence
 import numpy as np
 import pandas as pd
 
+from src.spectrum_names import spectrum_name_candidates
+
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-# v1.2.0 is the locally built CNF-timing-corrected database; v1.1.0 is the published fallback.
+# Prefer local timing/name corrections; keep older bundles as fallbacks.
 STANDARD_PUBLIC_BUNDLE = (
-    REPOSITORY_ROOT / "data" / "HFIRBG_public_data_v1.2.0"
+    REPOSITORY_ROOT / "data" / "HFIRBG_public_data_v1.2.1"
 )
 STANDARD_DB_CANDIDATES = (
     REPOSITORY_ROOT / "db" / "HFIRBG.db",
     STANDARD_PUBLIC_BUNDLE / "HFIRBG.db",
+    REPOSITORY_ROOT / "data" / "HFIRBG_public_data_v1.2.0" / "HFIRBG.db",
     REPOSITORY_ROOT / "data" / "HFIRBG_public_data_v1.1.0" / "HFIRBG.db",
 )
 
@@ -235,7 +238,8 @@ def _spectrum_path(
         directory = _expanded_path(stored) if Path(stored).is_absolute() else (
             paths.db_path.parent / stored
         ).resolve()
-    path = directory / filename
+    path = next((directory / (stem+'.txt') for stem in spectrum_name_candidates(name)
+                 if (directory / (stem+'.txt')).is_file()), directory / filename)
     if not path.is_file():
         raise FileNotFoundError(
             f"spectrum file {metadata['file_id']} was not found at {path}"

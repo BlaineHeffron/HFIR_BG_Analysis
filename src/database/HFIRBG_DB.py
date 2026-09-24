@@ -1,5 +1,6 @@
 import os
 
+from src.spectrum_names import spectrum_name_candidates
 from src.database.SqliteManager import SQLiteBase, get_db_dir, generate_in_clause
 from src.utilities.util import get_data_dir, retrieve_file_extension, start_date, file_number, get_calibration, \
     read_csv_list_of_tuples, get_json, is_number, timestring_to_dt
@@ -35,6 +36,14 @@ class HFIRBG_DB(SQLiteBase):
                     "Set HFIRBG_CALDB, place HFIRBG.db at db/HFIRBG.db, or keep it beside the HFIRBGDATA directory")
         super().__init__(path)
 
+    def _file_name(self, name):
+        candidates = spectrum_name_candidates(name)
+        if len(candidates) > 1:
+            for candidate in candidates:
+                if self.cur.execute("SELECT 1 FROM datafile WHERE name=?", (candidate,)).fetchone():
+                    return candidate
+        return candidates[0]
+
     def retrieve_datafiles(self):
         return self.fetchall("SELECT * FROM datafile")
 
@@ -54,6 +63,11 @@ class HFIRBG_DB(SQLiteBase):
                 directory = os.path.join(os.path.dirname(os.path.abspath(self.path)), directory)
         if extension and not filename.endswith(extension):
             filename += extension
+        if extension in (".txt", ""):
+            for stem in spectrum_name_candidates(filename):
+                candidate = os.path.join(directory, stem + ".txt")
+                if os.path.isfile(candidate):
+                    return os.path.join(directory, stem + extension)
         return os.path.join(directory, filename)
 
     def sync_files(self, base_path=None):
@@ -126,8 +140,7 @@ class HFIRBG_DB(SQLiteBase):
         :param file_name: file name (string)
         :return: run name
         """
-        if file_name.endswith(".txt"):
-            file_name = file_name[0:-4]
+        file_name = self._file_name(file_name)
         run_id = self.fetchone(
             "SELECT r.name, rfl.run_id FROM run_file_list rfl JOIN runs r on r.id = rfl.run_id  WHERE rfl.file_id = (SELECT id from datafile where name = '{0}')".format(
                 file_name))
@@ -164,8 +177,7 @@ class HFIRBG_DB(SQLiteBase):
         fids = []
         for name in names:
             if isinstance(name, str):
-                if name.endswith(".txt"):
-                    name = name[0:-4]
+                name = self._file_name(name)
                 fid = self.fetchone("SELECT id FROM datafile WHERE name = '{}'".format(name))
             else:
                 fid = self.fetchone("SELECT id FROM datafile WHERE run_number = {}".format(name))
@@ -330,8 +342,7 @@ class HFIRBG_DB(SQLiteBase):
             return cal_id
 
     def insert_calibration(self, A0, A1, fname, replace=True):
-        if fname.endswith(".txt"):
-            fname = fname[0:-4]
+        fname = self._file_name(fname)
         myid = self.fetchone("SELECT id FROM datafile WHERE name = '{}'".format(fname))
         if myid:
             myid = myid[0]
@@ -360,21 +371,18 @@ class HFIRBG_DB(SQLiteBase):
             return groupid
 
     def retrieve_calibration(self, fname):
-        if fname.endswith(".txt"):
-            fname = fname[0:-4]
+        fname = self._file_name(fname)
         return self.fetchone(
             "SELECT A0, A1 FROM calibration_group where id = (select group_id from file_calibration_group where file_id = (select id from datafile where name = '{}'))".format(
                 fname))
 
     def retrieve_file_time(self, fname):
         """returns the start_time, live_time"""
-        if fname.endswith(".txt"):
-            fname = fname[0:-4]
+        fname = self._file_name(fname)
         return self.fetchone("SELECT start_time, live_time FROM datafile where name = '{}'".format(fname))
 
     def get_file_path_from_name(self, fname):
-        if fname.endswith(".txt"):
-            fname = fname[0:-4]
+        fname = self._file_name(fname)
         data = self.fetchone(
             "SELECT f.directory_id, d.path from datafile f join directory d on f.directory_id = d.id where f.name = '{}'".format(
                 fname))
@@ -664,8 +672,7 @@ class HFIRBG_DB(SQLiteBase):
         returns ids of calibration groups within +/- dt in seconds with same detector configuration
         """
         if isinstance(filename, str):
-            if filename.endswith(".txt"):
-                filename = filename[0:-4]
+            filename = self._file_name(filename)
             data = self.fetchone("SELECT id, start_time FROM datafile WHERE name = '{}'".format(filename))
         else:
             data = self.fetchone("SELECT id, start_time FROM datafile WHERE run_number = {}".format(filename))

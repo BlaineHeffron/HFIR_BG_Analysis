@@ -10,8 +10,12 @@ import shutil
 import sqlite3
 import subprocess
 import tempfile
+import sys
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from src.spectrum_names import SPECTRUM_RENAMES
 
 # CNF start ticks are Eastern local wall time; this reproduces 1694/1694 v1.1.0 start times from intact records.
 ACQUISITION_ZONE = ZoneInfo('America/New_York')
@@ -54,6 +58,7 @@ def build(source, survey, destination):
                              or selected['live_s'] > selected['real_s']):
                 raise ValueError(f'invalid selected timing: {name}')
             row = dict(file_id=db['id'] if db else None, file_name=name,
+                       corrected_file_name=name, name_corrected=False, rename_reason='',
                        db_live_s=db['live_time'] if db else None, db_real_s=None,
                        cnf_record_1=json.dumps(r.get('timing', [None, None])[0]),
                        cnf_record_2=json.dumps(r.get('timing', [None, None])[1]),
@@ -84,7 +89,16 @@ def build(source, survey, destination):
                             other.get(k) is not None and abs(old-other[k]) < 1e-5 for k in ('live_s','real_s'))
                             else 'real-stored-as-live' if old is not None and abs(old-selected['real_s']) < 1e-5
                             else 'unexplained')
-                    if row['action'] == 'correct-live' or row['start_corrected']:
+                    if name in SPECTRUM_RENAMES:
+                        day = datetime.fromtimestamp(row['cnf_start'], ACQUISITION_ZONE).date().isoformat()
+                        if not '2021-04-13' <= day <= '2021-05-08':
+                            raise ValueError(f'{name}: start outside verified Cycle 491 calendar')
+                        new_name = SPECTRUM_RENAMES[name]
+                        if new_name in files:
+                            raise ValueError(f'rename collides with existing spectrum: {new_name}')
+                        row.update(corrected_file_name=new_name, name_corrected=True,
+                                   rename_reason='Cycle 491 calendar 2021-04-13 through 2021-05-08; historical name retained as alias')
+                    if row['action'] == 'correct-live' or row['start_corrected'] or row['name_corrected']:
                         changes.append(row)
             table.append(row)
         if any(r['status'] == 'ambiguous' for r in table):
@@ -97,10 +111,10 @@ def build(source, survey, destination):
                 corrected.execute('ALTER TABLE datafile ADD COLUMN real_time REAL')
                 for r in table:
                     if r['action'] in ('correct-live', 'retain-live'):
-                        corrected.execute('UPDATE datafile SET live_time=?, real_time=?, start_time=? WHERE id=?',
+                        corrected.execute('UPDATE datafile SET live_time=?, real_time=?, start_time=?, name=? WHERE id=?',
                                           (r['cnf_live_s'] if r['action']=='correct-live' else r['db_live_s'],
                                            r['cnf_real_s'], r['cnf_start'] if r['start_corrected'] else r['db_start'],
-                                           r['file_id']))
+                                           r['corrected_file_name'], r['file_id']))
                 corrected.commit()
                 if corrected.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
                     raise ValueError('corrected database integrity failure')
@@ -109,15 +123,21 @@ def build(source, survey, destination):
                     writer=csv.DictWriter(stream, fieldnames=list(table[0]))
                     writer.writeheader(); writer.writerows(content)
             shutil.copyfile(survey, output/'cnf.jsonl')
-            # Preserve relative bundle paths without copying the spectra or changing calibrations.
-            for name in ('spectra', 'migration_matrices'):
-                if (source.parent/name).exists():
-                    (output/name).symlink_to(source.parent/name, target_is_directory=True)
+            # One link per input spectrum: canonical names without duplicate acquisitions.
+            if (source.parent/'spectra').exists():
+                (output/'spectra').mkdir()
+                renames = {r['file_name']: r['corrected_file_name'] for r in table if r['name_corrected']}
+                for path in (source.parent/'spectra').iterdir():
+                    name = renames.get(path.stem, path.stem)+path.suffix
+                    (output/'spectra'/name).symlink_to(path.resolve())
+            if (source.parent/'migration_matrices').exists():
+                (output/'migration_matrices').symlink_to(source.parent/'migration_matrices', target_is_directory=True)
             summary = dict(source_database=str(source), source_sha256=source_digest,
                            corrected_sha256=digest(output/'HFIRBG.db'), survey_sha256=digest(survey),
                            files=len(table), matched=len(matched),
                            corrected_live=sum(r['action']=='correct-live' for r in changes),
                            corrected_start=sum(r['start_corrected'] for r in changes),
+                           corrected_names=sum(r['name_corrected'] for r in changes),
                            start_time_zone=str(ACQUISITION_ZONE),
                            rule='later start; equal start longer real; exact real tie prefer live < real',
                            real_time_semantics='CNF native selected real counter; equal real/live does not establish absence of dead time',
@@ -141,4 +161,4 @@ if __name__ == '__main__':
         with survey.open('w') as stream:
             subprocess.run([str(args.reader.resolve()), str(args.cnf_root.resolve())], stdout=stream, check=True)
         result=build(args.source, survey, args.destination)
-    print(json.dumps({k:result[k] for k in ('files','matched','corrected_live','corrected_start')}))
+    print(json.dumps({k:result[k] for k in ('files','matched','corrected_live','corrected_start','corrected_names')}))

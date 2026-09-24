@@ -1,20 +1,34 @@
 # Local CNF timing correction
 
+Local v1.2.1 adds the verified file-186 name correction
+`CYCLE461_DOWN_FACING_OVERNIGHT` → `CYCLE491_DOWN_FACING_OVERNIGHT` and is
+preferred for new analyses. Its start (6 May 2021) and run-295 description
+agree with Cycle 491 in `reference_data/hfir_cycle_calendar.csv`. No other
+`CYCLE461_*` entry exists. Timing, calibration and counts are identical to
+v1.2.0. Both old versions remain untouched. `src/spectrum_names.py` is the
+shared bidirectional compatibility mapping. The new spectrum directory has
+one link per acquisition using the canonical name; raw/released filenames
+stay unchanged. `corrections.csv` includes old/new names, `name_corrected`,
+and the rename evidence alongside timing corrections.
+
+
 The local `data/HFIRBG_public_data_v1.2.0/HFIRBG.db` corrects 45 live times and
 108 start times identified by a survey of 1,809 Canberra CNFs (1,802 database
-matches). It is the browser and `setup_analysis.sh` default when present, with
-v1.1.0 as the fallback. It is not a public release; v1.1.0 is unchanged.
+matches). The browser and `setup_analysis.sh` prefer v1.2.1, then v1.2.0, with
+v1.1.0 as the published fallback. It is not a public release; v1.1.0 is unchanged.
 
 Select a database explicitly with the existing browser interface:
 
 ```python
 from src.public_data.browser import load_spectrum
-spectrum = load_spectrum(444, db_path="data/HFIRBG_public_data_v1.2.0/HFIRBG.db")
+spectrum = load_spectrum(444, db_path="data/HFIRBG_public_data_v1.2.1/HFIRBG.db")
 ```
 
 `HFIRBG_CALDB` also selects an explicit database; an existing `.env` that still
 points at v1.1.0 is updated by rerunning `scripts/setup_analysis.sh`. Frozen
-studies must continue passing their bound v1.1.0 path. The local copy links to
+studies must continue passing their bound v1.1.0 path. Do not rerun setup
+in a frozen study environment: setup upgrades the standard `.env` database
+path; an explicit `db_path` binding remains authoritative. The local copy links to
 the original spectra; counts, calibration assignments and run mappings are unchanged.
 The added `datafile.real_time` is the selected native CNF real counter in
 seconds. Equal real/live values do **not** demonstrate zero physical dead time;
@@ -25,7 +39,7 @@ Reproduce with the compiled reader from the private phonon-response workspace:
 ```sh
 python3 scripts/correct_cnf_timing.py \
   --source data/HFIRBG_public_data_v1.1.0/HFIRBG.db \
-  --destination data/HFIRBG_public_data_v1.2.0 \
+  --destination data/HFIRBG_public_data_v1.2.1 \
   --reader /path/to/phonon-response/build/detresp_cnf \
   --cnf-root /path/to/HFIRBG/data
 ```

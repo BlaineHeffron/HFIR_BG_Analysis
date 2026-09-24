@@ -93,11 +93,14 @@ if grep -qF '/data/HFIRBG_public_data_v1.0.1/' .env; then
     sed -i 's|/data/HFIRBG_public_data_v1\.0\.1/|/data/HFIRBG_public_data_v1.1.0/|g' .env
     echo "Updated .env portable defaults to ${DATA_VERSION}."
 fi
-# Prefer the locally built CNF-timing-corrected database (docs/CNF_TIMING_CORRECTION.md).
-if [[ -f data/HFIRBG_public_data_v1.2.0/HFIRBG.db ]] && grep -qF '/data/HFIRBG_public_data_v1.1.0/HFIRBG.db' .env; then
-    sed -i 's|/data/HFIRBG_public_data_v1\.1\.0/HFIRBG\.db|/data/HFIRBG_public_data_v1.2.0/HFIRBG.db|g' .env
-    echo "Updated .env database default to local v1.2.0."
-fi
+# Prefer the latest local correction; do not run this on a frozen study environment.
+for local_version in 1.2.1 1.2.0; do
+    if [[ -f "data/HFIRBG_public_data_v${local_version}/HFIRBG.db" ]]; then
+        sed -i -E "s|/data/HFIRBG_public_data_v1\.(1\.0|2\.0)/HFIRBG\.db|/data/HFIRBG_public_data_v${local_version}/HFIRBG.db|g" .env
+        echo "Selected local database default v${local_version}."
+        break
+    fi
+done
 
 set -a
 source .env

@@ -117,6 +117,35 @@ class TemporaryPublicBundleTests(unittest.TestCase):
         # The deliberately incorrect energy column in the text file is ignored.
         np.testing.assert_allclose(spectrum.energy_keV, [2.5, 4.5, 6.5, 8.5, 10.5])
 
+    def test_cycle491_alias_on_both_database_versions(self):
+        from src.database.HFIRBG_DB import HFIRBG_DB
+        from src.spectrum_names import spectrum_name_candidates
+        from src.utilities.util import spectrum_name_check
+        names=spectrum_name_candidates("CYCLE461_DOWN_FACING_OVERNIGHT")
+        original=self.spectra / "00000007.txt"
+        old=self.spectra / (names[1]+".txt")
+        original.rename(old)
+        for stored in names:
+            with self.subTest(database_name=stored):
+                with sqlite3.connect(self.db) as connection:
+                    connection.execute("UPDATE datafile SET name=? WHERE id=7",(stored,))
+                spectrum=load_spectrum(7,db_path=self.db)
+                self.assertEqual(spectrum.file_name,stored)
+                self.assertEqual(spectrum.counts.sum(),54)
+                db=HFIRBG_DB(str(self.db))
+                for alias in names:
+                    self.assertEqual(db.retrieve_file_ids([alias]),[7])
+                    self.assertEqual(db.retrieve_calibration(alias),(0.5,2.0))
+                    self.assertEqual(db.retrieve_file_time(alias)[1],10)
+                    self.assertEqual(db.get_file_path_from_name(alias),str(old.with_suffix('')))
+                    with patch("src.utilities.util.retrieve_data",return_value="loaded") as read:
+                        self.assertEqual(spectrum_name_check(alias,[str(old)],db),"loaded")
+                        read.assert_called_once_with(str(old),db)
+                db.close()
+        # Canonical-only physical bundle also supports an old database name.
+        old.rename(self.spectra / (names[0]+".txt"))
+        self.assertEqual(load_spectrum(7,db_path=self.db).counts.sum(),54)
+
     def test_explicit_data_root_precedes_environment(self):
         missing = self.bundle / "missing"
         with patch.dict(os.environ, {"HFIRBGDATA": str(missing)}):

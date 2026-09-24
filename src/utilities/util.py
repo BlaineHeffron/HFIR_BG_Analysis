@@ -15,6 +15,7 @@ import ctypes
 import numpy as np
 from scipy import stats
 
+from src.spectrum_names import spectrum_name_candidates
 from src.analysis.Spectrum import (
     PEAK_AREA_NET_COUNTS,
     SpectrumData,
@@ -60,17 +61,10 @@ def spectrum_name_check(name, flist, db):
             if name == file_number(file):
                 return retrieve_data(f, db)
     else:
-        if name.endswith(".txt"):
-            checkname = name
-        else:
-            checkname = name + ".txt"
-        # Public file 186 is still named CYCLE461_*; Cycle 491 is the acquisition.
-        if checkname == "CYCLE491_DOWN_FACING_OVERNIGHT.txt":
-            checkname = "CYCLE461_DOWN_FACING_OVERNIGHT.txt"
-        for f in flist:
-            path, fname = ntpath.split(f)
-            if fname == checkname:
-                return retrieve_data(f, db)
+        for stem in spectrum_name_candidates(name):
+            for f in flist:
+                if ntpath.basename(f) == stem + ".txt":
+                    return retrieve_data(f, db)
 
 
 def retrieve_spectra(n, flist, db):
