@@ -101,8 +101,18 @@ Machine table: `docs/unfold_rebuild_bands_v1.2.2.csv` (all 8 names × iso/front 
 
 Max |(b) − LT ratio| on 0.2–1, 1–6 and 6–11.5 MeV, excluding the MIF-on iso
 0.2–1 numerical floor (8e-8 Hz/mm²): **HB4 iso 0.2–1, +0.30%**. Other AD1-style
-bands are ≤ 1e-4 except MIF-on iso 7.6–7.7 (+0.39%). The 0.30% is RL stopping
-under a 1.4% rate rescaling, not a second input change.
+bands are ≤ 1e-4 except MIF-on iso 7.6–7.7 (+0.39%).
+
+HB4 iso Richardson–Lucy stopped at **199 iterations** (v1.2.1, χ²=78.322) vs
+**200 iterations** (v1.2.2, χ²=79.414), both at Δχ²≈0.005. The absolute-Δχ²
+stop is not scale-invariant, so a live-time rescaling can change the low-energy
+band at the few-0.1% level. That is an unfolding systematic, not physics.
+
+The published 40 keV bin is an RL sink. Integrals that include it (40–12000 keV
+or 40–200 keV) are not robust at the tens-of-percent level when the axis moves.
+East 18 iso 40–12000 (a)=−24.7%; MIF off iso 0.2–1 (a)=−4.0%; East 18 iso 0.2–1
+(a)=+4.4%. Those belong on the paper old→new list if any total or 40 keV-inclusive
+flux is quoted. They are axis-plus-sink, not a mid-band flux change.
 
 Fe-line window 7.6–7.7 MeV, (a) only (axis files):
 
