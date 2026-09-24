@@ -10,8 +10,16 @@ import shutil
 import sqlite3
 import subprocess
 import tempfile
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
-SENTINELS = {1078, 1561}
+# CNF start ticks are Eastern local wall time; this reproduces 1694/1694 v1.1.0 start times from intact records.
+ACQUISITION_ZONE = ZoneInfo('America/New_York')
+
+
+def unix_start(ticks):
+    local = datetime(1858, 11, 17) + timedelta(microseconds=ticks//10)
+    return local.replace(tzinfo=ACQUISITION_ZONE).timestamp()
 
 
 def digest(path):
@@ -54,7 +62,9 @@ def build(source, survey, destination):
                        cnf_real_s=selected['real_s'] if selected else None,
                        fractional_live_change=None, rate_fractional_change=None,
                        source_sha256=r.get('sha256'), parser_revision=r.get('parser_revision'),
-                       correction='none', database_status='unmatched' if not db else 'ambiguous',
+                       db_start=db['start_time'] if db else None,
+                       cnf_start=unix_start(selected['start_ticks']) if selected else None,
+                       start_corrected=False, correction='none', database_status='unmatched' if not db else 'ambiguous',
                        action='unmatched' if not db else 'ambiguous')
             if db:
                 if db['id'] in matched:
@@ -65,14 +75,16 @@ def build(source, survey, destination):
                     if old and old > 0:
                         row['fractional_live_change'] = new/old-1
                         row['rate_fractional_change'] = old/new-1
-                    row['action'] = 'sentinel-preserved' if db['id'] in SENTINELS else ('correct-live' if old is None or abs(old-new)>1e-5 else 'retain-live')
+                    row['action'] = 'correct-live' if old is None or abs(old-new)>1e-5 else 'retain-live'
+                    row['start_corrected'] = db['start_time'] is None or abs(db['start_time']-row['cnf_start']) > 1.5
                     row['database_status'] = 'consistent' if row['action'] == 'retain-live' else row['action']
                     if row['action'] == 'correct-live':
                         other = r['timing'][2-slot]
-                        row['correction'] = ('stale-record' if old is not None and any(
+                        row['correction'] = ('placeholder' if old is not None and old <= 1 else 'stale-record' if old is not None and any(
                             other.get(k) is not None and abs(old-other[k]) < 1e-5 for k in ('live_s','real_s'))
                             else 'real-stored-as-live' if old is not None and abs(old-selected['real_s']) < 1e-5
                             else 'unexplained')
+                    if row['action'] == 'correct-live' or row['start_corrected']:
                         changes.append(row)
             table.append(row)
         if any(r['status'] == 'ambiguous' for r in table):
@@ -85,9 +97,10 @@ def build(source, survey, destination):
                 corrected.execute('ALTER TABLE datafile ADD COLUMN real_time REAL')
                 for r in table:
                     if r['action'] in ('correct-live', 'retain-live'):
-                        corrected.execute('UPDATE datafile SET live_time=?, real_time=? WHERE id=?',
+                        corrected.execute('UPDATE datafile SET live_time=?, real_time=?, start_time=? WHERE id=?',
                                           (r['cnf_live_s'] if r['action']=='correct-live' else r['db_live_s'],
-                                           r['cnf_real_s'], r['file_id']))
+                                           r['cnf_real_s'], r['cnf_start'] if r['start_corrected'] else r['db_start'],
+                                           r['file_id']))
                 corrected.commit()
                 if corrected.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
                     raise ValueError('corrected database integrity failure')
@@ -102,11 +115,13 @@ def build(source, survey, destination):
                     (output/name).symlink_to(source.parent/name, target_is_directory=True)
             summary = dict(source_database=str(source), source_sha256=source_digest,
                            corrected_sha256=digest(output/'HFIRBG.db'), survey_sha256=digest(survey),
-                           files=len(table), matched=len(matched), corrected_live=len(changes),
-                           sentinel_ids=sorted(SENTINELS), default_changed=False,
+                           files=len(table), matched=len(matched),
+                           corrected_live=sum(r['action']=='correct-live' for r in changes),
+                           corrected_start=sum(r['start_corrected'] for r in changes),
+                           start_time_zone=str(ACQUISITION_ZONE),
                            rule='later start; equal start longer real; exact real tie prefer live < real',
                            real_time_semantics='CNF native selected real counter; equal real/live does not establish absence of dead time',
-                           over_half_percent=[r for r in changes if r['fractional_live_change'] is not None and abs(r['fractional_live_change'])>.005])
+                           over_half_percent=[r for r in changes if r['action']=='correct-live' and (r['fractional_live_change'] is None or abs(r['fractional_live_change'])>.005)])
             (output/'summary.json').write_text(json.dumps(summary, indent=2)+'\n')
             if digest(source) != source_digest:
                 raise ValueError('source database changed during correction')
@@ -126,4 +141,4 @@ if __name__ == '__main__':
         with survey.open('w') as stream:
             subprocess.run([str(args.reader.resolve()), str(args.cnf_root.resolve())], stdout=stream, check=True)
         result=build(args.source, survey, args.destination)
-    print(json.dumps({k:result[k] for k in ('files','matched','corrected_live','default_changed')}))
+    print(json.dumps({k:result[k] for k in ('files','matched','corrected_live','corrected_start')}))

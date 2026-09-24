@@ -19,12 +19,14 @@ import pandas as pd
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+# v1.2.0 is the locally built CNF-timing-corrected database; v1.1.0 is the published fallback.
 STANDARD_PUBLIC_BUNDLE = (
-    REPOSITORY_ROOT / "data" / "HFIRBG_public_data_v1.1.0"
+    REPOSITORY_ROOT / "data" / "HFIRBG_public_data_v1.2.0"
 )
 STANDARD_DB_CANDIDATES = (
     REPOSITORY_ROOT / "db" / "HFIRBG.db",
     STANDARD_PUBLIC_BUNDLE / "HFIRBG.db",
+    REPOSITORY_ROOT / "data" / "HFIRBG_public_data_v1.1.0" / "HFIRBG.db",
 )
 
 Normalization = Literal["counts", "counts/s", "counts/s/keV"]

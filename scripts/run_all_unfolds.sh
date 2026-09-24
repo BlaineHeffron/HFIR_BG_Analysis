@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run GeCollimatorUnfolder for the six paper spectra.
+# Run GeCollimatorUnfolder for the six paper spectra and the CNF-restored PROSPECT NW/NE overnights.
 
 set -euo pipefail
 
@@ -115,6 +115,8 @@ FNAMES=(
     "HB4_DOWN_OVERNIGHT_1"
     "EAST_FACE_18"
     "EAST_FACE_1"
+    "PROSPECT_DOWN_OVERNIGHT"
+    "NE_FACING_EAST"
 )
 
 mkdir -p "$OUT_DIR" "$CFG_DIR" "$INPUT_LINK_DIR"

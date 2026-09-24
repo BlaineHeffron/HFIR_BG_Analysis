@@ -1,4 +1,4 @@
-"""A correction must preserve the source, calibration, and exclusion sentinels."""
+"""A correction must preserve the source and calibration and replace placeholder timing."""
 import importlib.util
 import json
 from pathlib import Path
@@ -16,8 +16,8 @@ class CorrectionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp); source=root/'original.db'; survey=root/'survey.jsonl'; dest=root/'vnew'
             with sqlite3.connect(source) as db:
-                db.executescript("CREATE TABLE datafile(id INTEGER PRIMARY KEY,name TEXT,live_time REAL);"
-                                 "INSERT INTO datafile VALUES(1,'one',10),(1078,'sentinel',0);"
+                db.executescript("CREATE TABLE datafile(id INTEGER PRIMARY KEY,name TEXT,start_time INTEGER,live_time REAL);"
+                                 "INSERT INTO datafile VALUES(1,'one',NULL,10),(1078,'sentinel',NULL,0);"
                                  "CREATE TABLE calibration_group(A0 REAL,A1 REAL);"
                                  "INSERT INTO calibration_group VALUES(1,2);")
             original=source.read_bytes()
@@ -27,10 +27,11 @@ class CorrectionTests(unittest.TestCase):
                        sha256='synthetic',parser_revision='synthetic') for name in ('one','sentinel')]
             survey.write_text('\n'.join(map(json.dumps,rows)))
             result=correction.build(source,survey,dest)
-            self.assertEqual(result['corrected_live'],1)
+            self.assertEqual((result['corrected_live'],result['corrected_start']),(2,2))
             self.assertEqual(source.read_bytes(),original)
             with sqlite3.connect(dest/'HFIRBG.db') as db:
-                self.assertEqual(db.execute('select live_time,real_time from datafile order by id').fetchall(),[(20,21),(0,None)])
+                self.assertEqual(db.execute('select live_time,real_time from datafile order by id').fetchall(),[(20,21),(20,21)])
+                self.assertEqual(db.execute('select start_time from datafile').fetchone()[0],correction.unix_start(2))
                 self.assertEqual(db.execute('select * from calibration_group').fetchall(),[(1,2)])
             with self.assertRaises(ValueError):correction.build(source,survey,dest)
             rows[0]['chosen_record']=0;rows[0]['status']='ambiguous'

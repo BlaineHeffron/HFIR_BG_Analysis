@@ -22,6 +22,8 @@ FNAMES = [
     "HB4_DOWN_OVERNIGHT_1",
     "EAST_FACE_18",
     "EAST_FACE_1",
+    "PROSPECT_DOWN_OVERNIGHT",
+    "NE_FACING_EAST",
 ]
 
 ALIAS_MAP = {
@@ -31,6 +33,8 @@ ALIAS_MAP = {
     "HB4_DOWN_OVERNIGHT_1": "HB4",
     "EAST_FACE_18": "PROSPECT East 1",
     "EAST_FACE_1": "PROSPECT East 2",
+    "PROSPECT_DOWN_OVERNIGHT": "PROSPECT NW Down",
+    "NE_FACING_EAST": "PROSPECT NE East",
 }
 
 MEASUREMENT_METADATA = [
@@ -86,6 +90,24 @@ MEASUREMENT_METADATA = [
         "z_pos": 214.3594748928162,
         "x_pos": 93.0,
         "angle": 63.5,
+        "phi_deg": 0.0,
+    },
+    {
+        "number": 7,
+        "filename": "PROSPECT_DOWN_OVERNIGHT",
+        "alias": "PROSPECT NW Down",
+        "z_pos": 169.2,
+        "x_pos": 43.0,
+        "angle": 0.0,
+        "phi_deg": 0.0,
+    },
+    {
+        "number": 8,
+        "filename": "NE_FACING_EAST",
+        "alias": "PROSPECT NE East",
+        "z_pos": 220.7,
+        "x_pos": 48.0,
+        "angle": 90.0,
         "phi_deg": 0.0,
     },
 ]
@@ -342,11 +364,12 @@ def plot_measured_vs_unfolded(outdir, case_name, spectra, title_suffix):
     if not spectra:
         return
 
-    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+    rows = -(-len(spectra) // 3)
+    fig, axes = plt.subplots(rows, 3, figsize=(18, 5 * rows), squeeze=False)
     color_meas = "#1f77b4"
     color_unf = "#d62728"
 
-    for idx, spec in enumerate(spectra[:6]):
+    for idx, spec in enumerate(spectra):
         row, col = divmod(idx, 3)
         ax1 = axes[row, col]
         if spec["y_meas"] is not None:
@@ -386,6 +409,8 @@ def plot_measured_vs_unfolded(outdir, case_name, spectra, title_suffix):
         lines2, labels2 = ax2.get_legend_handles_labels()
         ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper right", fontsize=8)
 
+    for ax in axes.flat[len(spectra):]:
+        ax.axis("off")
     plt.tight_layout()
     save_figure(fig, outdir, f"measured_vs_unfolded_comparison_{case_name}")
 
@@ -400,7 +425,8 @@ def plot_bounds(outdir, iso_spectra, front_spectra):
     if not common:
         return
 
-    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+    rows = -(-len(common) // 3)
+    fig, axes = plt.subplots(rows, 3, figsize=(18, 5 * rows), squeeze=False)
     for idx, fname in enumerate(common):
         row, col = divmod(idx, 3)
         ax = axes[row, col]
@@ -428,6 +454,8 @@ def plot_bounds(outdir, iso_spectra, front_spectra):
         ax.grid(True, alpha=0.3)
         ax.legend(loc="upper right", fontsize=8)
 
+    for ax in axes.flat[len(common):]:
+        ax.axis("off")
     plt.tight_layout()
     save_figure(fig, outdir, "unfolded_spectrum_bounds")
 
