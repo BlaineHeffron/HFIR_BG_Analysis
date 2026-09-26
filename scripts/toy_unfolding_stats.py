@@ -194,9 +194,11 @@ def main() -> None:
     parser.add_argument('--seed', type=int, default=20260416)
     parser.add_argument('--measurements', nargs='*', default=list(MEASUREMENTS.keys()))
     parser.add_argument('--keep-work', action='store_true')
+    parser.add_argument('--data-dir', type=Path, default=DATA_DIR)
+    parser.add_argument('--out-dir', type=Path, default=OUTDIR)
     args = parser.parse_args()
 
-    outdir = OUTDIR
+    outdir = args.out_dir
     workdir = outdir / 'work'
     if workdir.exists():
         shutil.rmtree(workdir)
@@ -212,7 +214,7 @@ def main() -> None:
         selected_measurements.append(measurement)
 
     for measurement in selected_measurements:
-        source_path = DATA_DIR / f'{measurement}.root'
+        source_path = args.data_dir / f'{measurement}.root'
         for toy_index in range(args.n_toys):
             toy_dir = workdir / measurement / f'toy_{toy_index:03d}'
             toy_input = toy_dir / f'{measurement}_toy.root'

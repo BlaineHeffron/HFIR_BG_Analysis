@@ -18,6 +18,13 @@ migration matrices.
     sha256 `19bc5d8f6728a63fadf00aae0676414ef0f2f33a6a245ad9b559eda4d8e4d9fb`
   - `scripts/private/migration_matrix_front.root`
     sha256 `af3b19e1474dac09e063ab5c38a3361b3c5763472d583cf48aaab7c30bdbf984`
+- The front matrix uses the 15,170 front-response ROOT files in the 2026-04-02
+  simulation set. Rebuilding its 6200, 9700, and 6000 keV columns from the
+  available 4, 8, and 116 files gives maximum relative differences below
+  `6e-8` from the stored `TH2F` values. Their summed simulation times are
+  1033.39, 1291.74, and 5581.84 s, respectively. The 5–10.4 MeV front
+  columns have 6–58% of the planned Monte Carlo statistics; each column is
+  normalized by its actual summed time, so this affects precision, not amplitude.
 - Unfolder: `P2x_Analyze` git `ca486313`, class `GeCollimatorUnfolder`,
   ELow 40, EHigh 12000, same `run_all_unfolds.sh` settings.
 
@@ -92,6 +99,29 @@ Relative standard deviation of the band integral:
 MIF-on toys in that directory record only the 50–2000 keV fraction, not these
 bands. No per-band replica set exists for Shield Center or East. Where a toy
 spread is missing, do not invent one from the iso/front bracket.
+
+For MIF reactor-on, 20 matched Poisson toys of the v1.2.2 input were unfolded
+with both published matrices and both paper algorithms: Richardson–Lucy (RL)
+and Poisson projected gradient descent (PGD). The quantity is the unfolded
+50–2000 keV integral divided by the 50–11500 keV integral. Each entry below
+is the mean paired difference ± its sample standard deviation, compared with
+the paper's six-toy result on the old input:
+
+| Paired difference | Paper (six toys) | v1.2.2 (20 toys) |
+| --- | ---: | ---: |
+| PGD − RL, isotropic | −0.0032 ± 0.0014 | −0.00736 ± 0.00143 |
+| PGD − RL, front | +0.0004 ± 0.0002 | −0.00145 ± 0.00010 |
+| Front − isotropic, RL | +0.0467 ± 0.0029 | +0.05681 ± 0.00634 |
+| Front − isotropic, PGD | +0.0503 ± 0.0038 | +0.06272 ± 0.00516 |
+
+The old six-toy standard deviations themselves have roughly 30% sampling
+uncertainty. The v1.2.2 nominal fractions are 0.05482 (RL isotropic), 0.11319
+(RL front), 0.04722 (PGD isotropic), and 0.11172 (PGD front). Nominal
+differences and toy means are distinct quantities; the paired-toy table compares
+like with like. All four paper values at tex line 664 require numerical updates.
+The front-versus-isotropic response effect remains larger than the difference
+between algorithms. Paper text has not been edited. Generated toy results are
+in `analysis/unfold/toy_stats_v1.2.2/` (gitignored).
 
 ## Full band table
 
